@@ -10,7 +10,7 @@ Decided 24 Oct 2026.
 | Framework | **Laravel 13** (released 17 Mar 2026, needs PHP 8.3+, security fixes until 17 Mar 2028) | Current major version; runs well on cPanel |
 | Database | **MySQL** on the existing cPanel account, in its own database `cmausaas` (kept separate from CLAU) | Already paid for, familiar through phpMyAdmin, included in cPanel backups |
 | Background work | One cPanel cron job every minute running `php artisan schedule:run`; database-backed queue processed in short batches | No long-running processes for the host to kill |
-| Hosting | cPanel account `appcrowdmerch746` (Melbourne Online, server lx4.webhostingaustralia.com.au). The app gets **its own subdomain** with its own PHP version set in MultiPHP Manager. app.crowdmerch.com.au already hosts an existing app on PHP 8.1 | Isolated from the existing app; 4 GB RAM, 1,500 processes, unlimited disk |
+| Hosting | cPanel account `appcrowdmerch746` (Melbourne Online, server lx4.webhostingaustralia.com.au). The app lives at **saas.app.crowdmerch.com.au**, created 24 Oct 2026. Its document root is `/home/appcrowdmerch746/public_html/saas.app.crowdmerch.com.au`, it runs PHP 8.4 (ea-php84) with PHP-FPM, and its DNS is a Cloudflare A record pointing to 54.79.92.35. cPanel would not add saas.crowdmerch.com.au because crowdmerch.com.au uses Cloudflare nameservers. app.crowdmerch.com.au already hosts an existing app on PHP 8.1 | Isolated from the existing app; 4 GB RAM, 1,500 processes, unlimited disk |
 
 ## Deployment without shell access
 
@@ -21,7 +21,7 @@ The host prefers that we don't use SSH shell access, so nothing depends on runni
 3. On the server, the release arrives one of two ways:
    - **Preferred:** cPanel **Git Version Control** pulls the `deploy` branch. Its `.cpanel.yml` copies the release into place and runs `php artisan migrate --force` and the cache commands. Note: cPanel needs a read-only deploy key to clone a private GitHub repository. This is an outbound connection to GitHub, not shell access to our server; confirm with the host that it's acceptable.
    - **Fallback:** GitHub Actions uploads the release over FTPS (cPanel FTP account, limited to the app folder). The release then finishes itself on the next cron run.
-4. Settings and secrets go in a `.env` file outside the web root. You create it once through cPanel File Manager; it is never in Git.
+4. Laravel's code sits outside the web root, in `/home/appcrowdmerch746/cmau-saas`. Only the `public/` files go into the document root, with `index.php` pointed back at the app. Settings and secrets go in a `.env` file outside the web root. You create it once through cPanel File Manager; it is never in Git.
 
 ## Security baseline
 
@@ -53,7 +53,7 @@ The host prefers that we don't use SSH shell access, so nothing depends on runni
 ## Still to confirm
 
 - The phpMyAdmin "Database server" version (MySQL 8.x or MariaDB 10.6+ needed).
-- The subdomain name (for example ops.crowdmerch.com.au).
+- The AutoSSL certificate for saas.app.crowdmerch.com.au. It was self-signed when the subdomain was created, and AutoSSL replaces it on its next run.
 - Whether the host is OK with a cPanel Git deploy key (if not, use the FTPS fallback).
 
 ## Other sites on this account (flagged by the host, 24 Oct 2026)
