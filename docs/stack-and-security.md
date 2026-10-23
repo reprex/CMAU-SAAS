@@ -6,11 +6,11 @@ Decided 24 Oct 2026.
 
 | Layer | Choice | Why |
 | --- | --- | --- |
-| Language | **PHP 8.5** (at least 8.5.12); fall back to PHP 8.4 (at least 8.4.27) if 8.5 is not offered | Latest supported branch, patched for the 21 Oct 2026 critical RCE release |
+| Language | **PHP 8.4**, the newest version the host offers. The host (Melbourne Online) confirmed on 24 Oct 2026 that its 8.2, 8.3 and 8.4 builds are patched for the 21 Oct 2026 critical RCE release; 8.5 is not offered | Gets security fixes the longest of the versions available; Laravel 13 needs 8.3+. Move to 8.5 when the host offers it |
 | Framework | **Laravel 13** (released 17 Mar 2026, needs PHP 8.3+, security fixes until 17 Mar 2028) | Current major version; runs well on cPanel |
 | Database | **MySQL** on the existing cPanel account, in its own database `cmausaas` (kept separate from CLAU) | Already paid for, familiar through phpMyAdmin, included in cPanel backups |
 | Background work | One cPanel cron job every minute running `php artisan schedule:run`; database-backed queue processed in short batches | No long-running processes for the host to kill |
-| Hosting | cPanel account `appcrowdmerch746` at Web Hosting Australia (server lx4); app on app.crowdmerch.com.au or a subdomain (to confirm) | Existing account with 4 GB RAM, 1,500 processes, unlimited disk |
+| Hosting | cPanel account `appcrowdmerch746` (Melbourne Online, server lx4.webhostingaustralia.com.au). The app gets **its own subdomain** with its own PHP version set in MultiPHP Manager. app.crowdmerch.com.au already hosts an existing app on PHP 8.1 | Isolated from the existing app; 4 GB RAM, 1,500 processes, unlimited disk |
 
 ## Deployment without shell access
 
@@ -26,8 +26,8 @@ The host prefers that we don't use SSH shell access, so nothing depends on runni
 ## Security baseline
 
 **PHP and framework**
-- Before go-live, confirm with the host that the PHP build serving the app is 8.5.12+ or 8.4.27+. This fixes CVE-2026-109618 and CVE-2026-109619, both CVSS 9.2 and under active exploitation since 21 Oct 2026.
-- The app refuses to start on an older PHP version: a version check runs at boot and in CI.
+- The PHP builds must include the fixes for CVE-2026-109618 and CVE-2026-109619 (both CVSS 9.2, actively exploited since 21 Oct 2026). Upstream that means 8.4.27+; the host has applied its own patches, so record the exact build string `php -v` reports in the app's health page.
+- The app refuses to start below PHP 8.4: a version check runs at boot and in CI (CI tests on 8.4).
 - Use only the PHP extensions Laravel needs. Turn on `expose_php=Off` and `display_errors=Off` in production.
 - Dependabot and `composer audit` run on every push. A build with a known-vulnerable dependency fails.
 
@@ -53,6 +53,12 @@ The host prefers that we don't use SSH shell access, so nothing depends on runni
 ## Still to confirm
 
 - The phpMyAdmin "Database server" version (MySQL 8.x or MariaDB 10.6+ needed).
-- Which PHP versions MultiPHP Manager offers, and that the host's builds include the 21 Oct 2026 fixes.
-- Whether the app goes on app.crowdmerch.com.au or a subdomain.
+- The subdomain name (for example ops.crowdmerch.com.au).
 - Whether the host is OK with a cPanel Git deploy key (if not, use the FTPS fallback).
+
+## Other sites on this account (flagged by the host, 24 Oct 2026)
+
+- **app.crowdmerch.com.au** runs on PHP 8.1, which no longer gets PHP security fixes. The host recommends moving it to 8.3.
+- **dotcode.me** runs Drupal 7 on PHP 7.2. Both are past end of life; moving to PHP 8.2+ needs a Drupal core update and testing.
+
+These are separate from this project, but they share the same hosting account.
