@@ -15,9 +15,9 @@ use Illuminate\Support\Collection;
  *
  *  - Decoration source: MANUAL (staff picked an option), EXTERNAL (decorations
  *    borrowed from another product, e.g. Melbourne Merch 10001999), else AUTO.
- *  - Default decoration: the staff default, else the cheapest decoration with a
- *    non-zero cost at 100 units. (TOD's steps could overwrite a staff default;
- *    here the staff choice always wins. To confirm in the TOD comparison.)
+ *  - Default decoration: staff pick, else the default carried over from TOD,
+ *    else (see defaultDecoration) the borrowed price file's first option, the
+ *    staff default flag, or the cheapest non-zero decoration cost at 100.
  *  - ActualMOQ = larger of the undecorated and default-decoration minimum
  *    quantities, unless staff set an override. CollectionMOQ defaults to it.
  *  - CollectionMOQ: staff override, else the supplier rule (JB's and AS Colour
@@ -28,7 +28,8 @@ use Illuminate\Support\Collection;
  *  - Collection "from" price = order value at CollectionMOQ / CollectionMOQ.
  *
  * Staff overrides are read from product_overrides.data:
- *   decoration_product_id, decoration_option_id, actual_moq, collection_moq
+ *   decoration_product_id, decoration_option_id, actual_moq, collection_moq,
+ *   moq_one, carried_default_decoration_option_id (set by the TOD import)
  */
 class WebPriceCalculator
 {
@@ -48,16 +49,20 @@ class WebPriceCalculator
         $accessories = $decorationOptions->where('type_code', DecTypeCode::ACCESSORY)->values();
         $undecorated = $own->firstWhere('type_code', DecTypeCode::UNDECORATED);
 
-        $manualOptionId = $product->overrideValue('decoration_option_id')
-            // Verification only (tod:compare-pricing --tod-defaults): TOD's own pick.
-            ?? $product->overrideValue('decoration_option_id_tod');
+        $manualOptionId = $product->overrideValue('decoration_option_id');
         $source = match (true) {
             $manualOptionId !== null => 'MANUAL',
             $decorationProductId !== $product->id => 'EXTERNAL',
             default => 'AUTO',
         };
 
-        $default = $this->defaultDecoration($product, $decorations, $manualOptionId);
+        // A staff pick wins; then the default carried over from TOD at cutover
+        // (Scott, 24 Oct 2026: keep TOD's picks so the site does not change).
+        $default = $this->defaultDecoration(
+            $product,
+            $decorations,
+            $manualOptionId ?? $product->overrideValue('carried_default_decoration_option_id'),
+        );
 
         $undecMoq = $undecorated?->costs()->minQty();
         $decMoq = $default?->costs()->minQty();

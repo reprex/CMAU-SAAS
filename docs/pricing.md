@@ -18,7 +18,7 @@ The engine reproduces TOD's CostPriceBreak > CostPriceSummary > web fields > Dec
 | Placeholders | "Unbranded" `1:0` when there is no type 12 option. "Product is only available unbranded" `1:0` when there is no type 10 option and the decoration product is a Promodata product (id < 999999). Neither is added for AS Colour (88) | "create 1:0 0 unbranded" queries |
 | Price at quantity | Uses the largest break at or below the quantity. Below the minimum, the price is (minQty × minPrice) ÷ qty | `GetPrice` |
 | Decoration source | MANUAL (staff pick), then EXTERNAL (borrowed from another product, e.g. 10001999), then AUTO | "set DecSource based on Man Ext Auto hierarchy" |
-| Default decoration | Staff pick; for decorations borrowed from a price-file product, its first-listed option; else the staff default; else the cheapest non-zero decoration cost at 100. Never the zero-price placeholder | "set product DefaultDecCPSID ..." queries |
+| Default decoration | Staff pick; then the pick carried over from TOD at cutover; for decorations borrowed from a price-file product, its first-listed option; else the staff default; else the cheapest non-zero decoration cost at 100. Never the zero-price placeholder | "set product DefaultDecCPSID ..." queries |
 | ActualMOQ | max(undecorated MOQ, default decoration MOQ), unless staff set an override | "set product ActualMOQ" |
 | CollectionMOQ | Staff/price-file override, else the supplier rule, else ActualMOQ | "set CollectionMOQ" queries |
 | Order value | decoration price × qty + undecorated setup + undecorated price × qty, **plus the decoration setup when the product uses its own decorations** (`pricing.order_value_decoration_setup`) | stored TOD values; see below |
@@ -50,9 +50,9 @@ These are in `config/pricing.php` (`supplier_rules`), not hard-coded queries:
 - `dbo_PDS_CostPriceSummary`
 - `dbo_PDS_LocalPrice`
 
-`--tod-defaults` pins each product's default decoration to TOD's pick, so everything downstream can be checked on its own.
+The import carries each live product's TOD default decoration over (see Decisions); `--engine-defaults` shows what the engine's own rule would pick instead.
 
-Result for the live range on 24 Oct 2026 (4,991 products, 37,026 options), with `--tod-defaults`:
+Result for the live range on 24 Oct 2026 (4,991 products, 37,026 options):
 
 | Field | Same as TOD | Different |
 | --- | --- | --- |
@@ -72,11 +72,11 @@ Result for the live range on 24 Oct 2026 (4,991 products, 37,026 options), with 
 4. **Tie order in DecorationJSON (295 products).** When decorations have the same group and price, Access lists them in no stable order. Descending option id matches 86% of these products.
 5. **Unbranded-only products (12).** TOD leaves ActualMOQ empty because its `IIf` compares with Null. The engine uses the undecorated MOQ.
 
-### Decisions for Scott
+### Decisions (Scott, 24 Oct 2026)
 
-- **Default decoration at cutover:** either (a) carry TOD's current picks over as staff choices (no visible change; new products use the cheapest rule), or (b) use the cheapest rule now (991 collection prices change, 938 down and 53 up; median −2.7%, range −53% to +53%).
-- **Order-value setup:** keep TOD's "own decorations only" behaviour (no visible change), or include the setup for borrowed decorations too.
-- **Stale prices:** accept the reprice of the 205 options, or set their DecTypeCode back.
+- **Default decoration:** TOD's current picks are carried over as data (`carried_default_decoration_option_id`), so no collection price changes at cutover. Products added later, or with no TOD pick, use the rule. With the rule alone, 991 collection prices would change (938 down, 53 up; median −2.7%).
+- **Stale prices:** the 205 options are repriced at today's DecTypeCode (about +3.4%).
+- **Order-value setup:** kept as TOD has it. Own decorations include the decoration setup and borrowed ones don't.
 
 ## Deliberate differences from TOD
 

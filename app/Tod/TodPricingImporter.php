@@ -31,11 +31,11 @@ class TodPricingImporter
     private $log;
 
     /**
-     * @param  bool  $useTodDefaults  verification only: pin each product's default
-     *                                decoration to TOD's choice (DefaultDecCPSID), so
-     *                                downstream values can be compared on their own
+     * @param  bool  $carryDefaults  keep each live product's TOD default decoration
+     *                               (DefaultDecCPSID) so collection prices do not change
+     *                               at cutover; false shows what the engine's own rule gives
      */
-    public function __construct(private readonly string $folder, ?callable $log = null, private readonly bool $useTodDefaults = false)
+    public function __construct(private readonly string $folder, ?callable $log = null, private readonly bool $carryDefaults = true)
     {
         $this->log = $log ?? fn (string $m) => null;
     }
@@ -410,7 +410,9 @@ class TodPricingImporter
             $ruleMoq = SupplierRules::for((int) $r['SupplierID'])->collectionMoq(TsvReader::intOrNull($r['ActualMOQ']));
             $data = array_filter([
                 'moq_one' => isset($moqOne[$id]) ? true : null,
-                'decoration_option_id_tod' => ($this->useTodDefaults && $r['DefaultDecCPSID'] !== '') ? $r['DefaultDecCPSID'] : null,
+                // TOD's pick depends on Access row order, so it is carried over as data
+                // rather than recalculated (decision 24 Oct 2026).
+                'carried_default_decoration_option_id' => ($this->carryDefaults && $r['DefaultDecCPSID'] !== '') ? $r['DefaultDecCPSID'] : null,
                 'decoration_option_id' => $r['WebDecPDIDManual'] ?: null,
                 // TOD keeps the borrowed decoration product in WebDecLiveAPPAID (set by
                 // supplier rules such as "MM 10002000 Dec for ..." or by staff);

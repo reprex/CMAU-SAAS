@@ -20,7 +20,7 @@ class TodComparePricingCommand extends Command
     protected $signature = 'tod:compare-pricing
         {folder : Folder holding the TOD .tsv exports}
         {--skip-import : Re-use data already imported}
-        {--tod-defaults : Pin default decorations to the TOD picks, to check everything downstream}
+        {--engine-defaults : Do not carry the TOD default decorations over; show what the engine rule picks}
         {--product=* : Limit to these product ids}
         {--report= : Folder for the CSV reports (default storage/app/tod-compare)}';
 
@@ -32,7 +32,7 @@ class TodComparePricingCommand extends Command
 
         if (! $this->option('skip-import')) {
             $this->info('Importing TOD exports...');
-            $counts = (new TodPricingImporter($folder, useTodDefaults: (bool) $this->option('tod-defaults')))->import();
+            $counts = (new TodPricingImporter($folder, carryDefaults: ! $this->option('engine-defaults')))->import();
             foreach ($counts as $what => $n) {
                 $this->line(sprintf('  %-22s %8d', $what, $n));
             }

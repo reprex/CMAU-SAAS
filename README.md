@@ -43,7 +43,7 @@ Next: Scott's decisions on the default decoration and stale prices, then tagging
 | `php artisan catalogue:hydrate 2568` | Fetch one product in full and keep it in the active tier |
 | `php artisan catalogue:demote` | Drop unused active products to the summary tier |
 | `php artisan pricing:recalculate 2568` | Rebuild price options, web prices and DecorationJSON (one product, `--supplier=`, or all live/active products) |
-| `php artisan tod:compare-pricing <folder>` | Import TOD's pricing exports and report every difference from TOD (verification only; `--tod-defaults` pins TOD's default decorations) |
+| `php artisan tod:compare-pricing <folder>` | Import TOD's pricing exports and report every difference from TOD (verification only; `--engine-defaults` shows the engine's own default decorations instead of TOD's) |
 | `php artisan schedule:list` | Show what the one-minute cron runs |
 
 ## Development

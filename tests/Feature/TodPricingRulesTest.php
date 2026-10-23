@@ -188,6 +188,19 @@ class TodPricingRulesTest extends TestCase
         $this->assertFalse($mm->priceOptions()->where('code', 'unbrandeddec')->exists(), 'no placeholder on price-file products');
     }
 
+    public function test_a_default_carried_over_from_tod_is_kept_but_is_not_a_staff_pick(): void
+    {
+        $product = $this->product(2004, 3, $this->line('Undecorated', [100 => 1.00], undecorated: true), [
+            $this->line('Pad Print', [100 => 0.30], setup: 40),
+            $this->line('Laser', [100 => 0.90], setup: 40),
+        ]);
+        ProductOverride::create(['product_id' => 2004, 'data' => ['carried_default_decoration_option_id' => '2004-laser']]);
+        [, $web] = $this->price($product);
+
+        $this->assertSame('2004-laser', $web->default_decoration_option_id, 'not the cheapest: TOD\'s pick is kept');
+        $this->assertSame('AUTO', $web->decoration_source);
+    }
+
     public function test_unbranded_only_products_have_no_default_decoration(): void
     {
         $product = $this->product(1991, 3, $this->line('Undecorated', [1 => 1.00], undecorated: true));
