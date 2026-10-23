@@ -8,7 +8,7 @@ Decided 24 Oct 2026.
 | --- | --- | --- |
 | Language | **PHP 8.4**, the newest version the host offers. The host (Melbourne Online) confirmed on 24 Oct 2026 that its 8.2, 8.3 and 8.4 builds are patched for the 21 Oct 2026 critical RCE release; 8.5 is not offered | Gets security fixes the longest of the versions available; Laravel 13 needs 8.3+. Move to 8.5 when the host offers it |
 | Framework | **Laravel 13** (released 17 Mar 2026, needs PHP 8.3+, security fixes until 17 Mar 2028) | Current major version; runs well on cPanel |
-| Database | **MySQL** on the existing cPanel account, in its own database `cmausaas` (kept separate from CLAU) | Already paid for, familiar through phpMyAdmin, included in cPanel backups |
+| Database | **MariaDB 10.11.19** (MySQL-compatible; long-term-support release) on the existing cPanel account, in its own database `cmausaas` (kept separate from CLAU) | Already paid for, familiar through phpMyAdmin, included in cPanel backups |
 | Background work | One cPanel cron job every minute running `php artisan schedule:run`; database-backed queue processed in short batches | No long-running processes for the host to kill |
 | Hosting | cPanel account `appcrowdmerch746` (Melbourne Online, server lx4.webhostingaustralia.com.au). The app lives at **saas.app.crowdmerch.com.au**, created 24 Oct 2026. Its document root is `/home/appcrowdmerch746/public_html/saas.app.crowdmerch.com.au`, it runs PHP 8.4 (ea-php84) with PHP-FPM, and its DNS is an A record at Vodien pointing to 54.79.92.35. cPanel would not add saas.crowdmerch.com.au because crowdmerch.com.au's nameservers are not on this server. app.crowdmerch.com.au already hosts an existing app on PHP 8.1 | Isolated from the existing app; 4 GB RAM, 1,500 processes, unlimited disk |
 
@@ -52,7 +52,6 @@ The host prefers that we don't use SSH shell access, so nothing depends on runni
 
 ## Still to confirm
 
-- The phpMyAdmin "Database server" version (MySQL 8.x or MariaDB 10.6+ needed).
 - The AutoSSL certificate for saas.app.crowdmerch.com.au. It was self-signed when the subdomain was created, and AutoSSL replaces it on its next run.
 - Whether the host is OK with a cPanel Git deploy key (if not, use the FTPS fallback).
 
@@ -62,3 +61,9 @@ The host prefers that we don't use SSH shell access, so nothing depends on runni
 - **dotcode.me** runs Drupal 7 on PHP 7.2. Both are past end of life; moving to PHP 8.2+ needs a Drupal core update and testing.
 
 These are separate from this project, but they share the same hosting account.
+
+## Server facts (checked in phpMyAdmin, 24 Oct 2026)
+
+- The database server is MariaDB 10.11.19 (`10.11.19-MariaDB-cll-lve`).
+- The server's default charset is **latin1**. The `cmausaas` database and every table must be created as `utf8mb4` / `utf8mb4_unicode_ci`: Laravel's connection config sets this, and the first migration checks it.
+- phpMyAdmin itself runs on PHP 8.4.27, the upstream release that fixes CVE-2026-109618 and CVE-2026-109619.
