@@ -16,7 +16,7 @@ Browser-based replacement for TOD (the CrowdMerch Operations Database, an Access
 
 ## Status
 
-Planning. Waiting on host details (database engine, web hosting, image storage) before the stack is chosen.
+Planning. Stack decided: PHP 8.5 + Laravel 13 + MySQL on the existing cPanel host, deployed from GitHub without shell access (see [docs/stack-and-security.md](docs/stack-and-security.md)).
 
 ## Docs
 
