@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/reprex/CMAU-SAAS/docs/contracts/decorationjson.schema.json",
+  "title": "CMAU DecorationJSON",
+  "description": "Value of the Shopify product metafield custom.decorationjson, read by the CMAU PDP pricing calculator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "BrandFlag",
+    "UndecoratedPriceSetup",
+    "UndecoratedPriceString",
+    "Decorations"
+  ],
+  "properties": {
+    "BrandFlag": {
+      "type": "string",
+      "enum": [
+        "Price includes branding",
+        "Price does not include branding"
+      ]
+    },
+    "UndecoratedPriceSetup": {
+      "$ref": "#/$defs/money"
+    },
+    "UndecoratedPriceString": {
+      "$ref": "#/$defs/priceString"
+    },
+    "Decorations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "DecID",
+          "DecName",
+          "CombinedSetup",
+          "CombinedPrcString"
+        ],
+        "properties": {
+          "DecID": {
+            "type": "string",
+            "pattern": "^[0-9]+-\\S+$"
+          },
+          "DecName": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^,\\r\\n]*$"
+          },
+          "CombinedSetup": {
+            "$ref": "#/$defs/money"
+          },
+          "CombinedPrcString": {
+            "$ref": "#/$defs/priceString"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "money": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "priceString": {
+      "description": "Comma-separated qty:unitprice breaks, ascending quantity, e.g. 1:0.67,500:0.66. Negative unit prices occur (e.g. handle 74109) and are allowed.",
+      "type": "string",
+      "pattern": "^[0-9]+:-?[0-9]+(\\.[0-9]+)?(,[0-9]+:-?[0-9]+(\\.[0-9]+)?)*$"
+    }
+  }
+}

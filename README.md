@@ -26,7 +26,9 @@ Built so far:
   - Unused active products drop back to the summary tier after 12 months, but their staff overrides are kept.
 - Paged syncs that run a few pages per minute from the scheduler, so each cron run stays short.
 
-Next: the pricing engine (to be checked against TOD's prices for the live range), then tagging, the Shopify publisher and quotes.
+- A pricing engine (`app/Pricing`, see [docs/pricing.md](docs/pricing.md)). It reproduces TOD's markups, round-up-to-the-cent prices, placeholders, MOQs, order values, collection price and DecorationJSON. Every DecorationJSON is checked against the contract schema before it is stored.
+
+Next: import TOD's DecTypeCode and supplier markups, compare prices with TOD for the live range, and add the supplier-specific rules. After that come tagging, the Shopify publisher and quotes.
 
 ## Commands
 
@@ -38,6 +40,7 @@ Next: the pricing engine (to be checked against TOD's prices for the live range)
 | `php artisan promodata:sync-step` | Process the next few pages of the open run (the scheduler does this every minute) |
 | `php artisan catalogue:hydrate 2568` | Fetch one product in full and keep it in the active tier |
 | `php artisan catalogue:demote` | Drop unused active products to the summary tier |
+| `php artisan pricing:recalculate 2568` | Rebuild price options, web prices and DecorationJSON (one product, `--supplier=`, or all live/active products) |
 | `php artisan schedule:list` | Show what the one-minute cron runs |
 
 ## Development
@@ -54,6 +57,7 @@ CI (GitHub Actions) runs the tests and `composer audit` on PHP 8.4 for every pus
 ## Docs
 
 - [Requirements summary](docs/requirements.md)
+- [Pricing engine rules](docs/pricing.md)
 - [Shopify product contract](docs/contracts/shopify-product.md)
 - [DecorationJSON contract](docs/contracts/decorationjson.md) and its [JSON Schema](docs/contracts/decorationjson.schema.json)
 - Full requirements document (with diagrams): https://claude.ai/artifact/VhmB9Q9PXU2CtbBBGodLq9

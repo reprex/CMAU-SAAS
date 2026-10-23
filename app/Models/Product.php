@@ -77,4 +77,20 @@ class Product extends Model
     {
         return $this->hasOne(ProductOverride::class);
     }
+
+    public function priceOptions(): HasMany
+    {
+        return $this->hasMany(PriceOption::class)->orderBy('position');
+    }
+
+    public function webPrice(): HasOne
+    {
+        return $this->hasOne(ProductWebPrice::class);
+    }
+
+    /** A staff override value (stored in product_overrides.data), or $default. */
+    public function overrideValue(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->override?->data, $key, $default);
+    }
 }
