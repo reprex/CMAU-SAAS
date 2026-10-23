@@ -28,7 +28,9 @@ Built so far:
 
 - A pricing engine (`app/Pricing`, see [docs/pricing.md](docs/pricing.md)). It reproduces TOD's markups, round-up-to-the-cent prices, placeholders, MOQs, order values, collection price and DecorationJSON. Every DecorationJSON is checked against the contract schema before it is stored.
 
-Next: import TOD's DecTypeCode and supplier markups, compare prices with TOD for the live range, and add the supplier-specific rules. After that come tagging, the Shopify publisher and quotes.
+- TOD import and verification (`app/Tod`). This loads TOD's suppliers, DecTypeCode, staff price settings and price data. It then compares the engine with TOD's stored prices for all 4,991 live products. Option types, cost strings and setup prices match 100%, and collection prices match on 4,990 products. The remaining differences are listed in [docs/pricing.md](docs/pricing.md#verification-against-tod).
+
+Next: Scott's decisions on the default decoration and stale prices, then tagging, the Shopify publisher and quotes.
 
 ## Commands
 
@@ -41,6 +43,7 @@ Next: import TOD's DecTypeCode and supplier markups, compare prices with TOD for
 | `php artisan catalogue:hydrate 2568` | Fetch one product in full and keep it in the active tier |
 | `php artisan catalogue:demote` | Drop unused active products to the summary tier |
 | `php artisan pricing:recalculate 2568` | Rebuild price options, web prices and DecorationJSON (one product, `--supplier=`, or all live/active products) |
+| `php artisan tod:compare-pricing <folder>` | Import TOD's pricing exports and report every difference from TOD (verification only; `--tod-defaults` pins TOD's default decorations) |
 | `php artisan schedule:list` | Show what the one-minute cron runs |
 
 ## Development

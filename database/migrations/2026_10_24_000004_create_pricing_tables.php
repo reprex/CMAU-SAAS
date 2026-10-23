@@ -63,6 +63,10 @@ return new class extends Migration
             $table->unsignedTinyInteger('type_code_override')->nullable();
             $table->boolean('is_default')->default(false);
             $table->boolean('is_other')->default(false);
+            // Display group in DecorationJSON (TOD: CPS DecJSONSort): lower first,
+            // then by price at 50 + setup. Null means 2 (normal); 1 lists first;
+            // supplier price files (e.g. Melbourne Merch) set their own order.
+            $table->unsignedTinyInteger('json_sort')->nullable();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 

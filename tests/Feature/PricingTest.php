@@ -122,9 +122,10 @@ class PricingTest extends TestCase
         $this->assertSame('1001-padprint1colour1position', $web->default_decoration_option_id);
         $this->assertSame(100, $web->actual_moq);
         $this->assertSame(100, $web->collection_moq);
-        // 100 x 0.45 decoration (setup excluded) + 0 undecorated setup + 100 x 1.45
-        $this->assertSame(190.0, $web->order_value_100);
-        $this->assertSame(1.9, $web->collection_variant_price);
+        // 100 x 0.45 decoration + 60 decoration setup (own decorations, as TOD's
+        // stored values show) + 0 undecorated setup + 100 x 1.45
+        $this->assertSame(250.0, $web->order_value_100);
+        $this->assertSame(2.5, $web->collection_variant_price);
         $this->assertSame('Extra colour/position', $web->accessory_list);
         $this->assertNotEmpty($web->warnings, 'The unclassified Gift Box line is flagged.');
 

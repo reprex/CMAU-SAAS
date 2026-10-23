@@ -20,8 +20,11 @@ use Illuminate\Support\Collection;
  *    here the staff choice always wins. To confirm in the TOD comparison.)
  *  - ActualMOQ = larger of the undecorated and default-decoration minimum
  *    quantities, unless staff set an override. CollectionMOQ defaults to it.
- *  - Order value at a quantity = decoration price x qty (no decoration setup)
- *    + undecorated setup + undecorated price x qty.
+ *  - CollectionMOQ: staff override, else the supplier rule (JB's and AS Colour
+ *    50, Shiny at least 20), else ActualMOQ.
+ *  - Order value at a quantity = decoration price x qty + undecorated setup
+ *    + undecorated price x qty, plus the decoration setup when the product
+ *    uses its own decorations (see pricing.order_value_decoration_setup).
  *  - Collection "from" price = order value at CollectionMOQ / CollectionMOQ.
  *
  * Staff overrides are read from product_overrides.data:
@@ -45,7 +48,9 @@ class WebPriceCalculator
         $accessories = $decorationOptions->where('type_code', DecTypeCode::ACCESSORY)->values();
         $undecorated = $own->firstWhere('type_code', DecTypeCode::UNDECORATED);
 
-        $manualOptionId = $product->overrideValue('decoration_option_id');
+        $manualOptionId = $product->overrideValue('decoration_option_id')
+            // Verification only (tod:compare-pricing --tod-defaults): TOD's own pick.
+            ?? $product->overrideValue('decoration_option_id_tod');
         $source = match (true) {
             $manualOptionId !== null => 'MANUAL',
             $decorationProductId !== $product->id => 'EXTERNAL',
@@ -63,12 +68,16 @@ class WebPriceCalculator
 
         $collectionMoq = (int) $product->overrideValue('collection_moq', 0) > 0
             ? (int) $product->overrideValue('collection_moq')
-            : $actualMoq;
+            : SupplierRules::for($product->supplier_id)->collectionMoq($actualMoq);
 
-        $orderValue = fn (?int $qty) => $qty ? $this->orderValue($default, $undecorated, $qty) : null;
+        $includeDecorationSetup = match (config('pricing.order_value_decoration_setup', 'own')) {
+            'always' => true,
+            'never' => false,
+            default => $decorationProductId === $product->id,
+        };
+        $orderValue = fn (?int $qty) => $qty ? $this->orderValue($default, $undecorated, $qty, $includeDecorationSetup) : null;
         $display = $orderValue($collectionMoq);
 
-        $realDecorations = $decorations->where('placeholder', false);
         $warnings = $this->warnings($own, $undecorated);
 
         return ProductWebPrice::query()->updateOrCreate(['product_id' => $product->id], [
@@ -76,7 +85,8 @@ class WebPriceCalculator
             'decoration_source' => $source,
             'undecorated_option_id' => $undecorated?->option_id,
             'default_decoration_option_id' => $default?->option_id,
-            'decoration_available' => $realDecorations->isNotEmpty(),
+            // TOD WebDecAvailableFlag: any type-10 option, including the placeholder.
+            'decoration_available' => $decorations->isNotEmpty(),
             'zero_price_decoration' => $own->where('type_code', DecTypeCode::DECORATION)
                 ->where('placeholder', false)
                 ->contains(fn (PriceOption $o) => $o->costs()->priceAt(100) == 0),
@@ -96,7 +106,7 @@ class WebPriceCalculator
                 brandingAvailable: $decorations->isNotEmpty(),
                 undecorated: $undecorated,
                 decorations: $decorations,
-                defaultOptionId: $default?->option_id,
+                sortGroups: $this->sortGroups($decorations),
             ),
             'accessory_list' => $accessories->isEmpty() ? null : $accessories->pluck('description')->implode(' | '),
             'warnings' => $warnings ?: null,
@@ -104,11 +114,44 @@ class WebPriceCalculator
         ]);
     }
 
+    /**
+     * DecorationJSON display groups: the json_sort setting, else group 1 for a
+     * staff default decoration (TOD sets DecJSONSort 1 on the default).
+     *
+     * @param  Collection<int, PriceOption>  $decorations
+     * @return array<string, int>
+     */
+    private function sortGroups(Collection $decorations): array
+    {
+        $groups = [];
+        $settings = PriceOptionSetting::query()->whereIn('option_id', $decorations->pluck('option_id'))->get();
+        foreach ($settings as $setting) {
+            if ($setting->json_sort !== null) {
+                $groups[$setting->option_id] = $setting->json_sort;
+            } elseif ($setting->is_default) {
+                $groups[$setting->option_id] = 1;
+            }
+        }
+
+        return $groups;
+    }
+
     /** @param  Collection<int, PriceOption>  $decorations */
     private function defaultDecoration(Product $product, Collection $decorations, ?string $manualOptionId): ?PriceOption
     {
         if ($manualOptionId !== null && ($manual = $decorations->firstWhere('option_id', $manualOptionId))) {
             return $manual;
+        }
+
+        // Borrowed decorations from a price-file product (Melbourne Merch, id > 999999):
+        // its first-listed option (TOD "set product DefaultDecCPSID if external decoration").
+        $decorationProductId = (int) ($decorations->first()?->product_id ?? $product->id);
+        if ($decorationProductId !== $product->id && $decorationProductId > 999999) {
+            $first = $this->sortGroups($decorations);
+            $leadId = collect($first)->filter(fn (int $g) => $g === 1)->keys()->first();
+            if ($leadId !== null && ($lead = $decorations->firstWhere('option_id', $leadId))) {
+                return $lead;
+            }
         }
 
         $staffDefaultId = PriceOptionSetting::query()
@@ -125,14 +168,19 @@ class WebPriceCalculator
             ->sortBy(fn (PriceOption $o) => $o->costs()->priceAt(100))
             ->first();
 
-        return $cheapest ?? $decorations->first();
+        // No priced decoration (e.g. only the "only available unbranded"
+        // placeholder): no default, as in TOD.
+        return $cheapest;
     }
 
-    private function orderValue(?PriceOption $decoration, ?PriceOption $undecorated, int $qty): float
+    private function orderValue(?PriceOption $decoration, ?PriceOption $undecorated, int $qty, bool $includeDecorationSetup): float
     {
         $value = 0.0;
         if ($decoration !== null) {
             $value += Money::currency($decoration->prices()->priceAt($qty) * $qty);
+            if ($includeDecorationSetup) {
+                $value += (float) $decoration->setup_price;
+            }
         }
         if ($undecorated !== null) {
             $value += Money::currency($undecorated->setup_price + $qty * $undecorated->prices()->priceAt($qty));

@@ -25,10 +25,16 @@ use RuntimeException;
  *     New codes are added to dec_type_codes unclassified, for staff to review.
  *  3. Unit price = cost x markup, rounded UP to the cent; setup price =
  *     setup cost x SupplierMarkupSetup.
- *  4. Staff type overrides (TOD: LocalPrice DecType) change the option's type
- *     but not the markup, exactly as TOD did.
- *  5. Zero-price placeholders are added when there is no undecorated (12) or
- *     no decoration (10) option.
+ *  4. The option's type can then be changed (markup unchanged, as in TOD) by,
+ *     in order of priority: a staff setting (TOD LocalPrice; a "default" or
+ *     "other" decoration flag forces type 10), then a supplier rule
+ *     (config pricing.supplier_rules), then the DecTypeCode classification.
+ *  5. Supplier rules may also adjust undecorated costs and rounding (JB's
+ *     Wear: cost + $2, nearest cent), and a per-product "moq_one" override
+ *     sets every option's first break quantity to 1 (TOD's Trends MOQ list).
+ *  6. Zero-price placeholders are added when there is no undecorated (12)
+ *     option, or no decoration (10) option and the product does not borrow
+ *     decorations from another product.
  * External (EXT) options are left untouched.
  */
 class PriceOptionBuilder
@@ -46,6 +52,8 @@ class PriceOptionBuilder
         $groups = $this->groupByCode($lines);
         $types = $this->typeCodes($groups, $product, $supplier);
         $settings = PriceOptionSetting::query()->where('product_id', $product->id)->get()->keyBy('option_id');
+        $rules = SupplierRules::for($product->supplier_id);
+        $moqOne = (bool) $product->overrideValue('moq_one', false);
 
         $options = [];
         $position = 0;
@@ -54,15 +62,25 @@ class PriceOptionBuilder
             $first = $group[0];
             $type = $types->get($code);
             $tableType = $type?->type_code;
-            $markup = $this->unitMarkup($tableType, $supplier);
+            $markup = $this->unitMarkup($rules->markupType() ?? $tableType, $supplier);
             $optionId = $product->id.'-'.$code;
 
+            $undecorated = (bool) $first->undecorated;
+            $costAdd = $undecorated ? $rules->undecoratedCostAdd() : 0.0;
             $costs = PriceString::fromBreaks(
-                collect($group)->flatMap(fn (PriceLine $l) => $l->breaks->map(fn ($b) => ['qty' => $b->qty, 'price' => (float) $b->unit_cost]))
+                collect($group)->flatMap(fn (PriceLine $l) => $l->breaks->map(fn ($b) => ['qty' => $b->qty, 'price' => Money::currency((float) $b->unit_cost + $costAdd)]))
             );
-            $prices = $costs->map(fn (float $cost) => Money::roundUpToCent(Money::applyMarkup($cost, $markup)));
+            $round = ($undecorated && $rules->roundsUndecoratedToNearest())
+                ? Money::roundToCent(...)
+                : Money::roundUpToCent(...);
+            $prices = $costs->map(fn (float $cost) => $round(Money::applyMarkup($cost, $markup)));
+            if ($moqOne) {
+                $costs = $costs->withFirstQty(1);
+                $prices = $prices->withFirstQty(1);
+            }
 
-            $override = $settings->get($optionId)?->type_code_override;
+            $override = $this->settingType($settings->get($optionId))
+                ?? $rules->typeFor((string) $first->description, $costs->toString());
 
             $options[] = [
                 'product_id' => $product->id,
@@ -85,7 +103,7 @@ class PriceOptionBuilder
         }
 
         if (! in_array($product->supplier_id, config('pricing.no_placeholder_suppliers'), true)) {
-            $options = $this->addPlaceholders($product, $options, $position);
+            $options = $this->addPlaceholders($product, $options, $position, $settings);
         }
 
         return DB::transaction(function () use ($product, $options) {
@@ -148,6 +166,19 @@ class PriceOptionBuilder
         return $known;
     }
 
+    /** Type set by staff: a default/other decoration flag means type 10 (TOD "set LocalPrice DecType for DefaultDec OtherDec flags"). */
+    private function settingType(?PriceOptionSetting $setting): ?int
+    {
+        if ($setting === null) {
+            return null;
+        }
+        if ($setting->is_default || $setting->is_other) {
+            return DecTypeCode::DECORATION;
+        }
+
+        return $setting->type_code_override;
+    }
+
     private function unitMarkup(?int $typeCode, Supplier $supplier): float
     {
         return (float) match ($typeCode) {
@@ -161,20 +192,22 @@ class PriceOptionBuilder
      * TOD's "create 1:0 0 unbranded if none exists" and "only available unbranded" steps.
      *
      * @param  list<array<string, mixed>>  $options
+     * @param  Collection<string, PriceOptionSetting>  $settings
      * @return list<array<string, mixed>>
      */
-    private function addPlaceholders(Product $product, array $options, int $position): array
+    private function addPlaceholders(Product $product, array $options, int $position, Collection $settings): array
     {
         $hasType = fn (int $type) => collect($options)->contains(
             fn ($o) => $o['type_code'] === $type && ! ($type === DecTypeCode::UNDECORATED && $o['price_string'] === '1:0')
         );
 
+        // A staff setting on a placeholder (e.g. hiding it) still applies.
         $placeholder = fn (string $code, string $description, int $type, int $pos) => [
             'product_id' => $product->id,
             'option_id' => $product->id.'-'.$code,
             'code' => $code,
             'kind' => PriceOption::KIND_UNDECORATED,
-            'type_code' => $type,
+            'type_code' => $this->settingType($settings->get($product->id.'-'.$code)) ?? $type,
             'description' => $description,
             'display_description' => $description,
             'setup_cost' => 0,
@@ -192,7 +225,10 @@ class PriceOptionBuilder
             $options[] = $placeholder('unbranded', 'Unbranded', DecTypeCode::UNDECORATED, $position++);
         }
 
-        if (! $hasType(DecTypeCode::DECORATION)) {
+        // TOD only adds this when the decoration product (WebDecLiveAPPAID, the
+        // product itself unless it borrows) is a Promodata product (< 999999).
+        $decorationProductId = (int) ($product->overrideValue('decoration_product_id') ?: $product->id);
+        if (! $hasType(DecTypeCode::DECORATION) && $decorationProductId < 999999) {
             $options[] = $placeholder('unbrandeddec', 'Product is only available unbranded', DecTypeCode::DECORATION, $position);
         }
 

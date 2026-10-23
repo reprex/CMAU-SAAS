@@ -21,23 +21,32 @@ use RuntimeException;
 class DecorationJson
 {
     /**
+     * Decorations are listed as TOD's "DecJSON - ConcatQuery" orders them: by
+     * display group (TOD DecJSONSort; here the json_sort setting, default 2),
+     * then by price at 50 units plus setup. TOD puts an option in group 1
+     * when it becomes the default, and supplier price files (Melbourne Merch)
+     * set their own order, so most products are simply cheapest first.
+     *
      * @param  Collection<int, PriceOption>  $decorations  type-10 options of the decoration product
+     * @param  array<string, int>  $sortGroups  option id => display group
      */
     public function build(
         bool $brandingAvailable,
         ?PriceOption $undecorated,
         Collection $decorations,
-        ?string $defaultOptionId,
+        array $sortGroups = [],
     ): string {
         $sortQty = (int) config('pricing.decoration_sort_qty', 50);
+        $group = fn (PriceOption $o) => $sortGroups[$o->option_id] ?? 2;
 
         $items = $decorations
             ->filter(fn (PriceOption $o) => $o->type_code === DecTypeCode::DECORATION && $o->price_string !== null && $o->price_string !== '')
             ->sortBy([
-                // Default decoration first (TOD DecJSONSort 1), then the others (2)...
-                fn (PriceOption $a, PriceOption $b) => ($a->option_id === $defaultOptionId ? 1 : 2) <=> ($b->option_id === $defaultOptionId ? 1 : 2),
-                // ...ordered by price at 50 units plus setup.
-                fn (PriceOption $a, PriceOption $b) => ($a->prices()->priceAt($sortQty) + $a->setup_price) <=> ($b->prices()->priceAt($sortQty) + $b->setup_price),
+                fn (PriceOption $a, PriceOption $b) => $group($a) <=> $group($b),
+                fn (PriceOption $a, PriceOption $b) => Money::toUnits($a->prices()->priceAt($sortQty) + $a->setup_price) <=> Money::toUnits($b->prices()->priceAt($sortQty) + $b->setup_price),
+                // Ties: descending option id, which matches TOD for 86% of tied
+                // products (Access's own tie order is not stable).
+                fn (PriceOption $a, PriceOption $b) => strcmp($b->option_id, $a->option_id),
             ])
             ->values()
             ->map(fn (PriceOption $o) => [
@@ -66,10 +75,15 @@ class DecorationJson
      */
     public static function cleanName(string $name): string
     {
+        // TOD: Replace(name, ",", ""), other spacing kept as it is.
         $name = str_replace(',', '', $name);
-        $name = (string) preg_replace('/\s+/u', ' ', $name);
+        // TOD wrote line breaks straight into the JSON, which broke it (9 live
+        // products); here each line break becomes one space.
+        if (preg_match('/[\r\n]/', $name)) {
+            $name = rtrim((string) preg_replace('/[ \t]*[\r\n]+[ \t]*/', ' ', $name));
+        }
 
-        return trim($name);
+        return $name;
     }
 
     /** Throws if the JSON does not match docs/contracts/decorationjson.schema.json. */

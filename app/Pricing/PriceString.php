@@ -89,6 +89,21 @@ final class PriceString
         return $found;
     }
 
+    /**
+     * The same breaks with the first quantity replaced (TOD's Trends "MOQ 1"
+     * rule: "1" & Mid(string, InStr(string, ":"))).
+     */
+    public function withFirstQty(int $qty): self
+    {
+        if ($this->breaks === []) {
+            return $this;
+        }
+        $breaks = $this->breaks;
+        $breaks[0]['qty'] = $qty;
+
+        return new self($breaks);
+    }
+
     /** Apply a function to every price (e.g. markup + rounding). */
     public function map(callable $fn): self
     {

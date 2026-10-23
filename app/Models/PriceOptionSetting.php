@@ -14,6 +14,7 @@ class PriceOptionSetting extends Model
             'type_code_override' => 'integer',
             'is_default' => 'boolean',
             'is_other' => 'boolean',
+            'json_sort' => 'integer',
         ];
     }
 }

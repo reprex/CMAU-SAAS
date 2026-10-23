@@ -36,6 +36,14 @@ final class Money
         return self::fromUnits((int) (ceil($units / 100) * 100));
     }
 
+    /** Access Round(x, 2): to the nearest cent, ties to even. */
+    public static function roundToCent(float|int|string $amount): float
+    {
+        $units = self::toUnits($amount);
+
+        return self::fromUnits((int) (round($units / 100, 0, PHP_ROUND_HALF_EVEN) * 100));
+    }
+
     /** Cost x markup, kept as an Access Currency value (4 dp). */
     public static function applyMarkup(float|int|string $cost, float|int|string $markup): float
     {
