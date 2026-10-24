@@ -1,0 +1,4 @@
+config/config.php
+/vendor/
+*.sqlite
+.DS_Store

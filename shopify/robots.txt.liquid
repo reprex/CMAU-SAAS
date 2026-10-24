@@ -1,0 +1,50 @@
+{%- comment -%}
+  CrowdMerch robots.txt (templates/robots.txt.liquid)
+  - Keeps every Shopify default rule and sitemap (rendered from robots.default_groups),
+    so Shopify's own future updates still flow through.
+  - Adds: asks crawlers to stay out of the bulk catalogue feeds (products.json etc).
+  - Blocks known bulk scrapers / dataset crawlers entirely.
+  - Does NOT block search engines or AI shopping/search agents (Googlebot, Bingbot,
+    OAI-SearchBot, ChatGPT-User, PerplexityBot, ClaudeBot) from normal product pages.
+  robots.txt is a request, not a lock: it only stops bots that choose to obey it.
+{%- endcomment -%}
+# CrowdMerch: product pages are open to search engines and AI shopping assistants.
+# Bulk copying of our catalogue, prices or images is not permitted - see
+# https://crowdmerch.com.au/policies/terms-of-service (section 15).
+# AI agents: please use Shopify's agent interfaces listed by the platform (UCP/MCP).
+
+{% for group in robots.default_groups -%}
+{{ group.user_agent }}
+{% for rule in group.rules -%}
+{{ rule }}
+{% endfor -%}
+{%- if group.user_agent.value == '*' -%}
+# Bulk catalogue feeds
+Disallow: /products.json
+Disallow: /*/products.json
+Disallow: /collections/*/products.json
+Disallow: /*/collections/*/products.json
+Disallow: /products/*.json
+Disallow: /products/*.js
+Disallow: /products/*.oembed
+Disallow: /collections/*.atom
+Disallow: /collections/*.oembed
+Disallow: /*.atom
+{% endif -%}
+{%- if group.sitemap != blank -%}
+{{ group.sitemap }}
+{% endif %}
+{% endfor -%}
+
+# Bulk scrapers and dataset crawlers (not shopping agents)
+User-agent: Scrapy
+User-agent: img2dataset
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: Diffbot
+User-agent: omgili
+User-agent: omgilibot
+User-agent: Timpibot
+User-agent: ImagesiftBot
+User-agent: AliyunSecBot
+Disallow: /
