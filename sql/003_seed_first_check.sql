@@ -197,3 +197,92 @@ SET @m = LAST_INSERT_ID();
 INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 1, 10.76, 0, NULL, ROUND(1*10.76+0,2), 0, 'manual', 'decorated');
 INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 10.0068, 0, NULL, ROUND(250*10.0068+0,2), 0, 'manual', 'decorated');
 INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 9.684, 0, NULL, ROUND(500*9.684+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '2029', '100580', 'https://brandsurge.com.au/budget-stubby-cooler/', 'Budget Stubby Cooler', 'supplier_code', '1 Colour Print', NULL FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 1.7, 0, NULL, ROUND(250*1.7+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 1.56, 0, NULL, ROUND(500*1.56+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 1000, 1.44, 0, NULL, ROUND(1000*1.44+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '2046', '100814', 'https://brandsurge.com.au/750ml-vacuum-flask/', '750ml Vacuum Flask', 'supplier_code', '1 Colour Print', 'Calculator price at each exact quantity' FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 50, 24.32, 0, NULL, ROUND(50*24.32+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 22.38, 0, NULL, ROUND(100*22.38+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 20.58, 0, NULL, ROUND(250*20.58+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 18.92, 0, NULL, ROUND(500*18.92+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '2125', '104779', 'https://brandsurge.com.au/button-badge-round-37mm/', 'Button Badge Round - 37mm', 'supplier_code', 'Full Colour Print', NULL FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 1.49, 0, NULL, ROUND(250*1.49+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 1.27, 0, NULL, ROUND(500*1.27+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '2721', '112025', 'https://brandsurge.com.au/malibu-premium-sunglasses-black-frame/', 'Malibu Premium Sunglasses - Black Frame', 'supplier_code', '1 Colour Print', NULL FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 3.52, 0, NULL, ROUND(100*3.52+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 2.92, 0, NULL, ROUND(250*2.92+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 2.61, 0, NULL, ROUND(500*2.61+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '1491', 'LL1385', 'https://brandsurge.com.au/hike-bottle/', 'Hike Bottle', 'supplier_code', '1 Colour Print', NULL FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 50, 11.24, 0, NULL, ROUND(50*11.24+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 10.14, 0, NULL, ROUND(100*10.14+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 9.22, 0, NULL, ROUND(250*9.22+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 8.66, 0, NULL, ROUND(500*8.66+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '1485', 'LL112', 'https://brandsurge.com.au/brain-stress-reliever/', 'Brain Stress Reliever', 'supplier_code', '1 Colour Print', NULL FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 3.15, 0, NULL, ROUND(100*3.15+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 2.6, 0, NULL, ROUND(250*2.6+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 2.34, 0, NULL, ROUND(500*2.34+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '1659', 'LL500', 'https://brandsurge.com.au/calico-short-handle-bag/', 'Calico Short Handle Bag', 'supplier_code', '1 Colour Print', NULL FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 3.97, 0, NULL, ROUND(100*3.97+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 3.29, 0, NULL, ROUND(250*3.29+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 2.93, 0, NULL, ROUND(500*2.93+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '25468', 'JK21', 'https://brandsurge.com.au/adults-track-top/', 'Adult''s track top', 'supplier_code', 'Embroidery up to 10,000 stitches', 'Their embroidery allows 10k stitches; ours is priced to 5k' FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 50, 38.83, 0, NULL, ROUND(50*38.83+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 37.18, 0, NULL, ROUND(100*37.18+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 35.68, 0, NULL, ROUND(250*35.68+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 35.66, 0, NULL, ROUND(500*35.66+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '9323', 'UM001', 'https://brandsurge.com.au/sands-umbrella/', 'Sands Umbrella', 'supplier_code', '1 Colour Print, Standard 12 business days', 'Same 12-day production as our price' FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 50, 19.91, 0, NULL, ROUND(50*19.91+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 18.34, 0, NULL, ROUND(100*18.34+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 17.13, 0, NULL, ROUND(250*17.13+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 16.06, 0, NULL, ROUND(500*16.06+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '8576', 'EK007', 'https://brandsurge.com.au/cerabam-mug/', 'Cerabam Mug', 'supplier_code', '1 Colour Print, Standard 12 business days', 'Same 12-day production as our price' FROM competitors WHERE code = 'BS';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 50, 9.88, 0, NULL, ROUND(50*9.88+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 100, 8.88, 0, NULL, ROUND(100*8.88+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 8.08, 0, NULL, ROUND(250*8.08+0,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 7.63, 0, NULL, ROUND(500*7.63+0,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '2029', '100580', 'https://www.freshpromotions.com.au/stubby-coolers/budget-stubby-and-can-cooler', 'Budget Stubby & Can Cooler', 'name_image', '1 Colour Screen Print 1 Position', 'Own SKU; same Trends spec (4mm foam, 100x132mm, 12 colours)' FROM competitors WHERE code = 'FP';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 2.1, 75, NULL, ROUND(250*2.1+75,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 1.65, 75, NULL, ROUND(500*1.65+75,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 1000, 1.25, 75, NULL, ROUND(1000*1.25+75,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 2500, 1.15, 75, NULL, ROUND(2500*1.15+75,2), 0, 'manual', 'decorated');
+
+INSERT INTO competitor_product_matches (competitor_id, cmau_appaid, supplier_code, competitor_url, competitor_title, match_method, decoration_label, notes)
+  SELECT id, '2721', '112025', 'https://www.freshpromotions.com.au/promotional-sunglasses/black-malibu-premium-sunglasses', 'Black Malibu Premium Sunglasses', 'name_image', '1 Colour Pad Print 1 Position', 'Own SKU; MOQ 250' FROM competitors WHERE code = 'FP';
+SET @m = LAST_INSERT_ID();
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 250, 3.5, 75, NULL, ROUND(250*3.5+75,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 500, 2.95, 75, NULL, ROUND(500*2.95+75,2), 0, 'manual', 'decorated');
+INSERT INTO competitor_price_snapshots (match_id, captured_at, qty, unit_price_ex_gst, setup_ex_gst, freight_ex_gst, project_total_ex_gst, prices_included_gst, source, source_note) VALUES (@m, '2026-10-24 13:00:00', 1000, 2.3, 75, NULL, ROUND(1000*2.3+75,2), 0, 'manual', 'decorated');

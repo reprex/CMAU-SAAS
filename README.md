@@ -28,7 +28,7 @@ Compares CMAU's quantity-break prices, read from the same DecorationJSON the web
 |---|---|
 | `sql/001_competitor_prices.sql` | Tables: competitors, matches, price snapshots, CMAU price snapshots, supplier costs, fetch log, product pricing, users |
 | `sql/002_seed_competitors.sql` | 9 competitors with the robots.txt and terms checks from 24 Oct 2026 |
-| `sql/003_seed_first_check.sql` | First manual price check (11 products, 73 comparisons) |
+| `sql/003_seed_first_check.sql` | First manual price check (11 products, 110 comparisons across 7 competitors) |
 | `src/Competitor/*` | DecorationJSON pricing, robots.txt parser, polite fetcher, extractors, runner, repository |
 | `src/Auth/Auth.php` | Session login with roles (admin / staff) |
 | `public/login.php`, `public/competitor-prices.php` | Login and the admin-only comparison page |
