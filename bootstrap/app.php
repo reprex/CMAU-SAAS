@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\RequireRole;
+use App\Http\Middleware\RequireTwoFactor;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,7 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'two-factor' => RequireTwoFactor::class,
+            'role' => RequireRole::class,
+        ]);
+        $middleware->web(append: [SecurityHeaders::class]);
+        // Shopify webhooks are verified by HMAC instead of a CSRF token.
+        $middleware->validateCsrfTokens(except: ['webhooks/*', 'crowdmerch/homepage/*']);
+        $middleware->redirectGuestsTo('/login');
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

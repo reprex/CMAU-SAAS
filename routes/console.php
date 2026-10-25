@@ -24,6 +24,11 @@ Schedule::command('catalogue:demote')
     ->dailyAt('03:30')
     ->withoutOverlapping();
 
+// Quote desk: bring in new/changed Shopify draft orders (backup to webhooks).
+Schedule::command('shopify:pull-drafts')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10);
+
 // Process queued jobs (webhooks, Shopify publishing, emails) in short bursts.
 Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
     ->everyMinute()

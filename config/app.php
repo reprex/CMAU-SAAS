@@ -15,6 +15,12 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // One-time token for /setup, which creates the first admin (no shell on the host).
+    'setup_token' => env('SETUP_TOKEN'),
+
+    // Optional: admin-only screens answer only from these IPs (office static IP).
+    'admin_allowed_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('ADMIN_ALLOWED_IPS', ''))))),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
