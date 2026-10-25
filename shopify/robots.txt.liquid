@@ -2,23 +2,13 @@
   CrowdMerch robots.txt (templates/robots.txt.liquid)
   - Keeps every Shopify default rule and sitemap (rendered from robots.default_groups),
     so Shopify's own future updates still flow through.
-  - Adds: asks crawlers to stay out of the bulk catalogue feeds (products.json etc).
+  - Explicitly welcomes AI search and shopping assistants with their own group
+    (Allow: /), which repeats Shopify's default rules and the bulk-feed rules.
+  - Asks all crawlers to stay out of the bulk catalogue feeds (products.json etc).
   - Blocks known bulk scrapers / dataset crawlers entirely.
-  - Does NOT block search engines or AI shopping/search agents (Googlebot, Bingbot,
-    OAI-SearchBot, ChatGPT-User, PerplexityBot, ClaudeBot) from normal product pages.
   robots.txt is a request, not a lock: it only stops bots that choose to obey it.
 {%- endcomment -%}
-# CrowdMerch: product pages are open to search engines and AI shopping assistants.
-# Bulk copying of our catalogue, prices or images is not permitted - see
-# https://crowdmerch.com.au/policies/terms-of-service (section 15).
-# AI agents: please use Shopify's agent interfaces listed by the platform (UCP/MCP).
-
-{% for group in robots.default_groups -%}
-{{ group.user_agent }}
-{% for rule in group.rules -%}
-{{ rule }}
-{% endfor -%}
-{%- if group.user_agent.value == '*' -%}
+{%- capture bulk_feeds -%}
 # Bulk catalogue feeds
 Disallow: /products.json
 Disallow: /*/products.json
@@ -30,11 +20,51 @@ Disallow: /products/*.oembed
 Disallow: /collections/*.atom
 Disallow: /collections/*.oembed
 Disallow: /*.atom
+{%- endcapture -%}
+# CrowdMerch (crowdmerch.com.au) - custom branded merchandise, Australia.
+#
+# AI assistants and agents are welcome. Please search and read our product,
+# collection and information pages to answer people's questions about our
+# products, decoration options, prices, minimum quantities and stock, and
+# link them to the product page or Quick Quote to order.
+#
+# Bulk copying of our catalogue, prices or images is not permitted - see
+# https://crowdmerch.com.au/policies/terms-of-service (section 15).
+
+{% for group in robots.default_groups -%}
+{{ group.user_agent }}
+{% for rule in group.rules -%}
+{{ rule }}
+{% endfor -%}
+{%- if group.user_agent.value == '*' -%}
+{{ bulk_feeds }}
 {% endif -%}
 {%- if group.sitemap != blank -%}
 {{ group.sitemap }}
 {% endif %}
 {% endfor -%}
+
+# AI search and shopping assistants: explicitly welcome on every product,
+# collection and page. Same exclusions as above (admin, cart, checkout,
+# bulk feeds), so this group only adds an explicit welcome.
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
+User-agent: Applebot
+{% for group in robots.default_groups -%}
+{%- if group.user_agent.value == '*' -%}
+{% for rule in group.rules -%}
+{{ rule }}
+{% endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{{ bulk_feeds }}
+Allow: /
 
 # Bulk scrapers and dataset crawlers (not shopping agents)
 User-agent: Scrapy

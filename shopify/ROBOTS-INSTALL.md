@@ -11,7 +11,8 @@
 
 - Asks crawlers to stay out of the bulk catalogue feeds: `/products.json`, `/collections/*/products.json`, and the per-product `.json`, `.js` and `.oembed` files. These feeds are how other sites copy a whole store in seconds.
 - Blocks known bulk scrapers and dataset crawlers entirely: Scrapy, img2dataset, Bytespider, CCBot, Diffbot and similar.
-- Search engines and AI shopping and search agents can still read every product page. That includes Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User, PerplexityBot and ClaudeBot.
+- **AI assistants are explicitly welcome.** The header invites AI assistants to search and read product, collection and information pages, and to link people to the product page or Quick Quote. They also get their own group ending `Allow: /`. That group covers OAI-SearchBot, ChatGPT-User, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User, DuckAssistBot, MistralAI-User and Applebot. It repeats Shopify's default exclusions (admin, cart, checkout) and the bulk-feed rules, so it adds a welcome without opening anything else.
+- Search engines (Googlebot, Bingbot) follow the general rules and can read every product page, as before.
 - Your theme's JavaScript (wish list, quick quote) is unaffected, because browsers ignore robots.txt.
 
 robots.txt only stops bots that choose to obey it. A determined scraper can still read `/products.json`. Removing supplier codes from titles and image names before the SaaS goes live remains the real protection.
@@ -27,6 +28,7 @@ robots.txt only stops bots that choose to obey it. A determined scraper can stil
    - Shopify's normal rules are still there (Disallow: /admin, /cart, /checkout and so on).
    - The new "Bulk catalogue feeds" lines appear under `User-agent: *`.
    - The `Sitemap:` line is still there.
+   - The "AI search and shopping assistants" group ends with `Allow: /`.
    - The scraper block is at the end.
 
 **Option B: live CMAU (after A looks right)**
