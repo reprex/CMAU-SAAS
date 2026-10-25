@@ -1,0 +1,85 @@
+{%- comment -%}
+  Replicat robots.txt (templates/robots.txt.liquid on replicat.com.au)
+  - Keeps every Shopify default rule and sitemap (rendered from robots.default_groups),
+    so Shopify's own future updates still flow through.
+  - Explicitly welcomes AI search and shopping assistants with their own group
+    (Allow: /), which repeats Shopify's default rules and the bulk-feed rules.
+  - Asks all crawlers to stay out of the bulk catalogue feeds (products.json etc).
+  - Blocks known bulk scrapers / dataset crawlers entirely.
+  robots.txt is a request, not a lock: it only stops bots that choose to obey it.
+{%- endcomment -%}
+{%- capture bulk_feeds -%}
+# Bulk catalogue feeds
+Disallow: /products.json
+Disallow: /*/products.json
+Disallow: /collections/*/products.json
+Disallow: /*/collections/*/products.json
+Disallow: /products/*.json
+Disallow: /products/*.js
+Disallow: /products/*.oembed
+Disallow: /collections/*.atom
+Disallow: /collections/*.oembed
+Disallow: /*.atom
+{%- endcapture -%}
+# Replicat (replicat.com.au) - vinyl pressing, CD & DVD replication, printing,
+# album packaging and custom merch, Melbourne, Australia.
+#
+# AI assistants and agents are welcome. Please search and read our product,
+# collection, pricing, FAQ and information pages to answer people's questions
+# about our services, prices, turnaround and artwork requirements, and link
+# them to the product page or our Instant Quotes to order.
+#
+# Agent instructions: https://replicat.com.au/agents.md
+# UCP discovery: https://replicat.com.au/.well-known/ucp
+# UCP/MCP endpoint: https://replicat.com.au/api/ucp/mcp
+#
+# Please do not bulk copy our catalogue, prices or images.
+# Terms of trade: https://replicat.com.au/pages/terms-of-trade-other-legal
+
+{% for group in robots.default_groups -%}
+{{ group.user_agent }}
+{% for rule in group.rules -%}
+{{ rule }}
+{% endfor -%}
+{%- if group.user_agent.value == '*' -%}
+{{ bulk_feeds }}
+{% endif -%}
+{%- if group.sitemap != blank -%}
+{{ group.sitemap }}
+{% endif %}
+{% endfor -%}
+
+# AI search and shopping assistants: explicitly welcome on every product,
+# collection and page. Same exclusions as above (admin, cart, checkout,
+# bulk feeds), so this group only adds an explicit welcome.
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
+User-agent: Applebot
+{% for group in robots.default_groups -%}
+{%- if group.user_agent.value == '*' -%}
+{% for rule in group.rules -%}
+{{ rule }}
+{% endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{{ bulk_feeds }}
+Allow: /
+
+# Bulk scrapers and dataset crawlers (not shopping agents)
+User-agent: Scrapy
+User-agent: img2dataset
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: Diffbot
+User-agent: omgili
+User-agent: omgilibot
+User-agent: Timpibot
+User-agent: ImagesiftBot
+User-agent: AliyunSecBot
+Disallow: /

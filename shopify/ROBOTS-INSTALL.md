@@ -43,3 +43,11 @@ robots.txt only stops bots that choose to obey it. A determined scraper can stil
 ## When CMAU_DEV is deployed as live
 
 If a CMAU_DEV theme is ever published to the live store, make sure it contains this same `templates/robots.txt.liquid`. Otherwise publishing it silently removes these rules.
+
+## Replicat (replicat.com.au)
+
+`shopify/replicat-robots.txt.liquid` is the same file worded for Replicat. Install it the same way on the Replicat store's live theme: back up, add the robots.txt template, paste, save.
+
+- It keeps the agent links that Shopify's newer default robots.txt puts in its header (`agents.md`, UCP discovery, UCP/MCP endpoint). A custom template replaces those comment lines, so they are repeated in our header.
+- Replicat's terms of trade do not mention scraping, so the header asks politely and does not cite a clause.
+- Check `https://replicat.com.au/robots.txt` afterwards. The header should be there, Shopify's rules should be unchanged under `User-agent: *` followed by the "Bulk catalogue feeds" lines, and the AI assistants group should end with `Allow: /`.
