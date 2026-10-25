@@ -42,6 +42,16 @@ The website spreads setup over the units and rounds the line price. The quote pr
   - Sizes with less stock than wanted are flagged.
 - **Decoration display on the PDF.** Per quote, decoration can sit in the line ("Decoration in the line") or be shown as its own line.
 
+## Moving and copying lines
+
+Each product line and each extra line (custom product, service, note) has **Move or copy**:
+
+- **Move to a new quote** or **Copy to a new quote.** The new quote gets the next MR number and keeps the client and delivery address.
+- **Move to this quote.** This lists only the client's other quotes with the same email address, ignoring capitals.
+- **Sizes go with the line.** A product's size × qty rows move or copy with it.
+- **Freight stays.** Automatic freight lines don't move. Both quotes work out their freight again afterwards.
+- **Logging.** Every move or copy is recorded in the audit log, with the quote it came from and the quote it went to.
+
 ## Freight
 
 Admins set freight per supplier under **Admin → Suppliers**. Staff never see that screen.

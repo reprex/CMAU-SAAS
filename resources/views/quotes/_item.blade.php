@@ -49,6 +49,7 @@
       <input class="n" name="quantity" type="number" min="1" placeholder="Qty" aria-label="Another quantity" style="width:80px;min-height:30px;padding:3px 6px">
       <button class="btn small" type="submit">Add another quantity</button>
     </form>
+    @include('quotes._transfer', ['action' => route('items.transfer', $item)])
     <form method="post" action="{{ route('items.destroy', $item) }}" data-confirm="Remove {{ $item->name }}?" style="margin-left:auto">@csrf @method('DELETE')<button class="btn link small danger" type="submit">Remove</button></form>
   </div>
 

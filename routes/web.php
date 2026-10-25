@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SetupController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\DraftOrderController;
+use App\Http\Controllers\LineTransferController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductLookupController;
 use App\Http\Controllers\Public\ShopifyWebhookController;
@@ -81,6 +82,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/items/{item}/separate', [QuoteItemController::class, 'separate'])->name('items.separate');
         Route::post('/items/{item}/combine', [QuoteItemController::class, 'combine'])->name('items.combine');
         Route::post('/items/{item}/skus', [QuoteItemController::class, 'saveSkus'])->name('items.skus.save');
+        Route::post('/items/{item}/transfer', [LineTransferController::class, 'item'])->name('items.transfer');
+        Route::post('/extras/{extra}/transfer', [LineTransferController::class, 'extra'])->name('extras.transfer');
 
         Route::post('/quotes/{quote}/extras', [QuoteExtraController::class, 'store'])->name('extras.store');
         Route::put('/extras/{extra}', [QuoteExtraController::class, 'update'])->name('extras.update');

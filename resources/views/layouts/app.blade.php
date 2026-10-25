@@ -26,7 +26,7 @@
     </div>
   </nav>
   <main>
-    @if (session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
+    @if (session('status'))<div class="flash" role="status">{{ session('status') }}@if(session('status_link')) <a href="{{ session('status_link')['url'] }}">{{ session('status_link')['text'] }}</a>@endif</div>@endif
     @if ($errors->any())
       <div class="errors" role="alert"><b>Please check:</b><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
     @endif

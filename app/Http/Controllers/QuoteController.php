@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Quote;
 use App\Models\ShopifyDraftOrder;
+use App\Quotes\LineTransfer;
 use App\Quotes\QuoteCalculator;
 use App\Quotes\QuoteNumbers;
 use Illuminate\Http\Request;
@@ -85,6 +86,7 @@ class QuoteController extends Controller
 
         return view('quotes.show', [
             'quote' => $quote,
+            'targets' => app(LineTransfer::class)->targetsFor($quote),
             'statuses' => Quote::STATUSES,
         ]);
     }

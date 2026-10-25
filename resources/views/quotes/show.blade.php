@@ -91,6 +91,7 @@
                   <form method="post" action="{{ route('extras.reset', $x) }}">@csrf<button class="btn link small" type="submit">Use the supplier's freight again</button></form>
                 @endif
                 @unless($x->auto)
+                  @include('quotes._transfer', ['action' => route('extras.transfer', $x)])
                   <form method="post" action="{{ route('extras.destroy', $x) }}" data-confirm="Remove this line?">@csrf @method('DELETE')<button class="btn link small danger" type="submit">Remove</button></form>
                 @endunless
               </details>
