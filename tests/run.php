@@ -128,5 +128,27 @@ $src = file_get_contents(dirname(__DIR__) . '/public/competitor-prices.php');
 check('page requires admin before data', strpos($src, 'Auth::requireAdmin()') !== false
     && strpos($src, 'Auth::requireAdmin()') < strpos($src, 'new Repository('));
 
+
+// --- StockRelay: the PDP stock check without the Promodata token in the theme
+$tmp = sys_get_temp_dir() . '/stock-relay-test-' . bin2hex(random_bytes(3));
+$relayCfg = ['token' => 'secret', 'allowed_origins' => ['https://crowdmerch.com.au'], 'cache_dir' => $tmp, 'per_ip_limit' => 2, 'per_ip_window' => 300];
+$calls = 0;
+$fake = function (string $id) use (&$calls): array { $calls++; return [200, '{"data":{"stock":[["BLACK","M","129084","5001-BLACK-H-M"]]}}']; };
+$srv = fn (string $ip = '1.1.1.1', string $origin = 'https://crowdmerch.com.au', string $method = 'GET') => ['HTTP_ORIGIN' => $origin, 'REQUEST_METHOD' => $method, 'REMOTE_ADDR' => $ip];
+$relay = new Cmau\Stock\StockRelay($relayCfg);
+$r = $relay->handle(['id' => '43446'], $srv(), $fake);
+check('relay returns promodata json unchanged', $r['status'] === 200 && json_decode($r['body'], true)['data']['stock'][0][3] === '5001-BLACK-H-M');
+check('relay sets CORS for the store', ($r['headers']['Access-Control-Allow-Origin'] ?? '') === 'https://crowdmerch.com.au');
+check('relay never echoes the token', !str_contains(json_encode($r), 'secret'));
+$r = $relay->handle(['id' => '43446'], $srv('2.2.2.2', 'https://crowdmerch.com.au', 'POST'), $fake);
+check('relay serves repeats from cache', $r['status'] === 200 && $calls === 1 && $r['headers']['X-Stock-Cache'] === 'hit');
+check('relay refuses other origins', $relay->handle(['id' => '43446'], $srv('1.1.1.1', 'https://competitor.example'), $fake)['status'] === 403);
+check('relay refuses non-numeric ids', $relay->handle(['id' => '43446/../../x'], $srv(), $fake)['status'] === 400);
+check('relay answers CORS preflight', $relay->handle([], $srv('1.1.1.1', 'https://crowdmerch.com.au', 'OPTIONS'), $fake)['status'] === 204);
+$relay->handle(['id' => '1'], $srv('9.9.9.9'), $fake);
+$relay->handle(['id' => '2'], $srv('9.9.9.9'), $fake);
+check('relay limits uncached look-ups per visitor', $relay->handle(['id' => '3'], $srv('9.9.9.9'), $fake)['status'] === 429);
+check('relay reports supplier failure as 502', (new Cmau\Stock\StockRelay($relayCfg))->handle(['id' => '77'], $srv('5.5.5.5'), fn () => [500, ''])['status'] === 502);
+
 echo $fails === 0 ? "OK ($count checks)\n" : "$fails of $count checks failed\n";
 exit($fails === 0 ? 0 : 1);
