@@ -112,9 +112,9 @@ Safeguards:
 - Client lookup in ROD Contacts.
 - The supplier-website pricing investigation.
 
-## Client PDF layout (agreed 25 Oct 2026, to build next)
+## Client PDF layout (agreed and built 25 Oct 2026)
 
-The design canvas has the agreed layouts: the Lookbook comparison (PS) and quote "2b" (MR).
+The design canvas has the agreed layouts: the Lookbook comparison (PS) and quote "2b" (MR). They are built in `resources/views/pdf` with the CrowdMerch logo (`public/img/crowdmerch-logo.png`, taken from the website at 446 px wide: replace it with a larger original for sharper print) and Oswald and Mulish fonts (`resources/fonts`, SIL Open Font License).
 
 - **Branding.** Both PDFs carry the CrowdMerch logo, shown large.
 - **Comparison (PS).**

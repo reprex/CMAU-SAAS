@@ -3,6 +3,7 @@
 namespace App\Pdf;
 
 use App\Models\Quote;
+use App\Models\QuoteExtra;
 use App\Models\QuoteItem;
 use App\Pricing\Money;
 use App\Quotes\QuoteCalculator;
@@ -12,15 +13,17 @@ use Dompdf\Options;
 use Illuminate\Support\Collection;
 
 /**
- * The client PDFs:
- *  - quote (MR...): items with pictures and size breakdown, setups and freight as
- *    their own lines, totals;
- *  - product comparison (PS...): one card per product, its quantity options side
- *    by side as an all-in price each (product, branding, setup and delivery),
- *    no grand total.
+ * The client PDFs, CrowdMerch branded (layouts agreed 25 Oct 2026, docs/quotes.md):
+ *  - quote (MR...): items with pictures; setups, services and delivery under
+ *    "Also included" right-aligned above the totals;
+ *  - product comparison (PS...): two products per page, up to three quantity
+ *    breaks each, every break with its own setup and delivery, ex and inc GST.
+ *    "All in" only when the product has a delivery line.
  */
 class QuotePdf
 {
+    public const MAX_BREAKS = 3;
+
     public function __construct(
         private readonly ImageEmbedder $images,
         private readonly QuoteCalculator $calculator,
@@ -34,23 +37,36 @@ class QuotePdf
             'item' => $i,
             'image' => $this->images->dataUri($i->image_url),
             'sizes' => $i->sizeBreakdown(),
-        ]);
+        ])->values();
 
-        $setups = $quote->items
-            ->filter(fn (QuoteItem $i) => $i->setupPrice() > 0)
-            ->map(fn (QuoteItem $i) => [
-                'label' => trim(($i->decoration_name ?: 'Setup').' setup ('.$i->name.')'),
-                'total' => $i->setupPrice(),
-            ])->values();
+        // Custom products read as items; services, setups and delivery as "also included".
+        $customs = $quote->extras->where('kind', 'custom')->map(fn (QuoteExtra $x) => [
+            'extra' => $x,
+            'image' => $this->images->dataUri($x->image_url),
+        ])->values();
+
+        $included = collect();
+        foreach ($quote->items as $i) {
+            if ($i->setupPrice() > 0) {
+                $included->push(['label' => ($i->decoration_name ? 'Setup: '.$i->decoration_name : 'Setup').' ('.$i->name.')', 'amount' => $i->setupPrice(), 'tbc' => false]);
+            }
+        }
+        foreach ($quote->extras->where('kind', 'service') as $x) {
+            $included->push(['label' => $x->description.((float) $x->quantity != 1.0 ? ' × '.rtrim(rtrim(number_format((float) $x->quantity, 2), '0'), '.') : ''), 'amount' => $x->total(), 'tbc' => false]);
+        }
+        foreach ($quote->extras->where('kind', 'freight') as $x) {
+            $included->push(['label' => $x->description, 'amount' => $x->total(), 'tbc' => (bool) $x->tbc]);
+        }
 
         return $this->render('pdf.quote', [
             'quote' => $quote,
             'items' => $items,
-            'setups' => $setups,
-            'extras' => $quote->extras->whereIn('kind', ['custom', 'service']),
-            'freight' => $quote->extras->where('kind', 'freight'),
-            'info' => $quote->extras->where('kind', 'info'),
+            'customs' => $customs,
+            'included' => $included,
+            'info' => $quote->extras->where('kind', 'info')->values(),
             'separate' => $quote->decoration_display === 'separate',
+            'timing' => $this->timing($quote->lead_time),
+            'anyTbc' => $included->contains('tbc', true),
         ] + $this->common());
     }
 
@@ -67,7 +83,7 @@ class QuotePdf
 
     /**
      * Items grouped by product + colour + decoration; each group's items are the
-     * quantity options.
+     * quantity breaks, each priced as an order on its own.
      *
      * @return Collection<int, array<string, mixed>>
      */
@@ -81,31 +97,39 @@ class QuotePdf
                 $first = $group->first();
                 $options = $group->sortBy('quantity')->values()->map(function (QuoteItem $i) {
                     [$freight, $tbc] = $this->standaloneFreight($i);
-                    $total = Money::roundToCent($i->total() + $freight);
+                    $totalCents = $this->cents($i->total() + $freight);
+                    $qty = max(1, $i->quantity);
+                    $eachCents = intdiv(2 * $totalCents + $qty, 2 * $qty); // half up, as TOD's PDFs (230.50 / 100 = 2.31)
 
                     return [
                         'qty' => $i->quantity,
-                        'total' => $total,
-                        // Each price rounds half up, as the TOD comparison PDF does (230.50 / 100 = 2.31).
-                        'each' => round(Money::toUnits($total) / 100 / max(1, $i->quantity)) / 100,
+                        'unit' => $i->unitPrice(),
+                        'goods' => $i->goodsTotal(),
                         'setup' => $i->setupPrice(),
                         'freight' => $freight,
                         'freight_tbc' => $tbc,
+                        'total' => $totalCents / 100,
+                        'total_inc' => $this->incGst($totalCents) / 100,
+                        'each' => $eachCents / 100,
+                        'each_inc' => $this->incGst($eachCents) / 100,
                     ];
                 });
-                $best = $options->count() > 1 ? $options->sortBy('each')->keys()->first() : null;
+
+                $shown = $options->take(self::MAX_BREAKS)->values();
+                $best = $shown->count() > 1 ? $shown->sortBy('each')->keys()->first() : null;
 
                 return [
                     'item' => $first,
                     'image' => $this->images->dataUri($first->image_url),
-                    'features' => $this->features($first->description),
                     'intro' => $this->intro($first->description),
-                    'options' => $options->map(fn ($o, $k) => $o + ['best' => $k === $best])->all(),
+                    'all_in' => $shown->every(fn ($o) => ! $o['freight_tbc']),
+                    'options' => $shown->map(fn ($o, $k) => $o + ['best' => $k === $best])->all(),
+                    'more' => $options->slice(self::MAX_BREAKS)->values()->all(),
                 ];
             });
     }
 
-    /** @return array{0: float, 1: bool} freight for this option ordered on its own, and whether any of it is TBC */
+    /** @return array{0: float, 1: bool} freight for this break ordered on its own, and whether any of it is still to be confirmed */
     private function standaloneFreight(QuoteItem $item): array
     {
         $temp = new Quote;
@@ -122,6 +146,31 @@ class QuotePdf
         return [Money::roundToCent($sum), $tbc];
     }
 
+    /** The quote's timing line, always inviting an earlier deadline. */
+    private function timing(?string $leadTime): ?string
+    {
+        $leadTime = trim((string) ($leadTime ?: config('quotes.default_lead_time')));
+        if ($leadTime === '') {
+            return null;
+        }
+        if (stripos($leadTime, 'urgent') !== false) {
+            return $leadTime;
+        }
+
+        return rtrim($leadTime, '. ').', but please let us know if you have a more urgent deadline.';
+    }
+
+    private function cents(float $amount): int
+    {
+        return (int) round($amount * 100);
+    }
+
+    /** GST-inclusive cents, rounded half up. */
+    private function incGst(int $cents): int
+    {
+        return intdiv($cents * 11 + 5, 10);
+    }
+
     /** First paragraph of a Promodata description (before "Features:"). */
     private function intro(?string $description): ?string
     {
@@ -131,18 +180,7 @@ class QuotePdf
         $text = trim(preg_split('/features\s*:/i', strip_tags($description))[0]);
         $text = preg_replace('/\s+/', ' ', $text);
 
-        return mb_strlen($text) > 320 ? rtrim(mb_substr($text, 0, 317), ' ,.;').'…' : $text;
-    }
-
-    /** "* feature" lines after "Features:", at most four. */
-    private function features(?string $description): array
-    {
-        if (! $description || ! preg_match('/features\s*:(.*)$/is', strip_tags($description), $m)) {
-            return [];
-        }
-        $lines = preg_split('/\r?\n|(?=\*\s)/', $m[1]);
-
-        return collect($lines)->map(fn ($l) => trim(ltrim(trim($l), "*•- \t")))->filter()->take(4)->values()->all();
+        return mb_strlen($text) > 220 ? rtrim(mb_substr($text, 0, 217), ' ,.;').'…' : $text;
     }
 
     private function common(): array
@@ -150,7 +188,7 @@ class QuotePdf
         $cfg = config('quotes.pdf');
 
         return [
-            'banner' => $this->images->localDataUri($cfg['banner']),
+            'logo' => $this->images->localDataUri($cfg['logo']),
             'signature' => $this->images->localDataUri($cfg['signature']),
             'brand' => $cfg,
             'fontDir' => resource_path('fonts'),
@@ -162,7 +200,7 @@ class QuotePdf
         $options = new Options;
         $options->setChroot([base_path()]);
         $options->setIsRemoteEnabled(false);
-        $options->setDefaultFont('Poppins');
+        $options->setDefaultFont('Mulish');
         $options->setDpi(96);
         $fontCache = storage_path('fonts');
         if (! is_dir($fontCache)) {
@@ -176,10 +214,10 @@ class QuotePdf
         $dompdf->setPaper('A4');
         $dompdf->render();
 
-        // "Page 1 of 2" bottom right (CSS page counters are not reliable in dompdf).
+        // Page numbers bottom centre, under the footer line (CSS page counters are not reliable in dompdf).
         $canvas = $dompdf->getCanvas();
-        $font = $dompdf->getFontMetrics()->getFont('Poppins');
-        $canvas->page_text($canvas->get_width() - 100, $canvas->get_height() - 24, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7, [0.55, 0.55, 0.58]);
+        $font = $dompdf->getFontMetrics()->getFont('Mulish');
+        $canvas->page_text($canvas->get_width() / 2 - 20, $canvas->get_height() - 16, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 6.5, [0.45, 0.45, 0.42]);
 
         return (string) $dompdf->output();
     }

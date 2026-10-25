@@ -116,6 +116,34 @@ class QuoteDeskHttpTest extends TestCase
         $this->assertSame([156.5, 230.5], [$opts[0]['total'], $opts[1]['total']]);
         $this->assertSame([3.13, 2.31], [$opts[0]['each'], $opts[1]['each']]);
         $this->assertTrue($opts[1]['best']);
+        $this->assertTrue($cards[0]['all_in']);
+        $this->assertSame([172.15, 253.55], [$opts[0]['total_inc'], $opts[1]['total_inc']]);
+        $this->assertSame([3.44, 2.54], [$opts[0]['each_inc'], $opts[1]['each_inc']]);
+    }
+
+    public function test_comparison_is_all_in_only_when_delivery_is_set_and_fits_two_products_a_page(): void
+    {
+        $this->supplier(3, 'Trends', ['freight_sell' => 22.50]);
+        $this->supplier(9, 'No freight yet');
+        $quote = Quote::create(['number' => 'MR11800', 'client_company' => 'Harbourside RC']);
+        foreach ([[1, 3], [2, 9], [3, 3], [4, 9]] as [$product, $supplier]) {
+            foreach ([50, 100, 250, 500] as $qty) {
+                $quote->items()->create(['supplier_id' => $supplier, 'product_id' => $product, 'name' => "Product {$product}", 'quantity' => $qty,
+                    'product_unit_price' => 1.00, 'decoration_unit_price' => 0.50, 'decoration_setup_price' => 60, 'decoration_name' => 'Print', 'decoration_option_id' => "{$product}-p",
+                    'description' => 'A sturdy everyday product. Features: * One * Two']);
+            }
+        }
+
+        $cards = app(QuotePdf::class)->comparisonCards($quote->load('items'));
+        $this->assertTrue($cards[0]['all_in']);
+        $this->assertFalse($cards[1]['all_in']);
+        $this->assertCount(3, $cards[0]['options']);                 // three breaks shown
+        $this->assertSame(500, $cards[0]['more'][0]['qty']);          // the rest listed underneath
+        $this->assertSame(0.0, $cards[1]['options'][0]['freight']);
+        $this->assertTrue($cards[1]['options'][0]['freight_tbc']);
+
+        $pdf = app(QuotePdf::class)->comparison($quote);
+        $this->assertSame(2, preg_match_all('#/Type\s*/Page[^s]#', $pdf));  // four products, two pages
     }
 
     public function test_stock_relay_checks_origin_and_id_and_caches(): void

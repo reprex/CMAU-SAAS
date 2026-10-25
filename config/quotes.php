@@ -25,14 +25,14 @@ return [
     // PDFs. The signature image is optional and kept out of Git: upload it
     // to storage/app/branding/signature.png through cPanel File Manager.
     'pdf' => [
-        'banner' => public_path('img/replicat-banner.png'),
+        'logo' => public_path('img/crowdmerch-logo.png'),
         'signature' => storage_path('app/branding/signature.png'),
         'signed_by' => env('QUOTE_SIGNED_BY', 'Scott Wilson'),
-        'signed_title' => env('QUOTE_SIGNED_TITLE', 'Owner, Replicat Pty Ltd'),
+        'signed_title' => env('QUOTE_SIGNED_TITLE', 'CrowdMerch'),
         'phone' => '1300 727 685',
-        'email' => 'sales@replicat.com.au',
-        'website' => 'www.replicat.com.au',
-        'legal' => 'Replicat Pty Ltd · ACN 110 523 950 · ABN 32 110 523 950',
+        'email' => env('QUOTE_EMAIL', 'sales@replicat.com.au'),
+        'website' => 'crowdmerch.com.au',
+        'legal' => 'A Replicat Pty Ltd business · ABN 32 110 523 950',
     ],
 
 ];
