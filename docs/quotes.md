@@ -111,3 +111,18 @@ Safeguards:
 - Shopify invoice from a won quote.
 - Client lookup in ROD Contacts.
 - The supplier-website pricing investigation.
+
+## Client PDF layout (agreed 25 Oct 2026, to build next)
+
+The design canvas has the agreed layouts: the Lookbook comparison (PS) and quote "2b" (MR).
+
+- **Branding.** Both PDFs carry the CrowdMerch logo, shown large.
+- **Comparison (PS).**
+  - Two products per A4 page, with up to three quantity breaks each.
+  - Each break shows its own sum: quantity × price each, then + setup, then + delivery, then the total ex GST with the inc GST total beside it. The price each is shown ex GST with inc GST underneath. The lowest price each is marked best value.
+  - "All in" appears only when the product has a delivery line in the SaaS. Without one, the heading is "Price each", the sum leaves out delivery, and a note says delivery will be confirmed on the quote.
+- **Quote (MR).**
+  - Items with pictures, each marked ex GST.
+  - "Also included" (setups and delivery) sits right-aligned directly above the totals block.
+  - Timing, how to go ahead and the signature sit on the left.
+  - The timing line ends with "but please let us know if you have a more urgent deadline."
