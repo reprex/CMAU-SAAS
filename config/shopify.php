@@ -12,9 +12,15 @@ return [
     'store' => env('SHOPIFY_SHOP_DOMAIN'),       // e.g. cmau-dev.myshopify.com
     'dev_store' => env('SHOPIFY_DEV_STORE'),     // the CMAU_DEV store's myshopify domain
     'allow_live' => (bool) env('SHOPIFY_ALLOW_LIVE', false),
+    // Dev Dashboard app (client credentials grant, 24-hour tokens fetched and cached by the app).
+    'client_id' => env('SHOPIFY_CLIENT_ID'),
+    'client_secret' => env('SHOPIFY_CLIENT_SECRET'),
+    // Older fixed token (legacy custom apps). Leave empty when using the client ID and secret.
     'token' => env('SHOPIFY_ADMIN_TOKEN'),
     'api_version' => env('SHOPIFY_API_VERSION', '2026-07'),
-    'webhook_secret' => env('SHOPIFY_WEBHOOK_SECRET'),
+    // Webhooks the app subscribes to are signed with its client secret; webhooks made in
+    // the store's Settings → Notifications use the key shown there instead.
+    'webhook_secret' => env('SHOPIFY_WEBHOOK_SECRET') ?: env('SHOPIFY_CLIENT_SECRET'),
 
     // Pull draft orders changed since the last run (cron-friendly backup to webhooks).
     'pull_drafts' => (bool) env('SHOPIFY_PULL_DRAFTS', true),
