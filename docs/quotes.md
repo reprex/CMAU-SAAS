@@ -77,7 +77,7 @@ On the comparison PDF, each quantity option is priced as an order on its own: pr
 
 ## Website quote API (switched on, CMAUDEV only)
 
-These paths are the same as the theme's current calls, now on saas.app.crowdmerch.com.au:
+These paths are the same as the theme's current calls, now on saas.replicat.com.au:
 
 - `POST /crowdmerch/homepage/createQuoteDraftOrder` takes `email, variantId, quantity, decID, ActiveWL, urgency, comments`. It:
   1. prices the line from the catalogue, the same way as the product page;
@@ -93,7 +93,7 @@ Safeguards:
 
 ## Setting up on the server (no shell)
 
-1. Deploy as in `docs/stack-and-security.md`. Migrations run from `.cpanel.yml`.
+1. Deploy as in `docs/deploy.md`. Migrations run from `.cpanel.yml`.
 2. In `.env`, set `SETUP_TOKEN` to a long random value. Open `/setup` and create the first admin, then remove `SETUP_TOKEN`.
 3. Sign in and scan the QR code with an authenticator app.
 4. Optional: upload a signature image to `storage/app/branding/signature.png` for the quote PDF. It is not in Git.
@@ -102,7 +102,7 @@ Safeguards:
    - `SHOPIFY_ADMIN_TOKEN`, with scopes `read_draft_orders`, `write_draft_orders`, `read_products`;
    - `SHOPIFY_WEBHOOK_SECRET`;
    - `WEBSITE_QUOTE_ORIGINS`.
-6. Register webhooks `draft_orders/create` and `draft_orders/update` to `https://saas.app.crowdmerch.com.au/webhooks/shopify/draft-orders`.
+6. Register webhooks `draft_orders/create` and `draft_orders/update` to `https://saas.replicat.com.au/webhooks/shopify/draft-orders`.
 7. Mail: set the `MAIL_*` values (cPanel SMTP) so instant quotes are sent. Until then they go to the log.
 
 ## Not in stage 1

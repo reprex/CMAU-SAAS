@@ -1,0 +1,7 @@
+---
+# cPanel Git Version Control runs this on "Deploy HEAD Commit".
+# Only the `deploy` branch (built by .github/workflows/release.yml) carries vendor/,
+# so the clone must be on that branch. Output goes to ~/deploy.log.
+deployment:
+  tasks:
+    - /bin/bash /home/saasreplicat584/repositories/CMAU-SAAS/scripts/deploy-server.sh

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\CloudflareIps;
 use App\Http\Middleware\RequireRole;
 use App\Http\Middleware\RequireTwoFactor;
 use App\Http\Middleware\SecurityHeaders;
@@ -23,7 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Shopify webhooks are verified by HMAC instead of a CSRF token.
         $middleware->validateCsrfTokens(except: ['webhooks/*', 'crowdmerch/homepage/*']);
         $middleware->redirectGuestsTo('/login');
-        $middleware->trustProxies(at: '*');
+        // Behind Cloudflare: trust only its edge ranges for the client IP.
+        $middleware->trustProxies(at: CloudflareIps::trusted());
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

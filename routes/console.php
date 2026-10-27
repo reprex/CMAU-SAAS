@@ -3,8 +3,9 @@
 use Illuminate\Support\Facades\Schedule;
 
 /*
-| All scheduled work runs from ONE cPanel cron entry, every minute:
-|   * * * * * /usr/local/bin/ea-php84 /home/appcrowdmerch746/cmau-saas/artisan schedule:run >> /dev/null 2>&1
+| All scheduled work runs from ONE cPanel cron entry, every minute
+| (account saasreplicat584, cPanel → Cron Jobs → Once Per Minute):
+|   cd /home/saasreplicat584/saas-app && /usr/local/bin/ea-php84 artisan schedule:run >> /dev/null 2>&1
 | Each task below does a short batch and exits, to suit shared hosting.
 */
 

@@ -1,0 +1,107 @@
+name: Release
+
+# Builds a production release and commits it to the `deploy` branch, which the
+# server's cPanel Git clone pulls. Start it by pushing a tag `release-YYYYMMDD-n`
+# on the commit to ship, or from the Actions tab ("Run workflow").
+# Nothing here can reach the server: the server always pulls.
+
+on:
+  push:
+    tags: ['release-*']
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Tests on PHP 8.4
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pdo, sqlite, pdo_sqlite, pdo_mysql, intl, bcmath, gd
+          coverage: none
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: composer audit --no-interaction
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Build and commit to deploy
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the commit to release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: src
+          persist-credentials: false
+
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pdo, pdo_mysql, intl, bcmath, gd
+          coverage: none
+
+      - name: Production dependencies only
+        working-directory: src
+        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction --no-progress
+
+      - name: Checkout the deploy branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: out
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Switch to (or start) the deploy branch
+        working-directory: out
+        run: |
+          if git ls-remote --exit-code --heads origin deploy >/dev/null; then
+            git fetch --depth=1 origin deploy
+            git checkout -B deploy origin/deploy
+          else
+            git checkout --orphan deploy
+          fi
+          git rm -rq --cached . >/dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+
+      - name: Copy the release (no tests, dev files or secrets)
+        run: |
+          rsync -a \
+            --exclude '/.git/' --exclude '/.github/' --exclude '/tests/' --exclude '/node_modules/' \
+            --exclude '/.env' --exclude '/.env.*' --exclude '/composer-local.*' \
+            --exclude '/phpunit.xml' --exclude '/.phpunit.result.cache' --exclude '/storage/logs/*.log' \
+            --exclude '/database/database.sqlite' \
+            src/ out/
+          # The deploy branch ships vendor/, so its .gitignore only keeps secrets and runtime files out.
+          printf '%s\n' '/.env' '/.env.*' '!/.env.example' '/storage/logs/*' '!/storage/logs/.gitignore' \
+            '/storage/framework/cache/data/*' '/storage/framework/sessions/*' '/storage/framework/views/*' \
+            '/bootstrap/cache/*.php' > out/.gitignore
+          test ! -e out/.env
+
+      - name: Commit and push
+        working-directory: out
+        env:
+          SRC_SHA: ${{ github.sha }}
+          SRC_REF: ${{ github.ref_name }}
+        run: |
+          git config user.name "release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          printf 'ref=%s\ncommit=%s\nbuilt=%s\n' "$SRC_REF" "$SRC_SHA" "$(date -u +%FT%TZ)" > RELEASE
+          git add -A -f .
+          git reset -q -- .env 2>/dev/null || true
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -qm "Release ${SRC_REF} (${SRC_SHA::7})"
+          git push origin deploy
