@@ -125,10 +125,10 @@ STOCK_RELAY_ORIGINS=https://crowdmerch.com.au,https://www.crowdmerch.com.au
 QUOTE_NUMBER_START=11775
 
 SETUP_TOKEN=
-ADMIN_ALLOWED_IPS=202.169.99.148
+ADMIN_ALLOWED_IPS=202.169.99.148,2401:d002:3803:1a00::/56
 ```
 
-`ADMIN_ALLOWED_IPS` limits the admin screens to the office. Clear it if you need them from elsewhere.
+`ADMIN_ALLOWED_IPS` limits the admin screens to the office: its static IPv4 address and its IPv6 range (the office reaches the site over IPv6, and the end of that address changes). Addresses and ranges (CIDR) are both accepted. Clear it if you need the admin screens from elsewhere.
 
 ## After the first deploy
 
