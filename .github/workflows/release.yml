@@ -1,12 +1,13 @@
 name: Release
 
 # Builds a production release and commits it to the `deploy` branch, which the
-# server's cPanel Git clone pulls. Start it by pushing a tag `release-YYYYMMDD-n`
-# on the commit to ship, or from the Actions tab ("Run workflow").
+# server's cPanel Git clone pulls. Start it by moving the `release` branch to the
+# commit to ship (git push origin <commit>:release), or with a `release-*` tag.
 # Nothing here can reach the server: the server always pulls.
 
 on:
   push:
+    branches: [release]
     tags: ['release-*']
   workflow_dispatch:
 

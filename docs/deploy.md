@@ -14,7 +14,7 @@ Set up 27 Oct 2026 for the dedicated cPanel account. Host facts (limits, backups
 
 ## How a release works
 
-1. A tag `release-YYYYMMDD-n` is pushed on the commit to ship (or **Run workflow** on the Actions tab → Release).
+1. The `release` branch is moved to the commit to ship (`git push origin <commit>:release`). A `release-*` tag also works.
 2. GitHub Actions (`.github/workflows/release.yml`) runs the tests on PHP 8.4, installs production dependencies only, and commits the built app, including `vendor/`, to the **`deploy`** branch. The file `RELEASE` in that branch names the source commit.
 3. In cPanel → **Git Version Control** → CMAU-SAAS → **Pull or Deploy**: press **Update from Remote**, then **Deploy HEAD Commit**.
 4. `.cpanel.yml` runs `scripts/deploy-server.sh`, which:

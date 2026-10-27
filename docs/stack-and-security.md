@@ -16,7 +16,7 @@ Decided 24 Oct 2026. Hosting moved to its own cPanel account on 27 Oct 2026.
 
 Full steps: `docs/deploy.md`.
 
-1. A `release-*` tag (or a manual run) starts GitHub Actions. It runs the tests on PHP 8.4, installs production dependencies and commits the built app, with `vendor/`, to the `deploy` branch.
+1. Moving the `release` branch to a commit (or a `release-*` tag) starts GitHub Actions. It runs the tests on PHP 8.4, installs production dependencies and commits the built app, with `vendor/`, to the `deploy` branch.
 2. cPanel **Git Version Control** clones that branch with a read-only GitHub deploy key. "Deploy HEAD Commit" runs `.cpanel.yml`, which copies the release into `saas-app`, then migrates and rebuilds the caches.
 3. The server only pulls. No server credentials are stored in GitHub, and no shell is needed. The host has since enabled a jailed SSH shell; if it's used, log in with a key, not the password.
 4. Settings and secrets live in `saas-app/.env`, created once in File Manager and never in Git. The document root is `saas-app/public`, so the rest of the app is outside the web root.
