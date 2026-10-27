@@ -14,6 +14,9 @@ PHP="${PHP:-/usr/local/bin/ea-php84}"
 LOG="$ACCOUNT_HOME/deploy.log"
 
 exec >>"$LOG" 2>&1
+# Never run PHP inside the clone: a PHP error_log written there blocks cPanel's
+# "no uncommitted changes" check on the next deploy.
+cd "$ACCOUNT_HOME"
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') deploy $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo '?')"
 
 if [ ! -f "$REPO/artisan" ] || [ ! -d "$REPO/vendor" ]; then
