@@ -39,10 +39,21 @@ if [ -f "$APP/artisan" ] && [ -d "$APP/vendor" ]; then
   (cd "$APP" && "$PHP" artisan down --retry=15) || true
 fi
 
-rsync -a --delete \
-  --exclude '/.git/' --exclude '/.env' --exclude '/storage/' --exclude '/bootstrap/cache/' \
-  --exclude '/.cpanel.yml' --exclude '/public/.well-known/' \
-  "$REPO"/ "$APP"/
+# Copy with git itself (the jailed shell has no rsync). Only files tracked in the
+# release are written, so .env, storage contents and public/.well-known are never
+# touched. A separate index keeps this apart from the cPanel clone's own checkout.
+GIT_BIN="$(command -v git || echo /usr/local/cpanel/3rdparty/bin/git)"
+NEW="$("$GIT_BIN" -C "$REPO" rev-parse HEAD)"
+OLD="$(cat "$APP/.deployed-commit" 2>/dev/null || true)"
+GIT_INDEX_FILE="$ACCOUNT_HOME/.deploy-index" \
+  "$GIT_BIN" --git-dir="$REPO/.git" --work-tree="$APP" checkout -f "$NEW" -- .
+# Remove files that the previous release had and this one doesn't.
+if [ -n "$OLD" ] && "$GIT_BIN" -C "$REPO" cat-file -e "$OLD^{commit}" 2>/dev/null; then
+  "$GIT_BIN" -C "$REPO" diff --name-only --diff-filter=D "$OLD" "$NEW" | while IFS= read -r f; do
+    case "$f" in .env|storage/*) ;; *) rm -f "$APP/$f" ;; esac
+  done
+fi
+echo "$NEW" > "$APP/.deployed-commit"
 
 # Cached manifests may name old packages: let artisan rebuild them.
 rm -f "$APP"/bootstrap/cache/*.php
