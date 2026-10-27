@@ -41,7 +41,7 @@ fi
 
 rsync -a --delete \
   --exclude '/.git/' --exclude '/.env' --exclude '/storage/' --exclude '/bootstrap/cache/' \
-  --exclude '/.cpanel.yml' \
+  --exclude '/.cpanel.yml' --exclude '/public/.well-known/' \
   "$REPO"/ "$APP"/
 
 # Cached manifests may name old packages: let artisan rebuild them.

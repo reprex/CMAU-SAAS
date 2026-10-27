@@ -32,7 +32,7 @@ Steps 1–2 give the server read-only access to the private repository.
 
 1. **Server key.** cPanel → Security → **SSH Access** → Manage SSH Keys → **Generate a New Key**:
    - Key name `github_deploy`, type RSA 4096 (or Ed25519 if offered). **Leave the passphrase empty** (cPanel Git can't use one).
-   - Then **Manage → Authorize** is *not* needed for this key (it is for GitHub, not for logging in).
+   - Don't **Authorize** it: this key is for GitHub, not for logging in to the server.
    - **View/Download** the *public* key and copy it.
    - cPanel Git looks for `~/.ssh/id_rsa` (or `id_ed25519`) by default. If you named it `github_deploy`, also create `~/.ssh/config` in File Manager (show hidden files) with:
      ```
@@ -47,6 +47,7 @@ Steps 1–2 give the server read-only access to the private repository.
    - Repository Path `repositories/CMAU-SAAS`;
    - Repository Name `CMAU-SAAS`.
    After it clones, open **Manage**, set **Checked-Out Branch** to `deploy`, Update.
+   If the clone fails with a connection or "Permission denied (publickey)" error, check the key from steps 1–2; if it can't reach github.com on port 22 at all, ask Judd to allow outbound SSH to GitHub.
 5. **Deploy.** Manage → **Pull or Deploy** → **Deploy HEAD Commit**. Check `deploy.log` ends with `=== done`, and that https://saas.replicat.com.au/up shows the green "Application up" page.
 6. **Cron.** cPanel → **Cron Jobs** → Once Per Minute (`* * * * *`):
    `cd /home/saasreplicat584/saas-app && /usr/local/bin/ea-php84 artisan schedule:run >> /dev/null 2>&1`
