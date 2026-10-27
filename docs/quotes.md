@@ -99,7 +99,7 @@ Safeguards:
 4. Optional: upload a signature image to `storage/app/branding/signature.png` for the quote PDF. It is not in Git.
 5. CMAUDEV settings:
    - `SHOPIFY_SHOP_DOMAIN` and `SHOPIFY_DEV_STORE` (the dev store's myshopify domain);
-   - `SHOPIFY_ADMIN_TOKEN`, with scopes `read_draft_orders`, `write_draft_orders`, `read_products`;
+   - `SHOPIFY_CLIENT_ID` and `SHOPIFY_CLIENT_SECRET` of a Dev Dashboard app installed on CMAU_DEV, with scopes `read_draft_orders`, `write_draft_orders`, `read_products` (the app fetches and renews its own 24-hour token; see `docs/deploy.md`);
    - `SHOPIFY_WEBHOOK_SECRET`;
    - `WEBSITE_QUOTE_ORIGINS`.
 6. Register webhooks `draft_orders/create` and `draft_orders/update` to `https://saas.replicat.com.au/webhooks/shopify/draft-orders`.
