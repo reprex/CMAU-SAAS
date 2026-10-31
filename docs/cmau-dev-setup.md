@@ -65,13 +65,20 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:logo-areas --predict
 2. **S:** create the GitHub repo `reprex/CMAU-THEME`, connect it to that theme (Shopify GitHub integration, branch `main`), and add it to this Claude session.
 3. **C:** port the current custom templates from the live theme export (colour_as_variant_product, custom collection grid), then build the new templates from the prototype: `page.finder` (step 1), `collection.finder` (step 2 with colour filter and Saved hearts), `product.hybrid` (colours panel, stock box, logo preview, free mockup, front/back), `page.my-list` (saved lists). Assign them to the test products and collections only.
 
-## 6. Publish the test products to CMAU_DEV (C builds, S runs)
+## 6. Publish the test products to CMAU_DEV (S)
 
-The Shopify publisher is the next SaaS module (not built yet). **C** builds `shopify:publish`:
-- product, colour variants, images and metafields exactly as the contract (docs/contracts/shopify-product.md), plus the new additive fields: `custom.altimages`, `custom.colourfamily`, `custom.suppliercode`, `custom.supplierskus`, `custom.printarea`;
-- only products changed since the last publish; preview first; history; locked to CMAU_DEV.
+Publisher built (docs/publisher.md). In `.env` set `SHOPIFY_PRODUCT_TEMPLATE=hybrid` once the new product template exists (until then leave the default), then `config:cache`.
 
-**S** then runs it for the test range and checks a few products in CMAU_DEV's admin.
+```
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:metafield-definitions
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --preview --product=43446
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --product=43446
+```
+Check that product in CMAU_DEV's admin (variants, images, metafields), then publish the rest in batches:
+```
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --limit=50
+```
+Repeat until it says "Nothing to publish."
 
 ## 7. Collections and search (S, C)
 

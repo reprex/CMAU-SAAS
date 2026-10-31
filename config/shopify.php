@@ -22,6 +22,10 @@ return [
     // the store's Settings → Notifications use the key shown there instead.
     'webhook_secret' => env('SHOPIFY_WEBHOOK_SECRET') ?: env('SHOPIFY_CLIENT_SECRET'),
 
+    // Product template the publisher sets (docs/publisher.md): the live theme's
+    // colour_as_variant_product, or e.g. "hybrid" for the new templates on CMAU_DEV.
+    'product_template' => env('SHOPIFY_PRODUCT_TEMPLATE', 'colour_as_variant_product'),
+
     // Pull draft orders changed since the last run (cron-friendly backup to webhooks).
     'pull_drafts' => (bool) env('SHOPIFY_PULL_DRAFTS', true),
 
