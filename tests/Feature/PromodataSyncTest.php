@@ -125,7 +125,7 @@ class PromodataSyncTest extends TestCase
         $this->assertSame(Product::TIER_LIVE, $product->tier);
         $this->assertNotNull($product->hydrated_at);
         $this->assertSame(2, $product->colours()->count());
-        $this->assertSame(['hero', 'style'], $product->images()->pluck('role')->all());
+        $this->assertSame(['hero_style', 'other_style', 'colour', 'colour'], $product->images()->pluck('role')->all());
         $this->assertSame(2, $product->priceLines()->count());
 
         $base = $product->priceLines()->whereNull('base_price_line_id')->first();

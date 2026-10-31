@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Catalogue\ImageTagger;
 use App\Catalogue\RangeManager;
 use App\Jobs\RangeBulkAction;
 use App\Models\AuditLog;
@@ -32,7 +33,7 @@ class RangeController extends Controller
     ];
 
     /** Override keys staff can set on the product screen (docs/range.md). */
-    public const OVERRIDE_KEYS = ['title', 'description', 'subcategory', 'hero_image_url', 'hidden_colours', 'notes',
+    public const OVERRIDE_KEYS = ['title', 'description', 'subcategory', 'hero_image_url', 'image_tags', 'hidden_colours', 'notes',
         'decoration_option_id', 'decoration_product_id', 'actual_moq', 'collection_moq', 'moq_one'];
 
     public function index(Request $request)
@@ -115,6 +116,7 @@ class RangeController extends Controller
     public function show(Product $product)
     {
         $product->load(['supplier', 'detail', 'colours', 'images', 'priceOptions', 'webPrice', 'override']);
+        $imageTags = $product->images->isNotEmpty() ? app(ImageTagger::class)->tags($product) : collect();
         $settings = PriceOptionSetting::query()->where('product_id', $product->id)->get()->keyBy('option_id');
         $types = DecTypeCode::query()->whereIn('code', $product->priceOptions->pluck('code'))->get()->keyBy('code');
 
@@ -125,7 +127,7 @@ class RangeController extends Controller
         $history = AuditLog::query()->with('user:id,name')->where('subject_type', 'Product')->where('subject_id', (string) $product->id)
             ->latest('id')->limit(12)->get();
 
-        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history'));
+        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags'));
     }
 
     public function update(Request $request, Product $product, RangeManager $range)
@@ -146,7 +148,17 @@ class RangeController extends Controller
             'actual_moq' => 'nullable|integer|min:1|max:1000000',
             'collection_moq' => 'nullable|integer|min:1|max:1000000',
             'moq_one' => 'boolean',
+            'images' => 'nullable|array|max:500',
+            'images.*.url' => ['required', Rule::in($imageUrls)],
+            'images.*.role' => ['required', Rule::in(array_keys(ImageTagger::ROLES))],
+            'images.*.colour' => ['nullable', Rule::in($colourNames)],
         ]);
+        if (array_key_exists('images', $data)) {
+            [$data['hero_image_url'], $data['image_tags']] = $this->imageTags($product, $data['images'] ?? []);
+        } else {
+            $data['hero_image_url'] ??= $product->overrideValue('hero_image_url');
+            $data['image_tags'] = $product->overrideValue('image_tags');
+        }
         $data['moq_one'] = $request->boolean('moq_one') ?: null;
         $data['hidden_colours'] = array_values($data['hidden_colours'] ?? []) ?: null;
         if ((int) ($data['decoration_product_id'] ?? 0) === $product->id) {
@@ -177,9 +189,47 @@ class RangeController extends Controller
             AuditLog::record('range.curated', $product, ['before' => $current, 'after' => $next]);
         }
 
+        app(ImageTagger::class)->apply($product);
         $error = $range->reprice($product);
 
         return redirect()->route('range.show', $product)->with('status', $error ? "Saved, but pricing failed: {$error}" : 'Saved and repriced.');
+    }
+
+    /**
+     * Turn the image tag form into overrides: the chosen hero goes in
+     * hero_image_url, and only tags that differ from the automatic ones are kept
+     * in image_tags (keyed by URL, so they survive Promodata refreshes).
+     *
+     * @param  list<array{url:string, role:string, colour:?string}>  $rows
+     * @return array{0: ?string, 1: ?array<string, array{role:string, colour:?string}>}
+     */
+    private function imageTags(Product $product, array $rows): array
+    {
+        $tagger = app(ImageTagger::class);
+        $chosenHero = collect($rows)->firstWhere('role', ImageTagger::HERO_STYLE)['url'] ?? null;
+
+        // The automatic tags if the chosen hero were the only staff choice.
+        $data = $product->override?->data ?? [];
+        unset($data['image_tags']);
+        $data['hero_image_url'] = $chosenHero;
+        $probe = clone $product;
+        $probe->setRelation('override', new ProductOverride(['data' => $data]));
+        $auto = $tagger->tags($probe)->keyBy('url');
+        $heroOverride = $chosenHero && $chosenHero !== $product->hero_image_url ? $chosenHero : null;
+
+        $tags = [];
+        foreach ($rows as $row) {
+            if ($row['role'] === ImageTagger::HERO_STYLE) {
+                continue;
+            }
+            $colour = in_array($row['role'], [ImageTagger::COLOUR, ImageTagger::OTHER_COLOUR], true) ? ($row['colour'] ?? null) : null;
+            $a = $auto[$row['url']] ?? null;
+            if (! $a || $a['role'] !== $row['role'] || ($colour !== null && $a['colour'] !== $colour)) {
+                $tags[$row['url']] = ['role' => $row['role'], 'colour' => $colour];
+            }
+        }
+
+        return [$heroOverride, $tags ?: null];
     }
 
     public function options(Request $request, Product $product, RangeManager $range)

@@ -277,3 +277,15 @@ document.addEventListener('change', (e) => {
   const sel = e.target.closest('select[data-autosubmit]');
   if (sel && sel.form) sel.form.submit();
 });
+
+// Range product screen: only one image can be the hero style.
+document.addEventListener('change', (e) => {
+  const sel = e.target.closest('.image-role');
+  if (!sel || sel.value !== 'hero_style') return;
+  document.querySelectorAll('.image-role').forEach((other) => {
+    if (other !== sel && other.value === 'hero_style') {
+      const colour = other.parentElement.querySelector('select[name$="[colour]"]');
+      other.value = colour && colour.value ? 'colour' : 'other_style';
+    }
+  });
+});
