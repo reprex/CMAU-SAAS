@@ -346,6 +346,8 @@ document.addEventListener('click', (e) => {
       else return;
       e.preventDefault(); apply();
     });
+    const inv = form.querySelector('[data-logo-invert]');
+    if (inv) inv.addEventListener('click', () => { const on = inv.getAttribute('aria-pressed') !== 'true'; inv.setAttribute('aria-pressed', String(on)); box.classList.toggle('white', on); });
     const reset = form.querySelector('[data-logo-reset]');
     if (reset) reset.addEventListener('click', () => { const s = JSON.parse(box.dataset.start); val.left = s[0]; val.top = s[1]; val.width = s[2]; apply(); });
     form.addEventListener('submit', (e) => {

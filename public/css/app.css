@@ -110,3 +110,5 @@ td.breaks { word-break: break-all; max-width: 260px; }
 .logo-box img{display:block;width:100%;height:auto;pointer-events:none}
 .logo-box:focus-visible{outline:2px solid #B3202E}
 .logo-handle{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:#B3202E;border:2px solid #FFFFFF;cursor:nwse-resize}
+.logo-box.white img{filter:invert(1)}
+[data-logo-invert][aria-pressed="true"]{background:#1A1B18;color:#FFFFFF}

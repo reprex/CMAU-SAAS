@@ -38,7 +38,7 @@
     </div>
     <input type="hidden" name="left" value="{{ $c['area'][0] }}"><input type="hidden" name="top" value="{{ $c['area'][1] }}"><input type="hidden" name="width" value="{{ $c['area'][2] }}">
     @if($canEdit && $c['hero'])
-      <div class="row" style="gap:6px"><button class="btn small primary">Approve</button><button type="button" class="btn small" data-logo-reset>Reset</button></div>
+      <div class="row" style="gap:6px"><button class="btn small primary">Approve</button><button type="button" class="btn small" data-logo-reset>Reset</button><button type="button" class="btn small" data-logo-invert aria-pressed="false" title="Show the logo in white, for dark products">White logo</button></div>
     @endif
   </form>
 @empty

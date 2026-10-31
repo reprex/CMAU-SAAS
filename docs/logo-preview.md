@@ -7,7 +7,7 @@ Every product's hero image shows the **CrowdMerch logo** where the branding goes
 Each hero image has one branding area, stored as a share of the picture: left, top and width in percent (`print_areas`, keyed by image URL so Promodata refreshes keep it).
 
 1. **Starting point:** the area for the product type (tees and polos: left chest/front; caps: front panel; bags: front centre; drinkware: centre; pens: barrel), or a **Claude suggestion**: the image check (`catalogue:check-images`) asks Claude once per hero image where the branding goes. Suggestions share the image check's daily cap and never overwrite a vetted area.
-2. **Vetting:** the Logo areas screen shows web-range products with the CrowdMerch logo placed. Staff drag the logo into place and drag its corner to size it (or use arrow keys, + and -), then Approve. "To vet" and "Approved" tabs; any staff member who can edit the range can approve. Approving marks a live product for publishing.
+2. **Vetting:** the Logo areas screen shows web-range products with the CrowdMerch logo placed. Staff drag the logo into place and drag its corner to size it (or use arrow keys, + and -), then Approve. "White logo" shows it in white for checking on dark products (the website does this automatically on dark colours). "To vet" and "Approved" tabs; any staff member who can edit the range can approve. Approving marks a live product for publishing.
 3. **Only approved areas go to the website.** Until a product is vetted, the site shows no logo on it.
 
 If the hero image changes (staff pick another, or Promodata replaces it), the new image needs vetting again.
