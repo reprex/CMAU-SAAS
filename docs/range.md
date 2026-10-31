@@ -10,6 +10,7 @@ Built 31 Oct 2026. Requirements: docs/requirements.md (modules 1–3) and REPSTA
 | **Range** | everyone (changes: admin, sales) | Search the whole catalogue by name, supplier code or APPAID; filter by supplier and Promodata product type. Views: on the range, changed but not published, needs attention, recently used, whole catalogue. Tick products to add, remove, refresh from Promodata or reprice. |
 | **Range → product** | everyone (changes: admin, sales) | Web price summary, price options (cost and sell breaks), per-product type and DecorationJSON group settings, DecorationJSON preview, curation overrides, history. |
 | **Substitutes** (Range → product → Find substitutes; Range → "Find substitutes for"; quote items) | everyone | Products of the same type ranked on material, size, unbranded cost, MOQ and lead time, with live stock. |
+| **Add a whole supplier** (Range → button; admin) | admin | Pick a supplier: per Promodata product type, how many are on the range and how many would be added (discontinued skipped). Untick types to leave out, then add; queued about 25 a minute. Shows the supplier's last sync and offers a one-supplier sync first. Safe to run again for new products. |
 | **Decoration types** (Admin) | admin | TOD's DecTypeCode: classify each supplier price-line description as 10 decoration, 11 accessory, 12 undecorated or 23 hidden, with optional web wording. Saving reprices every product that uses it. |
 
 ## How the data flows
@@ -78,6 +79,10 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan promodata:check --product=25384
 cd ~/saas-app && /usr/local/bin/ea-php84 artisan tod:import /home/saasreplicat584/tod-import --refresh
 cd ~/saas-app && /usr/local/bin/ea-php84 artisan pricing:recalculate        # reprice all live/active products
 ```
+
+## Range expansion (decided 31 Oct 2026)
+
+Scott: add all of JB's Wear (68) and Legend Life (57), perhaps others, for a stronger similar-products list on the website. TOD's data: JB's 561 current (18 live), Legend Life 920 current (0 live). Legend Life's decoration wording will arrive unclassified; classify it under Decoration types. Dex Group (Promodata supplier 19, merch) is a different company from Dex Audio (ROD, CD replication); never match suppliers across the two by name.
 
 ## Not yet
 

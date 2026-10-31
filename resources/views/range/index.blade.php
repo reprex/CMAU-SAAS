@@ -12,6 +12,7 @@
     <h1>Range</h1>
     <p class="muted" style="margin:0">Search the whole Promodata catalogue, add products to the CrowdMerch web range or take them off. Prices follow the TOD rules; open a product to curate it.</p>
   </div>
+  @if(auth()->user()->isAdmin())<a class="btn" href="{{ route('admin.range-supplier.index') }}">Add a whole supplier</a>@endif
 </div>
 
 <form method="get" action="{{ route('substitutes.lookup') }}" class="row" role="search" style="margin-top:-6px">

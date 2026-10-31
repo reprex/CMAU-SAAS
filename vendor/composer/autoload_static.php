@@ -570,6 +570,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Http\\CloudflareIps' => __DIR__ . '/../..' . '/app/Http/CloudflareIps.php',
         'App\\Http\\Controllers\\Admin\\CatalogueSyncController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/CatalogueSyncController.php',
         'App\\Http\\Controllers\\Admin\\DecorationTypeController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/DecorationTypeController.php',
+        'App\\Http\\Controllers\\Admin\\RangeSupplierController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/RangeSupplierController.php',
         'App\\Http\\Controllers\\Admin\\SupplierController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/SupplierController.php',
         'App\\Http\\Controllers\\Admin\\UserController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/UserController.php',
         'App\\Http\\Controllers\\Auth\\LoginController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/LoginController.php',

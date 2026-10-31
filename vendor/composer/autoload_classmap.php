@@ -27,6 +27,7 @@ return array(
     'App\\Http\\CloudflareIps' => $baseDir . '/app/Http/CloudflareIps.php',
     'App\\Http\\Controllers\\Admin\\CatalogueSyncController' => $baseDir . '/app/Http/Controllers/Admin/CatalogueSyncController.php',
     'App\\Http\\Controllers\\Admin\\DecorationTypeController' => $baseDir . '/app/Http/Controllers/Admin/DecorationTypeController.php',
+    'App\\Http\\Controllers\\Admin\\RangeSupplierController' => $baseDir . '/app/Http/Controllers/Admin/RangeSupplierController.php',
     'App\\Http\\Controllers\\Admin\\SupplierController' => $baseDir . '/app/Http/Controllers/Admin/SupplierController.php',
     'App\\Http\\Controllers\\Admin\\UserController' => $baseDir . '/app/Http/Controllers/Admin/UserController.php',
     'App\\Http\\Controllers\\Auth\\LoginController' => $baseDir . '/app/Http/Controllers/Auth/LoginController.php',

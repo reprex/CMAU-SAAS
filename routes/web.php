@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CatalogueSyncController;
 use App\Http\Controllers\Admin\DecorationTypeController;
+use App\Http\Controllers\Admin\RangeSupplierController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
@@ -117,6 +118,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/promodata/runs', [CatalogueSyncController::class, 'start'])->name('sync.start');
         Route::post('/promodata/runs/{run}/cancel', [CatalogueSyncController::class, 'cancel'])->name('sync.cancel');
         Route::post('/promodata/product', [CatalogueSyncController::class, 'refreshProduct'])->name('sync.product');
+
+        Route::get('/range-supplier', [RangeSupplierController::class, 'index'])->name('range-supplier.index');
+        Route::post('/range-supplier', [RangeSupplierController::class, 'store'])->name('range-supplier.store');
 
         Route::get('/decoration-types', [DecorationTypeController::class, 'index'])->name('dectypes.index');
         Route::put('/decoration-types/{decorationType}', [DecorationTypeController::class, 'update'])->name('dectypes.update');
