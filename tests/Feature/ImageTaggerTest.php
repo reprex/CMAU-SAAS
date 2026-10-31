@@ -151,12 +151,12 @@ class ImageTaggerTest extends TestCase
         app(ImageTagger::class)->apply($p);
         $out = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
 
-        $this->assertSame([ImageTagger::CUSTOM_PRINT => ['image' => self::CDN.'ll5098.jpg', 'other' => []]], $out['colours']);
+        $this->assertSame([ImageTagger::CUSTOM_PRINT => ['families' => [], 'image' => self::CDN.'ll5098.jpg', 'other' => []]], $out['colours']);
         $this->assertSame([self::CDN.'ll5098.jpg', self::CDN.'ll5098_detail.jpg'], $out['media']);
 
         // A colour with no picture of its own shows the hero instead of being dropped.
         $p->colours()->create(['name' => 'Blue', 'image_url' => null, 'position' => 0]);
         $out = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
-        $this->assertSame(['Blue' => ['image' => self::CDN.'ll5098.jpg', 'other' => []]], $out['colours']);
+        $this->assertSame(['Blue' => ['families' => [], 'image' => self::CDN.'ll5098.jpg', 'other' => []]], $out['colours']);
     }
 }

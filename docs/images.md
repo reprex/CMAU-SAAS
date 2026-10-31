@@ -55,6 +55,7 @@ To try Claude on one product first: `cd ~/saas-app && /usr/local/bin/ea-php84 ar
 - Variant image: the colour's colour image. Collection pages filtered by colour, and the theme's "show colour variants" option, use this image.
 - Variant metafield `custom.altimagepublicpath` (url): the first other colour image, as TOD.
 - New variant metafield `custom.altimages` (list.url): all other colour images of that colour. Additive: the live theme does not read it. Other colour images are not product media, which keeps the live gallery as it is and stays well under Shopify's media limit.
+- Variant metafield `custom.colourfamily`: the colour's APPA colour families, for the step 2 colour filter. Filtering a collection on a variant field makes Shopify return the first matching variant's image as the product's featured image, so each card shows that colour (see the theme note in docs/images.md).
 - Hidden colours send nothing.
 - No colours (or every colour hidden): one variant, Option1 `Color` = `Custom Print`, SKU `APPAID-customprint`, colour family `cmyk`, variant image = hero style. This is what TOD does today (10 such products in the July reload). Every image is then hero or other style; Claude can't tag other colour because there is no colour to choose.
 - A colour with no picture of its own: variant image = hero style. TOD dropped these colours (its query needed a mapped image); showing the hero keeps the colour on sale and in colour filters.
