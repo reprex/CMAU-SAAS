@@ -28,6 +28,8 @@
         @if($product->detail?->supplier_website_page) · <a href="{{ $product->detail->supplier_website_page }}" target="_blank" rel="noopener">supplier page</a>@endif</div>
     </div>
   </div>
+  <div class="row" style="gap:8px">
+  <a class="btn" href="{{ route('range.substitutes', $product) }}">Find substitutes</a>
   @if($canEdit)
   <form method="post" action="{{ route('range.action', $product) }}" class="row" style="gap:8px">@csrf
     @if($product->tier === 'live')
@@ -39,6 +41,7 @@
     @if($full)<button class="btn" name="action" value="reprice">Reprice</button>@endif
   </form>
   @endif
+  </div>
 </div>
 
 @if($product->reprice_error)<div class="errors" role="alert"><b>Pricing failed:</b> {{ $product->reprice_error }}</div>@endif

@@ -8,8 +8,10 @@ $baseDir = dirname($vendorDir);
 return array(
     'AllowDynamicProperties' => $vendorDir . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
     'App\\Catalogue\\CatalogueWriter' => $baseDir . '/app/Catalogue/CatalogueWriter.php',
+    'App\\Catalogue\\ProductFacts' => $baseDir . '/app/Catalogue/ProductFacts.php',
     'App\\Catalogue\\ProductHydrator' => $baseDir . '/app/Catalogue/ProductHydrator.php',
     'App\\Catalogue\\RangeManager' => $baseDir . '/app/Catalogue/RangeManager.php',
+    'App\\Catalogue\\SubstituteFinder' => $baseDir . '/app/Catalogue/SubstituteFinder.php',
     'App\\Catalogue\\SyncRunner' => $baseDir . '/app/Catalogue/SyncRunner.php',
     'App\\Catalogue\\TierManager' => $baseDir . '/app/Catalogue/TierManager.php',
     'App\\Console\\Commands\\CatalogueDemoteCommand' => $baseDir . '/app/Console/Commands/CatalogueDemoteCommand.php',
@@ -42,6 +44,7 @@ return array(
     'App\\Http\\Controllers\\QuoteExtraController' => $baseDir . '/app/Http/Controllers/QuoteExtraController.php',
     'App\\Http\\Controllers\\QuoteItemController' => $baseDir . '/app/Http/Controllers/QuoteItemController.php',
     'App\\Http\\Controllers\\RangeController' => $baseDir . '/app/Http/Controllers/RangeController.php',
+    'App\\Http\\Controllers\\SubstituteController' => $baseDir . '/app/Http/Controllers/SubstituteController.php',
     'App\\Http\\Middleware\\RequireRole' => $baseDir . '/app/Http/Middleware/RequireRole.php',
     'App\\Http\\Middleware\\RequireTwoFactor' => $baseDir . '/app/Http/Middleware/RequireTwoFactor.php',
     'App\\Http\\Middleware\\SecurityHeaders' => $baseDir . '/app/Http/Middleware/SecurityHeaders.php',

@@ -551,8 +551,10 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
     public static $classMap = array (
         'AllowDynamicProperties' => __DIR__ . '/..' . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
         'App\\Catalogue\\CatalogueWriter' => __DIR__ . '/../..' . '/app/Catalogue/CatalogueWriter.php',
+        'App\\Catalogue\\ProductFacts' => __DIR__ . '/../..' . '/app/Catalogue/ProductFacts.php',
         'App\\Catalogue\\ProductHydrator' => __DIR__ . '/../..' . '/app/Catalogue/ProductHydrator.php',
         'App\\Catalogue\\RangeManager' => __DIR__ . '/../..' . '/app/Catalogue/RangeManager.php',
+        'App\\Catalogue\\SubstituteFinder' => __DIR__ . '/../..' . '/app/Catalogue/SubstituteFinder.php',
         'App\\Catalogue\\SyncRunner' => __DIR__ . '/../..' . '/app/Catalogue/SyncRunner.php',
         'App\\Catalogue\\TierManager' => __DIR__ . '/../..' . '/app/Catalogue/TierManager.php',
         'App\\Console\\Commands\\CatalogueDemoteCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueDemoteCommand.php',
@@ -585,6 +587,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Http\\Controllers\\QuoteExtraController' => __DIR__ . '/../..' . '/app/Http/Controllers/QuoteExtraController.php',
         'App\\Http\\Controllers\\QuoteItemController' => __DIR__ . '/../..' . '/app/Http/Controllers/QuoteItemController.php',
         'App\\Http\\Controllers\\RangeController' => __DIR__ . '/../..' . '/app/Http/Controllers/RangeController.php',
+        'App\\Http\\Controllers\\SubstituteController' => __DIR__ . '/../..' . '/app/Http/Controllers/SubstituteController.php',
         'App\\Http\\Middleware\\RequireRole' => __DIR__ . '/../..' . '/app/Http/Middleware/RequireRole.php',
         'App\\Http\\Middleware\\RequireTwoFactor' => __DIR__ . '/../..' . '/app/Http/Middleware/RequireTwoFactor.php',
         'App\\Http\\Middleware\\SecurityHeaders' => __DIR__ . '/../..' . '/app/Http/Middleware/SecurityHeaders.php',

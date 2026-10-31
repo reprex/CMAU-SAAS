@@ -46,7 +46,7 @@ class RangeController extends Controller
 
         $products = Product::query()
             ->select(['id', 'supplier_id', 'code', 'name', 'tier', 'discontinued', 'promodata_type_name', 'hero_image_url',
-                'colour_count', 'min_unit_cost', 'min_qty', 'last_changed_at', 'range_changed_at', 'published_at', 'reprice_error', 'hydrated_at'])
+                'colour_count', 'min_unit_cost', 'min_qty', 'undecorated_moq', 'undecorated_cost', 'summary_version', 'last_changed_at', 'range_changed_at', 'published_at', 'reprice_error', 'hydrated_at'])
             ->with(['supplier:id,name', 'webPrice:product_id,collection_variant_price,collection_moq,decoration_source,actual_moq,undecorated_option_id'])
             ->when($view === 'live', fn ($w) => $w->where('tier', Product::TIER_LIVE))
             ->when($view === 'active', fn ($w) => $w->where('tier', Product::TIER_ACTIVE))

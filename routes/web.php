@@ -18,6 +18,7 @@ use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteExtraController;
 use App\Http\Controllers\QuoteItemController;
 use App\Http\Controllers\RangeController;
+use App\Http\Controllers\SubstituteController;
 use Illuminate\Support\Facades\Route;
 
 // ---- Public endpoints (no login) -----------------------------------------
@@ -70,6 +71,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/items/{item}/skus', [QuoteItemController::class, 'skuList'])->name('items.skus');
     Route::get('/range', [RangeController::class, 'index'])->name('range.index');
     Route::get('/range/{product}', [RangeController::class, 'show'])->whereNumber('product')->name('range.show');
+    Route::get('/substitutes', [SubstituteController::class, 'lookup'])->name('substitutes.lookup');
+    Route::get('/range/{product}/substitutes', [SubstituteController::class, 'show'])->whereNumber('product')->name('range.substitutes');
+    Route::get('/range/{product}/stock', [SubstituteController::class, 'stock'])->whereNumber('product')->name('range.stock');
 
     Route::middleware('role:edit')->group(function () {
         Route::get('/quotes/new', [QuoteController::class, 'create'])->name('quotes.create');

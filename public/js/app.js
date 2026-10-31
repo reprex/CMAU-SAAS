@@ -241,3 +241,33 @@ document.addEventListener('change', (e) => {
     }
   });
 });
+
+// Substitute finder: fill in live stock a few at a time; flag rows short of the quantity needed.
+(function () {
+  const cells = Array.from(document.querySelectorAll('[data-stock-url]')).filter((c) => c.dataset.stockUrl);
+  if (!cells.length) return;
+  const hide = document.getElementById('hide-short');
+  const apply = () => document.querySelectorAll('tr[data-row]').forEach((tr) => {
+    tr.style.display = hide && hide.checked && tr.classList.contains('short') ? 'none' : '';
+  });
+  if (hide) hide.addEventListener('change', apply);
+  const fmt = (n) => Number(n).toLocaleString('en-AU');
+  let i = 0;
+  const next = () => {
+    const cell = cells[i++];
+    if (!cell) return;
+    fetch(cell.dataset.stockUrl, { headers: { Accept: 'application/json' } })
+      .then((r) => r.json())
+      .then((s) => {
+        if (!s.ok) { cell.textContent = 'no data'; cell.title = s.message || ''; return; }
+        cell.innerHTML = `${fmt(s.total)}<br><span class="small muted">best ${s.best_colour}: ${fmt(s.best_qty)}</span>`;
+        const need = parseInt(cell.dataset.need || '0', 10);
+        const tr = cell.closest('tr');
+        if (need && s.best_qty < need && tr) { tr.classList.add('short'); cell.insertAdjacentHTML('beforeend', '<br><span class="pill warn">short</span>'); }
+        apply();
+      })
+      .catch(() => { cell.textContent = 'no data'; })
+      .finally(next);
+  };
+  for (let k = 0; k < 4; k++) next();
+})();
