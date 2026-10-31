@@ -8,6 +8,7 @@ $baseDir = dirname($vendorDir);
 return array(
     'AllowDynamicProperties' => $vendorDir . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
     'App\\Catalogue\\CatalogueWriter' => $baseDir . '/app/Catalogue/CatalogueWriter.php',
+    'App\\Catalogue\\ImageTagger' => $baseDir . '/app/Catalogue/ImageTagger.php',
     'App\\Catalogue\\ProductFacts' => $baseDir . '/app/Catalogue/ProductFacts.php',
     'App\\Catalogue\\ProductHydrator' => $baseDir . '/app/Catalogue/ProductHydrator.php',
     'App\\Catalogue\\RangeManager' => $baseDir . '/app/Catalogue/RangeManager.php',
@@ -16,6 +17,7 @@ return array(
     'App\\Catalogue\\TierManager' => $baseDir . '/app/Catalogue/TierManager.php',
     'App\\Console\\Commands\\CatalogueDemoteCommand' => $baseDir . '/app/Console/Commands/CatalogueDemoteCommand.php',
     'App\\Console\\Commands\\CatalogueHydrateCommand' => $baseDir . '/app/Console/Commands/CatalogueHydrateCommand.php',
+    'App\\Console\\Commands\\CatalogueTagImagesCommand' => $baseDir . '/app/Console/Commands/CatalogueTagImagesCommand.php',
     'App\\Console\\Commands\\PricingPatternsCommand' => $baseDir . '/app/Console/Commands/PricingPatternsCommand.php',
     'App\\Console\\Commands\\PricingRecalculateCommand' => $baseDir . '/app/Console/Commands/PricingRecalculateCommand.php',
     'App\\Console\\Commands\\PromodataCheckCommand' => $baseDir . '/app/Console/Commands/PromodataCheckCommand.php',

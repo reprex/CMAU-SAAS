@@ -148,14 +148,15 @@ class CatalogueWriter
 
         $position = 0;
         if ($source->heroImageUrl !== null) {
-            $product->images()->create(['url' => $source->heroImageUrl, 'role' => 'hero', 'position' => $position++]);
+            $product->images()->create(['url' => $source->heroImageUrl, 'role' => 'hero_style', 'position' => $position++]);
         }
         foreach ($source->imageUrls as $url) {
             if ($url === $source->heroImageUrl) {
                 continue;
             }
-            $product->images()->create(['url' => $url, 'role' => 'style', 'position' => $position++]);
+            $product->images()->create(['url' => $url, 'role' => 'other_style', 'position' => $position++]);
         }
+        app(ImageTagger::class)->apply($product);
 
         $position = 0;
         foreach ($source->priceGroups as $group) {

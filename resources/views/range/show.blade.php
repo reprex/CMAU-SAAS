@@ -129,14 +129,26 @@
       </div>
       <input type="hidden" name="moq_one" value="0"><label class="check small"><input type="checkbox" name="moq_one" value="1" @checked($ov('moq_one'))> Sell from 1 (first break quantity set to 1, as TOD's MOQ-1 list)</label>
 
-      @if($product->images->isNotEmpty())
-      <fieldset style="border:0;padding:0;margin:0"><legend class="small muted" style="font-weight:600">Main image</legend>
-        <div class="row" style="gap:8px">
-          <label class="small" style="display:flex;flex-direction:column;align-items:center;gap:2px"><span class="thumb" style="width:56px;height:56px">auto</span><input type="radio" name="hero_image_url" value="" @checked(! $ov('hero_image_url'))></label>
-          @foreach($product->images->take(12) as $img)
-            <label class="small" style="display:flex;flex-direction:column;align-items:center;gap:2px"><span class="thumb" style="width:56px;height:56px"><img src="{{ $img->url }}" alt="" loading="lazy"></span><input type="radio" name="hero_image_url" value="{{ $img->url }}" @checked($ov('hero_image_url') === $img->url)></label>
+      @if($imageTags->isNotEmpty())
+      @php($roleNames = \App\Catalogue\ImageTagger::ROLES)
+      <fieldset style="border:0;padding:0;margin:0"><legend class="small muted" style="font-weight:600">Images ({{ $imageTags->count() }}): hero style shows on collection pages; hero and other style show when the product page opens; colour and other colour show once that colour is picked</legend>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:420px;overflow:auto">
+          @foreach($imageTags as $i => $t)
+            <div class="small" style="display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid var(--line, #E5E3DE);border-radius:8px">
+              <a href="{{ $t['url'] }}" target="_blank" rel="noopener" class="thumb" style="width:100%;height:110px"><img src="{{ $t['url'] }}" alt="" loading="lazy" style="object-fit:contain"></a>
+              <input type="hidden" name="images[{{ $i }}][url]" value="{{ $t['url'] }}">
+              <select name="images[{{ $i }}][role]" aria-label="Image {{ $i + 1 }} tag" class="image-role" @disabled(! $canEdit)>
+                @foreach($roleNames as $k => $label)<option value="{{ $k }}" @selected($t['role'] === $k)>{{ $label }}</option>@endforeach
+              </select>
+              <select name="images[{{ $i }}][colour]" aria-label="Image {{ $i + 1 }} colour" @disabled(! $canEdit)>
+                <option value="">No colour</option>
+                @foreach($product->colours->unique('name') as $c)<option value="{{ $c->name }}" @selected($t['colour'] === $c->name)>{{ $c->name }}</option>@endforeach
+              </select>
+              <span class="muted">{{ $t['by'] === 'staff' ? 'Set by staff' : 'Automatic' }}@if($t['by'] === 'staff' && $t['auto_role'] !== $t['role']) (auto: {{ $roleNames[$t['auto_role']] }})@endif</span>
+            </div>
           @endforeach
         </div>
+        <p class="small muted" style="margin:4px 0 0">One hero only: picking a new hero turns the old one into other style. Colour and other colour images need a colour.</p>
       </fieldset>
       @endif
 

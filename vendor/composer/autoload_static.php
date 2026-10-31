@@ -551,6 +551,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
     public static $classMap = array (
         'AllowDynamicProperties' => __DIR__ . '/..' . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
         'App\\Catalogue\\CatalogueWriter' => __DIR__ . '/../..' . '/app/Catalogue/CatalogueWriter.php',
+        'App\\Catalogue\\ImageTagger' => __DIR__ . '/../..' . '/app/Catalogue/ImageTagger.php',
         'App\\Catalogue\\ProductFacts' => __DIR__ . '/../..' . '/app/Catalogue/ProductFacts.php',
         'App\\Catalogue\\ProductHydrator' => __DIR__ . '/../..' . '/app/Catalogue/ProductHydrator.php',
         'App\\Catalogue\\RangeManager' => __DIR__ . '/../..' . '/app/Catalogue/RangeManager.php',
@@ -559,6 +560,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Catalogue\\TierManager' => __DIR__ . '/../..' . '/app/Catalogue/TierManager.php',
         'App\\Console\\Commands\\CatalogueDemoteCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueDemoteCommand.php',
         'App\\Console\\Commands\\CatalogueHydrateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueHydrateCommand.php',
+        'App\\Console\\Commands\\CatalogueTagImagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueTagImagesCommand.php',
         'App\\Console\\Commands\\PricingPatternsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingPatternsCommand.php',
         'App\\Console\\Commands\\PricingRecalculateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingRecalculateCommand.php',
         'App\\Console\\Commands\\PromodataCheckCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PromodataCheckCommand.php',

@@ -16,7 +16,7 @@ Before go-live, check this contract against a downloaded copy of the CMAU theme.
 | Status | `Active`; `Archived` if the product is discontinued or removed from the range |
 | Published / scope | `TRUE` / `web` (`FALSE` when archived) |
 | Template suffix | `colour_as_variant_product` |
-| Images | Public URLs (Promodata Cloudinary or our own bucket). Merged, never replaced |
+| Images | Public URLs (Promodata Cloudinary or our own bucket). Merged, never replaced. Order: hero style, other style, then colour images (docs/images.md) |
 
 ## Product metafields
 
@@ -49,10 +49,11 @@ Before go-live, check this contract against a downloaded copy of the CMAU theme.
 | SKU | `APPAColStringID`, for example `1452-yellow` |
 | Price | CollectionVariantPrice (the same for every colour) |
 | Position | Colour-family display order (9999 if unset) |
-| Variant image | Public URL of the mapped colour image |
+| Variant image | Public URL of the colour's colour image (docs/images.md) |
 | `custom.productmoq` (variant metafield) | CollectionMOQ |
-| `custom.altimagepublicpath` (variant metafield, url) | Alternate colour image URL |
+| `custom.altimagepublicpath` (variant metafield, url) | First other colour image URL |
 | `custom.altimage` (variant metafield, file_reference) | Not set today |
+| `custom.altimages` (variant metafield, list.url) | New, additive (only the new CMAU_DEV templates read it): all other colour images of the colour (docs/images.md) |
 
 A variant is deleted when its product is discontinued.
 
