@@ -21,11 +21,13 @@ Suppliers publish a branding template (PDF or line drawing) for most products: e
 - `custom.brandingpositions` (json): `[{"name":"Front centre","view":"front","image":"…","left":35,"top":28,"width":30,"max_mm":[280,350],"methods":["Screen print","DTF"]}, …]`
 - `custom.brandingtemplate` (url): the template, for a "View the supplier's branding template" link.
 
-## Price stays with the branding option (Scott, 1 Nov)
+## Branding suite and pricing (Scott, 1 Nov)
 
-Positions never change the price. The product page keeps the single branding choice from DecorationJSON, exactly as the current site, because that is the pricing we trust. Each branding option says how many positions it covers and which template positions suit it:
+The product page has one **Branding** section (below the colours, not under the pictures). Every position from the template can be switched on; each has its own decoration method (DTF, oversize DTF, screen print, embroidery, as the product's decoration options and the template allow for that position) and can have its own logo. The pictures and a small preview in the section update as choices are made.
 
-- **How many:** from the option's name ("Front and back", "2 positions", "both sides" = two: one front, one back; otherwise one).
-- **Which:** template positions whose methods match the option (embroidery positions for an embroidery option; any position when the template names no methods), filtered by view for two-position options.
+**Price = unbranded price + each position's decoration (its setup and its per-unit price).** Each decoration's prices come from the product's DecorationJSON, priced as one position. There are no combined options such as "Front and back": a front and a back are two positions, each with its own decoration. Combined Promodata lines (e.g. "Front and back print") are not offered as methods.
 
-The shopper picks where (Front centre, Left chest, Back, Back neck…, with the maximum sizes shown); the price is the option's price. Positions the options don't cover are offered as "Other positions? Mention them in your quote and we'll price them", which staff price on the quote desk. If pricing data for extra positions becomes reliable later, it can be added as additional DecorationJSON options without changing this.
+Follow-up work in the SaaS:
+- **Website quote API and intake:** a cart or list line carries several decorations (position, decID, logo per position) instead of one `decID`; the quote desk splits them into the product line plus one decoration line per position (it already splits product and decoration).
+- **DecorationJSON:** add each option's methods and which template positions it suits (additive keys the current theme ignores), and leave combined options out of the new templates.
+- **Uploaded logos:** sent with the quote request, one per position, stored privately with the quote.
