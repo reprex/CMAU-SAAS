@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CatalogueSyncController;
 use App\Http\Controllers\Admin\DecorationTypeController;
 use App\Http\Controllers\Admin\PriceCheckController;
 use App\Http\Controllers\Admin\RangeSupplierController;
+use App\Http\Controllers\Admin\SearchLogController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\ProductLookupController;
 use App\Http\Controllers\Public\ShopifyWebhookController;
 use App\Http\Controllers\Public\StockRelayController;
 use App\Http\Controllers\Public\WebsiteQuoteController;
+use App\Http\Controllers\Public\WebsiteSearchController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteExtraController;
 use App\Http\Controllers\QuoteItemController;
@@ -38,6 +40,13 @@ Route::prefix('crowdmerch/homepage')->controller(WebsiteQuoteController::class)-
     Route::post('addToWishlist', 'addToWishlist');
     Route::match(['GET', 'POST'], 'getDraftOrderItems', 'getDraftOrderItems');
     Route::post('removeDiscontinuedItem', 'removeDiscontinuedItem');
+});
+
+// Step 1 search (docs/website-search.md): a signed page token, then the search itself.
+Route::prefix('crowdmerch/search')->controller(WebsiteSearchController::class)->group(function () {
+    Route::options('{any?}', 'preflight')->where('any', '.*');
+    Route::get('token', 'token');
+    Route::post('/', 'search');
 });
 
 // ---- Sign-in --------------------------------------------------------------
@@ -127,6 +136,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/price-check', [PriceCheckController::class, 'store'])->name('price-check.store');
         Route::post('/price-check/import', [PriceCheckController::class, 'import'])->name('price-check.import');
         Route::get('/price-check/export', [PriceCheckController::class, 'export'])->name('price-check.export');
+
+        Route::get('/search-log', [SearchLogController::class, 'index'])->name('search-log.index');
 
         Route::get('/decoration-types', [DecorationTypeController::class, 'index'])->name('dectypes.index');
         Route::put('/decoration-types/{decorationType}', [DecorationTypeController::class, 'update'])->name('dectypes.update');
