@@ -5,6 +5,7 @@ namespace App\Catalogue;
 use App\Models\AuditLog;
 use App\Models\Product;
 use App\Pricing\PriceOptionBuilder;
+use App\Pricing\PricePatterns;
 use App\Pricing\WebPriceCalculator;
 use RuntimeException;
 use Throwable;
@@ -111,6 +112,7 @@ class RangeManager
                 $changes['range_changed_at'] = now();
             }
             $product->forceFill($changes)->save();
+            $this->assignPricePattern($product);
 
             return null;
         } catch (Throwable $e) {
@@ -118,6 +120,16 @@ class RangeManager
             $product->forceFill(['reprice_error' => $message])->save();
 
             return $message;
+        }
+    }
+
+    /** Price check grouping (docs/price-check.md). Never lets a failure stop pricing. */
+    private function assignPricePattern(Product $product): void
+    {
+        try {
+            app(PricePatterns::class)->assign($product);
+        } catch (Throwable $e) {
+            report($e);
         }
     }
 }

@@ -69,6 +69,11 @@ Stack principle 2: only what the module needs. The import takes suppliers and th
    It prints the counts, prices every product and, with `--refresh`, queues a Promodata refresh of every live product (current supplier costs replace TOD's snapshot, about 25 products a minute).
 4. Delete the six files from `tod-import` afterwards.
 
+Then work out the price patterns once (docs/price-check.md):
+   ```
+   cd ~/saas-app && /usr/local/bin/ea-php84 artisan pricing:patterns --assign
+   ```
+
 Then start a **full sync** on the Promodata sync screen to load the rest of the catalogue as summaries (a few hours in the background).
 
 ## Commands

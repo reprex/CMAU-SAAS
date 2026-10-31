@@ -30,6 +30,11 @@ Schedule::command('catalogue:demote')
     ->dailyAt('03:30')
     ->withoutOverlapping();
 
+// Price check: recount price patterns and screengrab examples (docs/price-check.md).
+Schedule::command('pricing:patterns')
+    ->dailyAt('04:00')
+    ->withoutOverlapping();
+
 // Quote desk: bring in new/changed Shopify draft orders (backup to webhooks).
 Schedule::command('shopify:pull-drafts')
     ->everyFiveMinutes()

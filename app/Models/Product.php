@@ -43,6 +43,7 @@ class Product extends Model
             'last_used_at' => 'datetime',
             'range_changed_at' => 'datetime',
             'published_at' => 'datetime',
+            'price_flags' => 'array',
         ];
     }
 
