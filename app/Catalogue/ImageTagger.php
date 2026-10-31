@@ -165,7 +165,7 @@ class ImageTagger
      * other style, then each colour image), and per colour its variant image and
      * other-colour images. Hidden colours are left out.
      *
-     * @return array{media: list<string>, style: list<string>, colours: array<string, array{image: ?string, other: list<string>}>}
+     * @return array{media: list<string>, style: list<string>, colours: array<string, array{families: list<string>, image: ?string, other: list<string>}>}
      */
     public function forShopify(Product $product): array
     {
@@ -181,6 +181,7 @@ class ImageTagger
                 ?? $tags->first(fn ($t) => $t['role'] === self::HERO_STYLE && $t['colour'] === $c->name)['url']
                 ?? $c->image_url;
             $colours[$c->name] = [
+                'families' => array_values(array_filter((array) $c->appa_colours)),
                 'image' => $image,
                 'other' => $tags->filter(fn ($t) => $t['role'] === self::OTHER_COLOUR && $t['colour'] === $c->name)->pluck('url')->values()->all(),
             ];
@@ -191,7 +192,7 @@ class ImageTagger
         }
         if ($colours === []) {
             // No colours (or all hidden): one "Custom Print" variant showing the hero, as TOD does.
-            $colours[self::CUSTOM_PRINT] = ['image' => $hero, 'other' => []];
+            $colours[self::CUSTOM_PRINT] = ['families' => [], 'image' => $hero, 'other' => []];
         }
         $media = array_values(array_unique(array_merge($style, array_filter(array_column($colours, 'image')))));
 

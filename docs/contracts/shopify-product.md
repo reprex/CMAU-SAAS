@@ -53,6 +53,7 @@ Before go-live, check this contract against a downloaded copy of the CMAU theme.
 | `custom.productmoq` (variant metafield) | CollectionMOQ |
 | `custom.altimagepublicpath` (variant metafield, url) | First other colour image URL |
 | `custom.altimage` (variant metafield, file_reference) | Not set today |
+| `custom.colourfamily` (variant metafield, list.single_line_text_field) | New, additive: the colour's APPA colour families (Navy, Blue…). The step 2 colour filter uses it so one family covers every supplier colour name |
 | `custom.altimages` (variant metafield, list.url) | New, additive (only the new CMAU_DEV templates read it): all other colour images of the colour (docs/images.md) |
 
 A product with no colours (or every colour hidden) gets one variant: Option1 `Custom Print`, SKU `APPAID-customprint`, variant image = the hero (as TOD's `create 'customprint' ProductColour if no colour` query).
