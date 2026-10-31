@@ -289,3 +289,18 @@ document.addEventListener('change', (e) => {
     }
   });
 });
+
+// Range product screen: live stock from the supplier, on request.
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-live-stock]');
+  if (!btn) return;
+  const box = document.getElementById('live-stock');
+  if (!box) return;
+  btn.disabled = true;
+  box.textContent = 'Asking the supplier…';
+  fetch(btn.dataset.liveStock, { headers: { Accept: 'text/html' } })
+    .then((r) => r.text())
+    .then((html) => { box.innerHTML = html; box.classList.remove('muted'); })
+    .catch(() => { box.textContent = 'Stock check is unavailable right now.'; })
+    .finally(() => { btn.disabled = false; btn.textContent = 'Check again'; });
+});

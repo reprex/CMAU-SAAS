@@ -12,6 +12,7 @@ use App\Models\PriceOptionSetting;
 use App\Models\Product;
 use App\Models\ProductOverride;
 use App\Models\Supplier;
+use App\Stock\PromodataStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
@@ -132,6 +133,26 @@ class RangeController extends Controller
             ->latest('id')->limit(12)->get();
 
         return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags'));
+    }
+
+    /**
+     * Live stock from Promodata for every colour and size, with supplier SKUs:
+     * the same live check the CMAU product page uses. Rendered as a table for
+     * the product screen.
+     */
+    public function liveStock(Product $product, PromodataStock $stock)
+    {
+        if ($product->source !== 'promodata' || ! $product->can_check_stock) {
+            return response('<p class="small muted">This supplier has no live stock check.</p>');
+        }
+        $result = $stock->rows($product->id);
+        $sizes = collect($result['rows'])->pluck('size')->filter()->unique()->values()->all();
+        $grid = [];
+        foreach ($result['rows'] as $r) {
+            $grid[$r['colour'] ?? '–'][$r['size'] ?? '–'] = $r;
+        }
+
+        return view('range._live_stock', ['result' => $result, 'sizes' => $sizes ?: ['–'], 'grid' => $grid]);
     }
 
     public function update(Request $request, Product $product, RangeManager $range)

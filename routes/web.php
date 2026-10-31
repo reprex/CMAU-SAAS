@@ -85,6 +85,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/substitutes', [SubstituteController::class, 'lookup'])->name('substitutes.lookup');
     Route::get('/range/{product}/substitutes', [SubstituteController::class, 'show'])->whereNumber('product')->name('range.substitutes');
     Route::get('/range/{product}/stock', [SubstituteController::class, 'stock'])->whereNumber('product')->name('range.stock');
+    Route::get('/range/{product}/stock/live', [RangeController::class, 'liveStock'])->whereNumber('product')->name('range.stock.live');
 
     Route::middleware('role:edit')->group(function () {
         Route::get('/quotes/new', [QuoteController::class, 'create'])->name('quotes.create');

@@ -2,6 +2,7 @@
 
 namespace App\Stock;
 
+use App\Catalogue\SupplierCodes;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -43,6 +44,15 @@ class PromodataStock
         $result = ['status' => $response->status(), 'body' => $response->body()];
         if ($response->successful() && is_array($response->json())) {
             Cache::put($key, $result, (int) config('quotes.stock_cache_seconds'));
+            // Keep the supplier SKUs for the product page (docs/supplier-codes.md).
+            try {
+                $rows = $this->parse($response->json());
+                if ($rows !== []) {
+                    app(SupplierCodes::class)->record($productId, $rows);
+                }
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         return $result + ['cached' => false];
@@ -62,6 +72,16 @@ class PromodataStock
             return ['ok' => false, 'message' => $json['message'] ?? 'Stock check is unavailable right now', 'rows' => []];
         }
 
+        $rows = $this->parse($json);
+
+        $message = $rows === [] ? ($json['message'] ?? $json['data']['message'] ?? 'The supplier returned no stock information') : null;
+
+        return ['ok' => $rows !== [], 'message' => is_string($message) ? $message : null, 'rows' => $rows];
+    }
+
+    /** @return list<array{colour: ?string, size: ?string, qty: ?int, sku: ?string}> */
+    private function parse(array $json): array
+    {
         $rows = [];
         foreach ((array) ($json['data']['stock'] ?? []) as $row) {
             $row = array_values((array) $row);
@@ -73,9 +93,7 @@ class PromodataStock
             ];
         }
 
-        $message = $rows === [] ? ($json['message'] ?? $json['data']['message'] ?? 'The supplier returned no stock information') : null;
-
-        return ['ok' => $rows !== [], 'message' => is_string($message) ? $message : null, 'rows' => $rows];
+        return $rows;
     }
 
     private function text(mixed $v): ?string

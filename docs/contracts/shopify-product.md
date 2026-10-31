@@ -39,6 +39,8 @@ Before go-live, check this contract against a downloaded copy of the CMAU theme.
 | `custom.nostockmessage` | single_line_text_field | Fixed text: "This product is routinely kept in stock in large quantities in all colours. We will confirm again at the time of order placement." |
 | `custom.undermoqtext` | single_line_text_field | UnderMOQText (small-run surcharge note) |
 | `my_fields.pdpcollectionname` | single_line_text_field | VetSubCatMatch |
+| `custom.suppliercode` | single_line_text_field | New, additive: supplier name and product code, e.g. `AS Colour 5001` (product page and Google `mpn`; docs/supplier-codes.md) |
+| `custom.supplierskus` | json | New, additive: `[{colour, size, sku}]` for every colour and size, hidden colours left out (docs/supplier-codes.md) |
 | `title_tag` | string | `"Custom " + SEODecorationText + " " + name + " [" + SupplierProductID + "]"`; if that is over 70 characters, use just the name and the code |
 
 ## Variants (colours as variants)

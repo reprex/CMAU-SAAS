@@ -169,6 +169,13 @@
       @if($canEdit)<button class="btn primary">Save and reprice</button>@endif
     </form>
 
+    @if($product->can_check_stock)
+    <div class="card">
+      <div class="row between"><h2>Live stock</h2><button type="button" class="btn small" data-live-stock="{{ route('range.stock.live', $product) }}">Check now</button></div>
+      <div id="live-stock" class="small muted">Straight from the supplier through Promodata, every colour and size with the supplier's SKU.</div>
+    </div>
+    @endif
+
     <div class="card">
       <h2>History</h2>
       @forelse($history as $h)
