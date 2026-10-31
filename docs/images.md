@@ -56,8 +56,11 @@ To try Claude on one product first: `cd ~/saas-app && /usr/local/bin/ea-php84 ar
 - Variant metafield `custom.altimagepublicpath` (url): the first other colour image, as TOD.
 - New variant metafield `custom.altimages` (list.url): all other colour images of that colour. Additive: the live theme does not read it. Other colour images are not product media, which keeps the live gallery as it is and stays well under Shopify's media limit.
 - Hidden colours send nothing.
+- No colours (or every colour hidden): one variant, Option1 `Color` = `Custom Print`, SKU `APPAID-customprint`, colour family `cmyk`, variant image = hero style. This is what TOD does today (10 such products in the July reload). Every image is then hero or other style; Claude can't tag other colour because there is no colour to choose.
+- A colour with no picture of its own: variant image = hero style. TOD dropped these colours (its query needed a mapped image); showing the hero keeps the colour on sale and in colour filters.
 
 ## Product page (new `product.hybrid` template on CMAU_DEV)
 
 - On load: `product.featured_media` (hero style) and the other style images, that is product media that is not any variant's `featured_media`.
 - When a colour is picked: that variant's `featured_media`, then the URLs in `variant.metafields.custom.altimages`.
+- One variant only (a Custom Print product, or a single colour): no colour step; the product page shows the style images and the variant is already chosen. A single real colour shows its name as a label instead of a picker.

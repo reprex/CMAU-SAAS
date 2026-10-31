@@ -55,6 +55,8 @@ Before go-live, check this contract against a downloaded copy of the CMAU theme.
 | `custom.altimage` (variant metafield, file_reference) | Not set today |
 | `custom.altimages` (variant metafield, list.url) | New, additive (only the new CMAU_DEV templates read it): all other colour images of the colour (docs/images.md) |
 
+A product with no colours (or every colour hidden) gets one variant: Option1 `Custom Print`, SKU `APPAID-customprint`, variant image = the hero (as TOD's `create 'customprint' ProductColour if no colour` query).
+
 A variant is deleted when its product is discontinued.
 
 ## Publishing rules
