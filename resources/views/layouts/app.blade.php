@@ -20,6 +20,7 @@
       <span class="group">ADMIN ONLY</span>
       <a href="{{ route('admin.sync.index') }}" class="{{ request()->routeIs('admin.sync.*') ? 'on' : '' }}">Promodata sync</a>
       <a href="{{ route('admin.dectypes.index') }}" class="{{ request()->routeIs('admin.dectypes.*') ? 'on' : '' }}">Decoration types</a>
+      <a href="{{ route('admin.price-check.index') }}" class="{{ request()->routeIs('admin.price-check.*') ? 'on' : '' }}">Price check</a>
       <a href="{{ route('admin.suppliers.index') }}" class="{{ request()->routeIs('admin.suppliers.*') ? 'on' : '' }}">Suppliers</a>
       <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'on' : '' }}">Users &amp; audit</a>
     @endif

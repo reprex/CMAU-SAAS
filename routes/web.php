@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CatalogueSyncController;
 use App\Http\Controllers\Admin\DecorationTypeController;
+use App\Http\Controllers\Admin\PriceCheckController;
 use App\Http\Controllers\Admin\RangeSupplierController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
@@ -121,6 +122,11 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
 
         Route::get('/range-supplier', [RangeSupplierController::class, 'index'])->name('range-supplier.index');
         Route::post('/range-supplier', [RangeSupplierController::class, 'store'])->name('range-supplier.store');
+
+        Route::get('/price-check', [PriceCheckController::class, 'index'])->name('price-check.index');
+        Route::post('/price-check', [PriceCheckController::class, 'store'])->name('price-check.store');
+        Route::post('/price-check/import', [PriceCheckController::class, 'import'])->name('price-check.import');
+        Route::get('/price-check/export', [PriceCheckController::class, 'export'])->name('price-check.export');
 
         Route::get('/decoration-types', [DecorationTypeController::class, 'index'])->name('dectypes.index');
         Route::put('/decoration-types/{decorationType}', [DecorationTypeController::class, 'update'])->name('dectypes.update');
