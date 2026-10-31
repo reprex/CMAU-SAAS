@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Schedule;
 | Each task below does a short batch and exits, to suit shared hosting.
 */
 
+// Heartbeat: the Promodata sync screen shows when the scheduler last ran, so a
+// stopped cron (e.g. the server's command-line PHP changing) is visible.
+Schedule::call(fn () => cache()->forever('scheduler:last_run', now()->toIso8601String()))
+    ->everyMinute()->name('scheduler-heartbeat');
+
 // Supplier data: start a "changed since last run" sync overnight...
 Schedule::command('promodata:sync')
     ->dailyAt('01:30')

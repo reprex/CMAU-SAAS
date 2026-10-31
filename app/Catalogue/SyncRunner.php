@@ -2,6 +2,8 @@
 
 namespace App\Catalogue;
 
+use App\Jobs\RepriceProduct;
+use App\Models\Product;
 use App\Models\SyncRun;
 use App\Sources\SupplierSource;
 use DateTimeInterface;
@@ -74,12 +76,21 @@ class SyncRunner
 
                 $seen = 0;
                 $changed = 0;
+                $changedIds = [];
                 foreach ($page->products as $product) {
                     $seen++;
                     $result = $this->writer->store($product);
                     if ($result !== CatalogueWriter::UNCHANGED) {
                         $changed++;
+                        $changedIds[] = $product->id;
                     }
+                }
+
+                // Supplier changes to products we keep in full (the web range and
+                // recently used ones) are repriced in the background.
+                if ($changedIds !== []) {
+                    Product::query()->whereKey($changedIds)->fullDetail()->whereNotNull('hydrated_at')
+                        ->pluck('id')->each(fn ($id) => RepriceProduct::dispatch((int) $id));
                 }
 
                 $run->forceFill([

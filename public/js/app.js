@@ -214,3 +214,30 @@
     });
   });
 })();
+
+// Range: "tick all" header checkbox, and confirm on buttons with data-confirm.
+document.addEventListener('change', (e) => {
+  const all = e.target.closest('[data-check-all]');
+  if (!all) return;
+  document.querySelectorAll(`input[name="${all.dataset.checkAll}"]`).forEach((c) => { c.checked = all.checked; });
+});
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-confirm]');
+  if (b && !window.confirm(b.dataset.confirm)) e.preventDefault();
+});
+
+// Range product page: colour checkboxes are "show"; keep hidden_colours[] in step.
+document.addEventListener('change', (e) => {
+  const box = e.target.closest('.colour-show');
+  if (!box) return;
+  const holder = document.getElementById('hidden-colours');
+  if (!holder) return;
+  holder.innerHTML = '';
+  document.querySelectorAll('.colour-show').forEach((c) => {
+    if (!c.checked) {
+      const i = document.createElement('input');
+      i.type = 'hidden'; i.name = 'hidden_colours[]'; i.value = c.dataset.colour;
+      holder.appendChild(i);
+    }
+  });
+});

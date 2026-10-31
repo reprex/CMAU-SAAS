@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\CatalogueSyncController;
+use App\Http\Controllers\Admin\DecorationTypeController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\Public\WebsiteQuoteController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteExtraController;
 use App\Http\Controllers\QuoteItemController;
+use App\Http\Controllers\RangeController;
 use Illuminate\Support\Facades\Route;
 
 // ---- Public endpoints (no login) -----------------------------------------
@@ -65,6 +68,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/products/search', [ProductLookupController::class, 'search'])->name('products.search');
     Route::get('/products/{product}/options', [ProductLookupController::class, 'options'])->name('products.options');
     Route::get('/items/{item}/skus', [QuoteItemController::class, 'skuList'])->name('items.skus');
+    Route::get('/range', [RangeController::class, 'index'])->name('range.index');
+    Route::get('/range/{product}', [RangeController::class, 'show'])->whereNumber('product')->name('range.show');
 
     Route::middleware('role:edit')->group(function () {
         Route::get('/quotes/new', [QuoteController::class, 'create'])->name('quotes.create');
@@ -91,12 +96,26 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::delete('/extras/{extra}', [QuoteExtraController::class, 'destroy'])->name('extras.destroy');
 
         Route::post('/drafts/{draft}/convert', [DraftOrderController::class, 'convert'])->name('drafts.convert');
+
+        Route::post('/range/bulk', [RangeController::class, 'bulk'])->name('range.bulk');
+        Route::put('/range/{product}', [RangeController::class, 'update'])->name('range.update');
+        Route::put('/range/{product}/options', [RangeController::class, 'options'])->name('range.options');
+        Route::post('/range/{product}/action', [RangeController::class, 'action'])->name('range.action');
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
         Route::get('/suppliers/{supplier}', [SupplierController::class, 'edit'])->name('suppliers.edit');
         Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+
+        Route::get('/promodata', [CatalogueSyncController::class, 'index'])->name('sync.index');
+        Route::post('/promodata/check', [CatalogueSyncController::class, 'check'])->name('sync.check');
+        Route::post('/promodata/runs', [CatalogueSyncController::class, 'start'])->name('sync.start');
+        Route::post('/promodata/runs/{run}/cancel', [CatalogueSyncController::class, 'cancel'])->name('sync.cancel');
+        Route::post('/promodata/product', [CatalogueSyncController::class, 'refreshProduct'])->name('sync.product');
+
+        Route::get('/decoration-types', [DecorationTypeController::class, 'index'])->name('dectypes.index');
+        Route::put('/decoration-types/{decorationType}', [DecorationTypeController::class, 'update'])->name('dectypes.update');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
