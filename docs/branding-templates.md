@@ -27,6 +27,8 @@ The product page has one **Branding** section (below the colours, not under the 
 
 **Price = unbranded price + each position's decoration (its setup and its per-unit price).** Each decoration's prices come from the product's DecorationJSON, priced as one position. There are no combined options such as "Front and back": a front and a back are two positions, each with its own decoration. Combined Promodata lines (e.g. "Front and back print") are not offered as methods.
 
+**Solid-colour processes** (screen print, embroidery, pad print and other spot-colour methods) need artwork made of flat colours, and are priced by the number of colours (setup and per-unit price per colour, from DecorationJSON). When such a method is chosen, the logo is checked in the browser: its colours are counted (shown as swatches, which the shopper can correct with − / +), and artwork with gradients or photo detail is switched to the full colour method (DTF) with a message and an "Upload a solid-colour version" button. The SaaS repeats the check on the uploaded file when the quote PDF is made, and staff confirm the colour count before production.
+
 Follow-up work in the SaaS:
 - **Website quote API and intake:** a cart or list line carries several decorations (position, decID, logo per position) instead of one `decID`; the quote desk splits them into the product line plus one decoration line per position (it already splits product and decoration).
 - **DecorationJSON:** add each option's methods and which template positions it suits (additive keys the current theme ignores), and leave combined options out of the new templates.
