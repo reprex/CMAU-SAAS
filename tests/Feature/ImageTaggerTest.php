@@ -142,4 +142,21 @@ class ImageTaggerTest extends TestCase
         $this->artisan('catalogue:tag-images')->expectsOutputToContain('1 products')->assertSuccessful();
         $this->assertSame('other_colour', ProductImage::query()->where('url', self::CDN.'4001_maple_tee_pistacio_back__89157.jpg')->value('role'));
     }
+
+    public function test_products_without_colours_get_one_custom_print_variant(): void
+    {
+        $p = Product::create(['id' => 60602, 'supplier_id' => 88, 'name' => 'Custom Lanyard', 'code' => 'LL5098', 'tier' => 'live', 'hydrated_at' => now(), 'hero_image_url' => self::CDN.'ll5098.jpg']);
+        $p->images()->create(['url' => self::CDN.'ll5098.jpg', 'role' => 'hero_style', 'position' => 0]);
+        $p->images()->create(['url' => self::CDN.'ll5098_detail.jpg', 'role' => 'other_style', 'position' => 1]);
+        app(ImageTagger::class)->apply($p);
+        $out = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
+
+        $this->assertSame([ImageTagger::CUSTOM_PRINT => ['image' => self::CDN.'ll5098.jpg', 'other' => []]], $out['colours']);
+        $this->assertSame([self::CDN.'ll5098.jpg', self::CDN.'ll5098_detail.jpg'], $out['media']);
+
+        // A colour with no picture of its own shows the hero instead of being dropped.
+        $p->colours()->create(['name' => 'Blue', 'image_url' => null, 'position' => 0]);
+        $out = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
+        $this->assertSame(['Blue' => ['image' => self::CDN.'ll5098.jpg', 'other' => []]], $out['colours']);
+    }
 }

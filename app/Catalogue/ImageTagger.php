@@ -32,6 +32,9 @@ class ImageTagger
 
     public const OTHER_COLOUR = 'other_colour';
 
+    /** TOD's single variant for products without colours: SKU APPAID-customprint, colour family cmyk. */
+    public const CUSTOM_PRINT = 'Custom Print';
+
     public const ROLES = [
         self::HERO_STYLE => 'Hero style',
         self::OTHER_STYLE => 'Other style',
@@ -181,6 +184,14 @@ class ImageTagger
                 'image' => $image,
                 'other' => $tags->filter(fn ($t) => $t['role'] === self::OTHER_COLOUR && $t['colour'] === $c->name)->pluck('url')->values()->all(),
             ];
+        }
+        $hero = $style[0] ?? null;
+        foreach ($colours as $name => $c) {
+            $colours[$name]['image'] ??= $hero; // a colour without its own picture shows the hero, rather than being dropped as TOD did
+        }
+        if ($colours === []) {
+            // No colours (or all hidden): one "Custom Print" variant showing the hero, as TOD does.
+            $colours[self::CUSTOM_PRINT] = ['image' => $hero, 'other' => []];
         }
         $media = array_values(array_unique(array_merge($style, array_filter(array_column($colours, 'image')))));
 
