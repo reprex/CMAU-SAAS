@@ -70,15 +70,17 @@ class PrintAreas
         if (! $hero) {
             throw new RuntimeException('This product has no hero image');
         }
+        $this->ensure($product); // keeps the prediction, so the correction can be learned
         $area = PrintArea::query()->updateOrCreate(['url_hash' => sha1($hero)], [
             'url' => $hero, 'product_id' => $product->id,
             'left' => round(max(0, min(95, $left)), 2), 'top' => round(max(0, min(95, $top)), 2),
             'width' => round(max(3, min(100, $width)), 2),
-            'source' => 'staff', 'approved_by' => $userId, 'approved_at' => now(),
+            'source' => 'staff', 'approved_by' => $userId, 'approved_at' => now(), 'group_key' => $this->groupKey($product),
         ]);
         if ($product->tier === Product::TIER_LIVE) {
             $product->forceFill(['range_changed_at' => now()])->save();
         }
+        Cache::put('logo-areas:dirty', true); // the scheduler re-learns and applies to the range
 
         return $area;
     }
@@ -94,8 +96,8 @@ class PrintAreas
             return null;
         }
         $existing = PrintArea::query()->find(sha1($hero));
-        if ($existing) {
-            return $existing;
+        if ($existing && ($existing->source !== 'default' || $existing->approved_at)) {
+            return $existing; // only a bare type default is replaced by Claude's suggestion
         }
         $dayKey = 'image-check:'.now()->format('Ymd'); // shares the image check's daily cap
         if ((int) Cache::get($dayKey, 0) >= (int) config('images.check.images_per_day')) {
@@ -113,7 +115,7 @@ class PrintAreas
                     .'Give the usual branding area for this product (e.g. front centre of a tote, left chest of a polo, front panel of a cap) '
                     .'as a box in percent of the image: left and top of the box, and its width. Reply with JSON only: {"left":n,"top":n,"width":n}.',
                 'messages' => [['role' => 'user', 'content' => [
-                    ['type' => 'text', 'text' => "Product: {$product->name} ({$product->promodata_type_name})."],
+                    ['type' => 'text', 'text' => $this->context($product)],
                     ['type' => 'image', 'source' => ['type' => 'url', 'url' => $hero]],
                 ]]],
             ]);
@@ -125,23 +127,57 @@ class PrintAreas
             throw new RuntimeException('Claude print area reply was not usable');
         }
 
-        return PrintArea::query()->create([
-            'url_hash' => sha1($hero), 'url' => $hero, 'product_id' => $product->id,
-            'left' => round(max(0, min(95, (float) $json['left'])), 2), 'top' => round(max(0, min(95, (float) $json['top'])), 2),
-            'width' => round(max(3, min(100, (float) $json['width'])), 2), 'source' => 'ai',
+        $l = round(max(0, min(95, (float) $json['left'])), 2);
+        $t = round(max(0, min(95, (float) $json['top'])), 2);
+        $w = round(max(3, min(100, (float) $json['width'])), 2);
+
+        return PrintArea::query()->updateOrCreate(['url_hash' => sha1($hero)], [
+            'url' => $hero, 'product_id' => $product->id, 'group_key' => $this->groupKey($product),
+            'left' => $l, 'top' => $t, 'width' => $w, 'pred_left' => $l, 'pred_top' => $t, 'pred_width' => $w, 'source' => 'ai',
+        ]);
+    }
+
+    /** What Claude is told besides the picture: the product, its size and its decoration options. */
+    private function context(Product $product): string
+    {
+        $dims = collect([$product->dim_1, $product->dim_2, $product->dim_3])->filter()->map(fn ($d) => rtrim(rtrim((string) $d, '0'), '.'))->implode(' x ');
+        $decs = $product->priceLines()->where('undecorated', false)->whereNull('base_price_line_id')->limit(8)->pluck('description')->filter()->unique()->implode('; ');
+
+        return "Product: {$product->name} ({$product->promodata_type_name}).".($dims ? " Size: {$dims} mm." : '').($decs ? " Branding options: {$decs}." : '')
+            .' Use the normal branding position and size for this kind of product (the default option first).';
+    }
+
+    public function groupKey(Product $product): string
+    {
+        return $product->supplier_id.'|'.mb_strtolower((string) $product->promodata_type_name);
+    }
+
+    /** A row for the hero image, created from the type default when Claude hasn't suggested one yet. */
+    public function ensure(Product $product): ?PrintArea
+    {
+        $hero = $this->heroOf($product);
+        if (! $hero) {
+            return null;
+        }
+        [$l, $t, $w] = $this->default($product);
+
+        return PrintArea::query()->firstOrCreate(['url_hash' => sha1($hero)], [
+            'url' => $hero, 'product_id' => $product->id, 'group_key' => $this->groupKey($product),
+            'left' => $l, 'top' => $t, 'width' => $w, 'pred_left' => $l, 'pred_top' => $t, 'pred_width' => $w, 'source' => 'default',
         ]);
     }
 
     /**
-     * What Shopify gets: product metafield `custom.printarea` (json), only once
-     * vetted: {"image": url, "left": %, "top": %, "width": %}.
+     * What Shopify gets: product metafield `custom.printarea` (json), once
+     * vetted or learned from vetted samples: {"image": url, "left": %, "top": %, "width": %}.
      *
      * @return array{image: string, left: float, top: float, width: float}|null
      */
     public function forShopify(Product $product): ?array
     {
         $a = $this->find($product);
-        if (! $a || ! $a->approved_at) {
+        // Vetted, or learned from vetted samples of the same kind of product.
+        if (! $a || (! $a->approved_at && $a->source !== 'learned')) {
             return null;
         }
 

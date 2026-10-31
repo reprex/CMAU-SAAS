@@ -117,6 +117,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
 
         Route::post('/range/bulk', [RangeController::class, 'bulk'])->name('range.bulk');
         Route::post('/logo-areas/{product}', [LogoAreaController::class, 'store'])->whereNumber('product')->name('range.logo-areas.store');
+        Route::post('/logo-areas/sample', [LogoAreaController::class, 'sample'])->name('range.logo-areas.sample');
+        Route::post('/logo-areas/apply', [LogoAreaController::class, 'apply'])->name('range.logo-areas.apply');
         Route::put('/range/{product}', [RangeController::class, 'update'])->name('range.update');
         Route::put('/range/{product}/options', [RangeController::class, 'options'])->name('range.options');
         Route::post('/range/{product}/action', [RangeController::class, 'action'])->name('range.action');
