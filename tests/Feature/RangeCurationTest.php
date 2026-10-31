@@ -56,7 +56,8 @@ class RangeCurationTest extends TestCase
         $this->assertNotNull($product->webPrice);
         $this->assertTrue(AuditLog::where('action', 'range.added')->where('subject_id', '1001')->exists());
 
-        $this->get(route('range.index'))->assertOk()->assertSee($product->name)->assertSee('to publish');
+        // The fixture has no unbranded price line, so the list says so.
+        $this->get(route('range.index'))->assertOk()->assertSee($product->name)->assertSee('to publish')->assertSee('branded only');
         $this->get(route('range.show', $product))->assertOk()->assertSee('Price options');
     }
 
@@ -128,7 +129,9 @@ class RangeCurationTest extends TestCase
     {
         $product = $this->summaryProduct();
         $user = $this->staff('readonly');
-        $this->get(route('range.index', ['view' => 'all']))->assertOk()->assertSee($product->name);
+        // Summary-only rows show the minimum order and an estimated unbranded price (0.41 × 1.45).
+        $this->get(route('range.index', ['view' => 'all']))->assertOk()->assertSee($product->name)
+            ->assertSee('Unbranded each at MOQ')->assertSee('250')->assertSee('0.59')->assertSee('est.');
         $this->post(route('range.action', $product), ['action' => 'add'])->assertForbidden();
         $this->get(route('admin.sync.index'))->assertForbidden();
         $this->get(route('admin.dectypes.index'))->assertForbidden();

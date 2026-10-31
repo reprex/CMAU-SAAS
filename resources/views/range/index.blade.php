@@ -50,7 +50,7 @@
   <table class="list">
     <thead><tr>
       @if($canEdit)<th style="width:28px"><input type="checkbox" data-check-all="ids[]" aria-label="Tick all on this page"></th>@endif
-      <th style="width:60px"></th><th>Product</th><th>Supplier</th><th>Type</th><th class="num">Cost from</th><th class="num">Web price</th><th class="num">Colours</th><th>Status</th><th>Supplier change</th>
+      <th style="width:60px"></th><th>Product</th><th>Supplier</th><th>Type</th><th class="num">Cost from</th><th class="num">MOQ</th><th class="num">Unbranded each at MOQ</th><th class="num">Web price</th><th class="num">Colours</th><th>Status</th><th>Supplier change</th>
     </tr></thead>
     <tbody>
     @forelse($products as $p)
@@ -61,6 +61,23 @@
         <td class="small">{{ $p->supplier?->name }}</td>
         <td class="small muted">{{ $p->promodata_type_name }}</td>
         <td class="num">{{ $p->min_unit_cost !== null ? number_format((float) $p->min_unit_cost, 2) : '' }}@if($p->min_qty)<br><span class="muted small">at {{ $p->min_qty }}</span>@endif</td>
+        @php
+          $u = $p->webPrice ? $undecorated->get($p->webPrice->undecorated_option_id) : null;
+          if ($u && ! $u->placeholder) {
+              $moq = $p->webPrice->actual_moq ?? $u->prices()->minQty();
+              $unbranded = $moq ? $u->prices()->priceAt($moq) : null;
+              $estimate = false;
+          } elseif ($p->webPrice) {
+              $moq = $p->webPrice->actual_moq; $unbranded = null; $estimate = false;
+          } else {
+              // Summary only: Promodata's lowest base cost and its quantity, with the supplier's unbranded markup.
+              $moq = $p->min_qty;
+              $unbranded = $p->min_unit_cost !== null ? round((float) $p->min_unit_cost * (float) ($p->supplier?->markup_undecorated ?? 1.45), 2) : null;
+              $estimate = true;
+          }
+        @endphp
+        <td class="num">{{ $moq ?? '' }}</td>
+        <td class="num">@if($unbranded !== null){{ number_format($unbranded, 2) }}@if($estimate)<br><span class="muted small" title="Lowest Promodata cost × the supplier's unbranded markup. Add or refresh the product for the exact price.">est.</span>@endif @elseif($u && $u->placeholder)<span class="muted small">branded only</span>@endif</td>
         <td class="num">@if($p->webPrice?->collection_variant_price){{ number_format($p->webPrice->collection_variant_price, 2) }}<br><span class="muted small">at {{ $p->webPrice->collection_moq }}</span>@endif</td>
         <td class="num">{{ $p->colour_count }}</td>
         <td>
@@ -72,7 +89,7 @@
         <td class="small muted">{{ $p->last_changed_at?->format('j M Y') }}</td>
       </tr>
     @empty
-      <tr><td colspan="10" class="muted" style="padding:24px 8px">
+      <tr><td colspan="12" class="muted" style="padding:24px 8px">
         @if($counts['all'] === 0) The catalogue is empty. An admin starts the first full sync from <a href="{{ route('admin.sync.index') }}">Promodata sync</a>, or imports TOD's range. @else No products match. @endif
       </td></tr>
     @endforelse
