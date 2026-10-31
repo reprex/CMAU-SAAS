@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\SetupController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\DraftOrderController;
 use App\Http\Controllers\LineTransferController;
+use App\Http\Controllers\LogoAreaController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductLookupController;
 use App\Http\Controllers\Public\ShopifyWebhookController;
@@ -86,6 +87,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/range/{product}/substitutes', [SubstituteController::class, 'show'])->whereNumber('product')->name('range.substitutes');
     Route::get('/range/{product}/stock', [SubstituteController::class, 'stock'])->whereNumber('product')->name('range.stock');
     Route::get('/range/{product}/stock/live', [RangeController::class, 'liveStock'])->whereNumber('product')->name('range.stock.live');
+    Route::get('/logo-areas', [LogoAreaController::class, 'index'])->name('range.logo-areas');
 
     Route::middleware('role:edit')->group(function () {
         Route::get('/quotes/new', [QuoteController::class, 'create'])->name('quotes.create');
@@ -114,6 +116,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/drafts/{draft}/convert', [DraftOrderController::class, 'convert'])->name('drafts.convert');
 
         Route::post('/range/bulk', [RangeController::class, 'bulk'])->name('range.bulk');
+        Route::post('/logo-areas/{product}', [LogoAreaController::class, 'store'])->whereNumber('product')->name('range.logo-areas.store');
         Route::put('/range/{product}', [RangeController::class, 'update'])->name('range.update');
         Route::put('/range/{product}/options', [RangeController::class, 'options'])->name('range.options');
         Route::post('/range/{product}/action', [RangeController::class, 'action'])->name('range.action');

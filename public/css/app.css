@@ -99,3 +99,14 @@ details[open] > summary { margin-bottom: 10px; }
 label.check { display: flex; gap: 8px; align-items: flex-start; flex-wrap: nowrap; }
 label.check input { margin-top: 3px; flex: none; }
 td.breaks { word-break: break-all; max-width: 260px; }
+
+/* Logo areas (range.logo-areas) */
+.logo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.logo-card{display:flex;flex-direction:column;gap:8px;padding:10px}
+.logo-card.done{opacity:.55}
+.logo-stage{position:relative;background:#FFFFFF;border-radius:8px;overflow:hidden;touch-action:none;user-select:none}
+.logo-hero{display:block;width:100%;height:auto}
+.logo-box{position:absolute;outline:1px dashed #B3202E;cursor:move}
+.logo-box img{display:block;width:100%;height:auto;pointer-events:none}
+.logo-box:focus-visible{outline:2px solid #B3202E}
+.logo-handle{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:#B3202E;border:2px solid #FFFFFF;cursor:nwse-resize}
