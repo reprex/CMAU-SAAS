@@ -40,6 +40,11 @@ Schedule::command('catalogue:check-images')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+// Logo areas: re-learn from newly vetted samples and apply to the range (docs/logo-preview.md).
+Schedule::command('catalogue:logo-areas')
+    ->everyTenMinutes()
+    ->withoutOverlapping(10);
+
 // Quote desk: bring in new/changed Shopify draft orders (backup to webhooks).
 Schedule::command('shopify:pull-drafts')
     ->everyFiveMinutes()

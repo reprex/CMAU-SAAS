@@ -41,7 +41,7 @@ Before go-live, check this contract against a downloaded copy of the CMAU theme.
 | `my_fields.pdpcollectionname` | single_line_text_field | VetSubCatMatch |
 | `custom.suppliercode` | single_line_text_field | New, additive: supplier name and product code, e.g. `AS Colour 5001` (product page and Google `mpn`; docs/supplier-codes.md) |
 | `custom.supplierskus` | json | New, additive: `[{colour, size, sku}]` for every colour and size, hidden colours left out (docs/supplier-codes.md) |
-| `custom.printarea` | json | New, additive: where the logo goes on the hero image, once staff approve it: `{image, left, top, width}` in percent (docs/logo-preview.md) |
+| `custom.printarea` | json | New, additive: where the logo goes on the hero image, once vetted or learned from vetted samples: `{image, left, top, width}` in percent (docs/logo-preview.md) |
 | `title_tag` | string | `"Custom " + SEODecorationText + " " + name + " [" + SupplierProductID + "]"`; if that is over 70 characters, use just the name and the code |
 
 ## Variants (colours as variants)
