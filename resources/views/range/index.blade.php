@@ -14,6 +14,12 @@
   </div>
 </div>
 
+<form method="get" action="{{ route('substitutes.lookup') }}" class="row" role="search" style="margin-top:-6px">
+  <span class="small muted">Find substitutes for</span>
+  <input name="product" inputmode="numeric" placeholder="APPAID" aria-label="APPAID to find substitutes for" style="width:140px">
+  <button class="btn small">Find</button>
+</form>
+
 <nav class="tabs" aria-label="Range views">
   @foreach(\App\Http\Controllers\RangeController::VIEWS as $key => $label)
     <a href="{{ route('range.index', array_filter(['view' => $key, 'q' => $q, 'supplier' => $supplierId, 'type' => $type])) }}" class="{{ $view === $key ? 'on' : '' }}">{{ $label }}@isset($counts[$key]) <span class="muted small">{{ number_format($counts[$key]) }}</span>@endisset</a>
@@ -62,7 +68,7 @@
         <td class="small muted">{{ $p->promodata_type_name }}</td>
         @php
           // Supplier cost, unbranded, at the minimum order. Priced products use the unbranded
-          // option at the actual MOQ; summary-only rows use Promodata's lowest base cost and its quantity.
+          // option at the actual MOQ; summary-only rows use the unbranded MOQ and cost stored at sync.
           $u = $p->webPrice ? $undecorated->get($p->webPrice->undecorated_option_id) : null;
           if ($u && ! $u->placeholder) {
               $moq = $p->webPrice->actual_moq ?? $u->costs()->minQty();
@@ -70,12 +76,13 @@
           } elseif ($p->webPrice) {
               $moq = $p->webPrice->actual_moq; $unbrandedCost = null;
           } else {
-              $moq = $p->min_qty;
-              $unbrandedCost = $p->min_unit_cost !== null ? (float) $p->min_unit_cost : null;
+              $moq = $p->undecorated_moq;
+              $unbrandedCost = $p->undecorated_cost !== null ? (float) $p->undecorated_cost : null;
           }
+          $brandedOnly = $unbrandedCost === null && (($u && $u->placeholder) || (! $p->webPrice && $p->summary_version > 0));
         @endphp
         <td class="num">{{ $moq ?? '' }}</td>
-        <td class="num">@if($unbrandedCost !== null){{ number_format($unbrandedCost, 2) }}@elseif($u && $u->placeholder)<span class="muted small">branded only</span>@endif</td>
+        <td class="num">@if($unbrandedCost !== null){{ number_format($unbrandedCost, 2) }}@elseif($brandedOnly)<span class="muted small">branded only</span>@endif</td>
         <td class="num">@if($p->webPrice?->collection_variant_price){{ number_format($p->webPrice->collection_variant_price, 2) }}<br><span class="muted small">at {{ $p->webPrice->collection_moq }}</span>@endif</td>
         <td class="num">{{ $p->colour_count }}</td>
         <td>

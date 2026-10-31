@@ -9,6 +9,7 @@ Built 31 Oct 2026. Requirements: docs/requirements.md (modules 1–3) and REPSTA
 | **Promodata sync** (Admin) | admin | Connection test; scheduler heartbeat; product counts by tier; the running sync with progress and Stop; start a "changes since" sync, a one-supplier sync or a full sync; fetch one product by APPAID now. |
 | **Range** | everyone (changes: admin, sales) | Search the whole catalogue by name, supplier code or APPAID; filter by supplier and Promodata product type. Views: on the range, changed but not published, needs attention, recently used, whole catalogue. Tick products to add, remove, refresh from Promodata or reprice. |
 | **Range → product** | everyone (changes: admin, sales) | Web price summary, price options (cost and sell breaks), per-product type and DecorationJSON group settings, DecorationJSON preview, curation overrides, history. |
+| **Substitutes** (Range → product → Find substitutes; Range → "Find substitutes for"; quote items) | everyone | Products of the same type ranked on material, size, unbranded cost, MOQ and lead time, with live stock. |
 | **Decoration types** (Admin) | admin | TOD's DecTypeCode: classify each supplier price-line description as 10 decoration, 11 accessory, 12 undecorated or 23 hidden, with optional web wording. Saving reprices every product that uses it. |
 
 ## How the data flows
@@ -18,6 +19,22 @@ Built 31 Oct 2026. Requirements: docs/requirements.md (modules 1–3) and REPSTA
 3. **Add to range.** Fetches the product from Promodata if only the summary is stored (one API call), sets it live and prices it. One product runs immediately; ticked batches go to the queue, about 25 a minute.
 4. **Remove from range.** Sets it back to active. Details and overrides are kept; it drops to summary after 12 months unused.
 5. **New decoration descriptions** arrive unclassified. They are priced with the accessory markup and left out of DecorationJSON until classified (the product page shows a warning and a link).
+
+## Substitute finder
+
+For a product that is out of stock, discontinued, too slow or too dear: it lists other products of the same Promodata product type (or the same supplier subcategory), never discontinued ones, ranked out of 100:
+
+| Fact | Weight | How it compares |
+| --- | --- | --- |
+| Material | 25 | Words in common (e.g. "aluminium" vs "aluminium, brass" = half) |
+| Size | 25 | Each dimension, largest first, smaller ÷ larger |
+| Unbranded cost | 20 | 100 when equal, 0 at double or half |
+| MOQ | 15 | 100 when the same or lower, else reference ÷ candidate |
+| Lead time | 15 | 100 when the same or faster, else reference ÷ candidate |
+
+A fact the supplier doesn't state scores half. Limits (max cost, max MOQ, max lead time, other suppliers only) filter before ranking. Live stock (total, and the best single colour) is fetched from Promodata for the shown results after the page loads; "Quantity needed" flags and can hide products short in every colour. "Similar" on a row repeats the search from that product.
+
+The facts are stored on every product's summary row at sync time (`products.material`, `dim_1`–`dim_3` in mm, `lead_time_days`, `undecorated_moq`, `undecorated_cost`), read from Promodata's "Material" attribute (or Materials/Fabric detail), its "Dimensions"/"Size" detail, the base price lines' lead times, and the unbranded price lines. Supplier text varies, so a value that can't be read is left empty rather than guessed. `CatalogueWriter::SUMMARY_VERSION` makes the next sync refill every row when the extraction changes.
 
 ## Curation overrides (`product_overrides.data`)
 

@@ -129,9 +129,9 @@ class RangeCurationTest extends TestCase
     {
         $product = $this->summaryProduct();
         $user = $this->staff('readonly');
-        // Summary-only rows show the minimum order and the supplier's unbranded cost there.
+        // The fixture's only base line is branded, so there is no unbranded cost to show.
         $this->get(route('range.index', ['view' => 'all']))->assertOk()->assertSee($product->name)
-            ->assertSee('Unbranded cost at MOQ')->assertSee('250')->assertSee('0.41');
+            ->assertSee('Unbranded cost at MOQ')->assertSee('branded only');
         $this->post(route('range.action', $product), ['action' => 'add'])->assertForbidden();
         $this->get(route('admin.sync.index'))->assertForbidden();
         $this->get(route('admin.dectypes.index'))->assertForbidden();

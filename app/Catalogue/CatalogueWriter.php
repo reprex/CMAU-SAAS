@@ -23,6 +23,9 @@ class CatalogueWriter
 
     public const UNCHANGED = 'unchanged';
 
+    /** Raise when ProductFacts changes, so the next sync refills every summary row once. */
+    public const SUMMARY_VERSION = 1;
+
     /**
      * @param  bool  $forceDetail  store full detail even for a summary-tier product (used when hydrating)
      */
@@ -40,6 +43,7 @@ class CatalogueWriter
 
             if (! $isNew
                 && $product->content_hash === $source->contentHash
+                && (int) $product->summary_version >= self::SUMMARY_VERSION
                 && (! $wantsDetail || $hasCurrentDetail)) {
                 return self::UNCHANGED;
             }
@@ -68,7 +72,8 @@ class CatalogueWriter
                 'prices_changed_at' => $source->pricesChangedAt,
                 'discontinued_at' => $source->discontinuedAt,
                 'content_hash' => $source->contentHash,
-            ]);
+                'summary_version' => self::SUMMARY_VERSION,
+            ] + ProductFacts::from($source));
 
             if ($wantsDetail) {
                 $product->hydrated_at = now();

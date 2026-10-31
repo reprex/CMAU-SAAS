@@ -8,7 +8,7 @@
     <div class="thumb">@if($item->image_url)<img src="{{ $item->image_url }}" alt="" loading="lazy">@else<span class="mono small muted">{{ $item->product_id ?? 'custom' }}</span>@endif</div>
     <div class="grow">
       <h3>{{ $item->name }}</h3>
-      <div class="small muted">{{ collect([$item->supplier_name, $item->product_code, $item->colour, $item->product_id ? 'APPAID '.$item->product_id : null])->filter()->implode(' · ') }}</div>
+      <div class="small muted">{{ collect([$item->supplier_name, $item->product_code, $item->colour, $item->product_id ? 'APPAID '.$item->product_id : null])->filter()->implode(' · ') }}@if($item->product_id && \App\Models\Product::query()->whereKey($item->product_id)->exists()) · <a href="{{ route('range.substitutes', $item->product_id) }}">find substitutes</a>@endif</div>
       <div class="row" style="margin-top:6px;gap:6px">
         <span class="pill {{ $item->stage === 'sku' ? 'ok' : '' }}">{{ $stageLabel }}</span>
         @if($item->hasDecoration())<span class="pill accent">{{ $item->decoration_name }}</span>@endif

@@ -28,12 +28,21 @@ class Product extends Model
             'discontinued' => 'boolean',
             'can_check_stock' => 'boolean',
             'min_unit_cost' => 'decimal:4',
+            'undecorated_cost' => 'decimal:4',
+            'dim_1' => 'float',
+            'dim_2' => 'float',
+            'dim_3' => 'float',
+            'lead_time_days' => 'integer',
+            'undecorated_moq' => 'integer',
+            'summary_version' => 'integer',
             'first_listed_at' => 'datetime',
             'last_changed_at' => 'datetime',
             'prices_changed_at' => 'datetime',
             'discontinued_at' => 'datetime',
             'hydrated_at' => 'datetime',
             'last_used_at' => 'datetime',
+            'range_changed_at' => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 
