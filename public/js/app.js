@@ -304,3 +304,57 @@ document.addEventListener('click', (e) => {
     .catch(() => { box.textContent = 'Stock check is unavailable right now.'; })
     .finally(() => { btn.disabled = false; btn.textContent = 'Check again'; });
 });
+
+// Logo areas: drag the CrowdMerch logo into place on the hero image, drag its corner to
+// resize (keys: arrows move, + and - resize), then Approve. Values are % of the image.
+(function () {
+  const forms = document.querySelectorAll('[data-logo-area]');
+  if (!forms.length) return;
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  forms.forEach((form) => {
+    const stage = form.querySelector('.logo-stage');
+    const box = form.querySelector('.logo-box');
+    if (!stage || !box) return;
+    const val = { left: parseFloat(form.left.value), top: parseFloat(form.top.value), width: parseFloat(form.width.value) };
+    const apply = () => {
+      box.style.left = val.left + '%'; box.style.top = val.top + '%'; box.style.width = val.width + '%';
+      form.left.value = val.left.toFixed(2); form.top.value = val.top.toFixed(2); form.width.value = val.width.toFixed(2);
+      form.classList.remove('done');
+    };
+    let drag = null;
+    box.addEventListener('pointerdown', (e) => {
+      const r = stage.getBoundingClientRect();
+      drag = { resize: e.target.classList.contains('logo-handle'), x: e.clientX, y: e.clientY, r, start: { ...val } };
+      box.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    box.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const dx = (e.clientX - drag.x) / drag.r.width * 100, dy = (e.clientY - drag.y) / drag.r.height * 100;
+      if (drag.resize) val.width = clamp(drag.start.width + dx, 3, 100 - val.left);
+      else { val.left = clamp(drag.start.left + dx, 0, 100 - val.width); val.top = clamp(drag.start.top + dy, 0, 95); }
+      apply();
+    });
+    box.addEventListener('pointerup', () => { drag = null; });
+    box.addEventListener('keydown', (e) => {
+      const step = e.shiftKey ? 5 : 1, k = e.key;
+      if (k === 'ArrowLeft') val.left = clamp(val.left - step, 0, 100 - val.width);
+      else if (k === 'ArrowRight') val.left = clamp(val.left + step, 0, 100 - val.width);
+      else if (k === 'ArrowUp') val.top = clamp(val.top - step, 0, 95);
+      else if (k === 'ArrowDown') val.top = clamp(val.top + step, 0, 95);
+      else if (k === '+' || k === '=') val.width = clamp(val.width + step, 3, 100 - val.left);
+      else if (k === '-') val.width = clamp(val.width - step, 3, 100);
+      else return;
+      e.preventDefault(); apply();
+    });
+    const reset = form.querySelector('[data-logo-reset]');
+    if (reset) reset.addEventListener('click', () => { const s = JSON.parse(box.dataset.start); val.left = s[0]; val.top = s[1]; val.width = s[2]; apply(); });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button.primary'); if (btn) btn.disabled = true;
+      fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+        .then((r) => { if (!r.ok) throw new Error(); form.classList.add('done'); if (btn) btn.textContent = 'Approved'; })
+        .catch(() => { if (btn) btn.textContent = 'Try again'; })
+        .finally(() => { if (btn) btn.disabled = false; });
+    });
+  });
+})();

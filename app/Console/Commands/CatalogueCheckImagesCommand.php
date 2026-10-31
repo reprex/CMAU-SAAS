@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Catalogue\ImageTagger;
 use App\Catalogue\ImageVision;
+use App\Catalogue\PrintAreas;
 use App\Models\Product;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
@@ -20,7 +21,7 @@ class CatalogueCheckImagesCommand extends Command
 
     protected $description = 'Have Claude look at unsure product images';
 
-    public function handle(ImageVision $vision, ImageTagger $tagger): int
+    public function handle(ImageVision $vision, ImageTagger $tagger, PrintAreas $areas): int
     {
         if (! $vision->enabled()) {
             $this->line('Image check is off (IMAGE_CHECK and ANTHROPIC_API_KEY).');
@@ -31,6 +32,7 @@ class CatalogueCheckImagesCommand extends Command
             $product = Product::query()->findOrFail((int) $id);
             $n = $vision->check($product);
             $tagger->apply($product);
+            $areas->suggest($product->fresh(['images', 'colours', 'override']));
             $this->info("Checked {$n} images.");
 
             return self::SUCCESS;
@@ -64,6 +66,15 @@ class CatalogueCheckImagesCommand extends Command
                 $tagger->apply($product);
                 $checkedProducts++;
                 $images += $n;
+            }
+            // Suggest where the logo goes on the hero image, once, for staff to vet (docs/logo-preview.md).
+            try {
+                if ($product->tier === Product::TIER_LIVE && ! $areas->find($product)) {
+                    $areas->suggest($product);
+                    $checkedProducts += $n > 0 ? 0 : 1;
+                }
+            } catch (Throwable $e) {
+                $this->error("Product {$product->id} logo area: {$e->getMessage()}");
             }
         }
         Cache::forever('image-check:cursor', $cursor);
