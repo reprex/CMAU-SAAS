@@ -12,6 +12,7 @@ use App\Quotes\ItemPricer;
 use App\Quotes\QuoteCalculator;
 use App\Quotes\QuoteNumbers;
 use App\Quotes\WebsiteLinePricer;
+use App\Search\Turnstile;
 use App\Shopify\ShopifyAdmin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -223,6 +224,11 @@ class WebsiteQuoteController extends Controller
             return $this->reply($request, ['success' => false, 'message' => 'Too many requests. Please try again later.'], 429);
         }
         RateLimiter::hit($key, 3600);
+        // Optional human check on writes (quote requests, Add to my list): docs/website-search.md.
+        if ($bucket !== 'read' && config('search.turnstile.protect_website_api')
+            && ($why = app(Turnstile::class)->check($request->input('cf_turnstile'), $request->ip()))) {
+            return $this->reply($request, ['success' => false, 'message' => 'Please confirm you are human and try again.', 'reason' => $why], 403);
+        }
 
         return null;
     }

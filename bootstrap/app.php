@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->web(append: [SecurityHeaders::class]);
         // Shopify webhooks are verified by HMAC instead of a CSRF token.
-        $middleware->validateCsrfTokens(except: ['webhooks/*', 'crowdmerch/homepage/*']);
+        $middleware->validateCsrfTokens(except: ['webhooks/*', 'crowdmerch/homepage/*', 'crowdmerch/search', 'crowdmerch/search/*']);
         $middleware->redirectGuestsTo('/login');
         // Behind Cloudflare: trust only its edge ranges for the client IP.
         $middleware->trustProxies(at: CloudflareIps::trusted());
