@@ -54,6 +54,8 @@ final class SourceProduct
         public readonly array $priceGroups,
         public readonly array $priceTags,
         public readonly string $contentHash,
+        /** Supplier line art / branding template URLs (Promodata product.line_art). @var list<string> */
+        public readonly array $lineArtUrls = [],
     ) {}
 
     /** Number of individual colours offered (falls back to the colour groups). */

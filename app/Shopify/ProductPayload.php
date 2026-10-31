@@ -2,6 +2,7 @@
 
 namespace App\Shopify;
 
+use App\Catalogue\BrandingTemplates;
 use App\Catalogue\ImageTagger;
 use App\Catalogue\PrintAreas;
 use App\Catalogue\SupplierCodes;
@@ -37,6 +38,7 @@ class ProductPayload
         private readonly ImageTagger $images,
         private readonly SupplierCodes $codes,
         private readonly PrintAreas $areas,
+        private readonly BrandingTemplates $templates,
     ) {}
 
     /**
@@ -114,6 +116,8 @@ class ProductPayload
             $codes['supplier_code'] !== '' ? $this->mf('custom', 'suppliercode', 'single_line_text_field', $codes['supplier_code']) : null,
             $codes['skus'] ? $this->mf('custom', 'supplierskus', 'json', json_encode($codes['skus'])) : null,
             $area ? $this->mf('custom', 'printarea', 'json', json_encode($area)) : null,
+            ($positions = $this->templates->forShopify($product)) ? $this->mf('custom', 'brandingpositions', 'json', json_encode($positions)) : null,
+            ($tpl = $this->templates->templateUrl($product)) ? $this->mf('custom', 'brandingtemplate', 'url', $tpl) : null,
         ]));
 
         $input = [

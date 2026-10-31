@@ -169,6 +169,31 @@
       @if($canEdit)<button class="btn primary">Save and reprice</button>@endif
     </form>
 
+    <div class="card">
+      <h2>Branding template</h2>
+      @forelse($templates as $t)
+        <div class="small" style="display:flex;flex-direction:column;gap:6px;padding:6px 0;border-top:1px solid var(--line, #E5E3DE)">
+          <div class="row between"><a href="{{ $t->url }}" target="_blank" rel="noopener" class="mono" style="word-break:break-all">{{ \Illuminate\Support\Str::limit(basename(parse_url($t->url, PHP_URL_PATH) ?: $t->url), 48) }}</a>
+            <span class="pill {{ ['read' => 'ok', 'failed' => 'warn', 'none' => 'warn'][$t->status] ?? '' }}">{{ ['new' => 'To read', 'read' => 'Read', 'none' => 'No positions found', 'failed' => 'Failed'][$t->status] ?? $t->status }}</span></div>
+          <span class="muted">{{ ['promodata' => 'From Promodata', 'supplier' => "From the supplier's site", 'staff' => 'Added by staff'][$t->source] ?? $t->source }}@if($t->message) · {{ $t->message }}@endif</span>
+          @if($t->positions->isNotEmpty())
+            <table class="list small"><thead><tr><th>Position</th><th>View</th><th class="num">Max size</th><th>Methods</th></tr></thead><tbody>
+            @foreach($t->positions as $p)<tr><td>{{ $p->name }}</td><td>{{ $p->view }}</td><td class="num">{{ $p->max_width_mm ? $p->max_width_mm.' × '.($p->max_height_mm ?: '?').' mm' : '–' }}</td><td>{{ implode(', ', $p->methods ?? []) }}</td></tr>@endforeach
+            </tbody></table>
+          @endif
+          @if($canEdit)<div class="row" style="gap:6px">
+            <form method="post" action="{{ route('range.templates.read', [$product, $t]) }}">@csrf<button class="btn small">{{ $t->status === 'new' ? 'Read now' : 'Read again' }}</button></form>
+            <form method="post" action="{{ route('range.templates.destroy', [$product, $t]) }}">@csrf @method('DELETE')<button class="btn small link">Remove</button></form>
+          </div>@endif
+        </div>
+      @empty
+        <p class="small muted" style="margin:0">None yet. Promodata's line art is added automatically, and so are templates at the supplier's template address (Admin › Suppliers).</p>
+      @endforelse
+      @if($canEdit)
+        <form method="post" action="{{ route('range.templates.store', $product) }}" class="row" style="gap:6px;margin-top:6px">@csrf<input name="url" type="url" placeholder="https://… supplier template PDF" required style="flex:1 1 200px"><button class="btn small">Add</button></form>
+      @endif
+    </div>
+
     @if($product->can_check_stock)
     <div class="card">
       <div class="row between"><h2>Live stock</h2><button type="button" class="btn small" data-live-stock="{{ route('range.stock.live', $product) }}">Check now</button></div>

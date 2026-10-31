@@ -78,7 +78,7 @@ class LogoAreaLearner
 
         $applied = 0;
         $changed = [];
-        PrintArea::query()->whereNull('approved_at')->whereNotNull('pred_left')
+        PrintArea::query()->whereNull('approved_at')->whereNotNull('pred_left')->where('source', '!=', 'template') // the supplier's template is exact
             ->chunkById(500, function ($rows) use ($byGroup, $byType, $all, &$applied, &$changed) {
                 foreach ($rows as $a) {
                     $type = explode('|', (string) $a->group_key, 2)[1] ?? '';

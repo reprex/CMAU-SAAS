@@ -13,6 +13,8 @@ Each hero image has one branding area, stored as a share of the picture: left, t
 
 Vetted and learned areas go to the website; a product with only a prediction (no learning yet) shows no logo. If a hero image changes, its new image is predicted again and picks up the learned correction.
 
+Where the supplier's **branding template** has been read, its front position is used as the logo area instead of a prediction (docs/branding-templates.md); it needs no vetting and the learning leaves it alone.
+
 ## What Shopify gets (`PrintAreas::forShopify`)
 
 Product metafield `custom.printarea` (json), once vetted or learned: `{"image": "<hero url>", "left": 37, "top": 30, "width": 26}` (percent of the image). The theme places the logo over the hero image in that box only while the hero image shown is that `image`; product page controls (front centre / left chest, size) start from it.

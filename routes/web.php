@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SetupController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\BrandingTemplateController;
 use App\Http\Controllers\DraftOrderController;
 use App\Http\Controllers\LineTransferController;
 use App\Http\Controllers\LogoAreaController;
@@ -117,6 +118,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
 
         Route::post('/range/bulk', [RangeController::class, 'bulk'])->name('range.bulk');
         Route::post('/logo-areas/{product}', [LogoAreaController::class, 'store'])->whereNumber('product')->name('range.logo-areas.store');
+        Route::post('/range/{product}/templates', [BrandingTemplateController::class, 'store'])->whereNumber('product')->name('range.templates.store');
+        Route::post('/range/{product}/templates/{template}/read', [BrandingTemplateController::class, 'read'])->whereNumber('product')->name('range.templates.read');
+        Route::delete('/range/{product}/templates/{template}', [BrandingTemplateController::class, 'destroy'])->whereNumber('product')->name('range.templates.destroy');
         Route::post('/logo-areas/sample', [LogoAreaController::class, 'sample'])->name('range.logo-areas.sample');
         Route::post('/logo-areas/apply', [LogoAreaController::class, 'apply'])->name('range.logo-areas.apply');
         Route::put('/range/{product}', [RangeController::class, 'update'])->name('range.update');

@@ -93,6 +93,10 @@ class PromodataNormaliser
             ], $this->list($prices['price_groups'] ?? [])),
             priceTags: is_array($prices['price_tags'] ?? null) ? $prices['price_tags'] : [],
             contentHash: sha1((string) json_encode($data)),
+            lineArtUrls: array_values(array_filter(array_map(
+                fn ($u) => $this->str(is_array($u) ? ($u['url'] ?? null) : $u),
+                $this->list($product['line_art'] ?? []),
+            ))),
         );
     }
 
