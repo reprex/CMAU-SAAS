@@ -550,6 +550,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
 
     public static $classMap = array (
         'AllowDynamicProperties' => __DIR__ . '/..' . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
+        'App\\Catalogue\\BrandingTemplates' => __DIR__ . '/../..' . '/app/Catalogue/BrandingTemplates.php',
         'App\\Catalogue\\CatalogueWriter' => __DIR__ . '/../..' . '/app/Catalogue/CatalogueWriter.php',
         'App\\Catalogue\\ImageTagger' => __DIR__ . '/../..' . '/app/Catalogue/ImageTagger.php',
         'App\\Catalogue\\ImageVision' => __DIR__ . '/../..' . '/app/Catalogue/ImageVision.php',
@@ -566,6 +567,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Console\\Commands\\CatalogueDemoteCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueDemoteCommand.php',
         'App\\Console\\Commands\\CatalogueHydrateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueHydrateCommand.php',
         'App\\Console\\Commands\\CatalogueLogoAreasCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueLogoAreasCommand.php',
+        'App\\Console\\Commands\\CatalogueReadTemplatesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueReadTemplatesCommand.php',
         'App\\Console\\Commands\\CatalogueTagImagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueTagImagesCommand.php',
         'App\\Console\\Commands\\PricingPatternsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingPatternsCommand.php',
         'App\\Console\\Commands\\PricingRecalculateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingRecalculateCommand.php',
@@ -589,6 +591,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Http\\Controllers\\Auth\\LoginController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/LoginController.php',
         'App\\Http\\Controllers\\Auth\\SetupController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/SetupController.php',
         'App\\Http\\Controllers\\Auth\\TwoFactorController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/TwoFactorController.php',
+        'App\\Http\\Controllers\\BrandingTemplateController' => __DIR__ . '/../..' . '/app/Http/Controllers/BrandingTemplateController.php',
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
         'App\\Http\\Controllers\\DraftOrderController' => __DIR__ . '/../..' . '/app/Http/Controllers/DraftOrderController.php',
         'App\\Http\\Controllers\\LineTransferController' => __DIR__ . '/../..' . '/app/Http/Controllers/LineTransferController.php',
@@ -612,6 +615,8 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Jobs\\SendInstantQuote' => __DIR__ . '/../..' . '/app/Jobs/SendInstantQuote.php',
         'App\\Mail\\InstantQuoteMail' => __DIR__ . '/../..' . '/app/Mail/InstantQuoteMail.php',
         'App\\Models\\AuditLog' => __DIR__ . '/../..' . '/app/Models/AuditLog.php',
+        'App\\Models\\BrandingPosition' => __DIR__ . '/../..' . '/app/Models/BrandingPosition.php',
+        'App\\Models\\BrandingTemplate' => __DIR__ . '/../..' . '/app/Models/BrandingTemplate.php',
         'App\\Models\\DecTypeCode' => __DIR__ . '/../..' . '/app/Models/DecTypeCode.php',
         'App\\Models\\ImageCheck' => __DIR__ . '/../..' . '/app/Models/ImageCheck.php',
         'App\\Models\\PriceBreak' => __DIR__ . '/../..' . '/app/Models/PriceBreak.php',

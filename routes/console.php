@@ -45,6 +45,11 @@ Schedule::command('catalogue:logo-areas')
     ->everyTenMinutes()
     ->withoutOverlapping(10);
 
+// Supplier branding templates: find and read a couple a minute (docs/branding-templates.md).
+Schedule::command('catalogue:read-templates')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
 // Quote desk: bring in new/changed Shopify draft orders (backup to webhooks).
 Schedule::command('shopify:pull-drafts')
     ->everyFiveMinutes()

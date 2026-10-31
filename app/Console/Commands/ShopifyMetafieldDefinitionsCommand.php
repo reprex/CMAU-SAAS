@@ -21,6 +21,8 @@ class ShopifyMetafieldDefinitionsCommand extends Command
         ['PRODUCT', 'custom', 'suppliercode', 'single_line_text_field', 'Supplier code', 'Supplier name and product code, e.g. AS Colour 5001'],
         ['PRODUCT', 'custom', 'supplierskus', 'json', 'Supplier SKUs', 'Colour, size and supplier SKU for every SKU'],
         ['PRODUCT', 'custom', 'printarea', 'json', 'Logo area', 'Where the logo goes on the hero image (percent)'],
+        ['PRODUCT', 'custom', 'brandingpositions', 'json', 'Branding positions', 'From the supplier template: name, view, max size, box on the picture'],
+        ['PRODUCT', 'custom', 'brandingtemplate', 'url', 'Branding template', 'The supplier\'s branding template (PDF or drawing)'],
         ['PRODUCTVARIANT', 'custom', 'altimages', 'list.url', 'Other colour images', 'More pictures of this colour'],
         ['PRODUCTVARIANT', 'custom', 'colourfamily', 'list.single_line_text_field', 'Colour family', 'APPA colour families, for the colour filter'],
     ];

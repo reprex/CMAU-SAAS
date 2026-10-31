@@ -55,6 +55,7 @@ class SupplierController extends Controller
             'freight_decorator_leg' => 'boolean',
             'is_decorator' => 'boolean',
             'freight_effective_from' => 'nullable|date',
+            'template_url_pattern' => ['nullable', 'string', 'max:500', 'regex:/^https:\/\/.+\{(code|CODE|appaid)\}/'],
         ]);
         $data['freight_decorator_leg'] = $request->boolean('freight_decorator_leg');
         $data['is_decorator'] = $request->boolean('is_decorator');

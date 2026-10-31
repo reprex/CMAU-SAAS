@@ -2,6 +2,7 @@
 
 namespace App\Catalogue;
 
+use App\Models\BrandingTemplate;
 use App\Models\PriceLine;
 use App\Models\Product;
 use App\Models\Supplier;
@@ -155,6 +156,11 @@ class CatalogueWriter
                 continue;
             }
             $product->images()->create(['url' => $url, 'role' => 'other_style', 'position' => $position++]);
+        }
+        // Supplier line art / branding templates (docs/branding-templates.md): kept apart from the photos.
+        foreach ($source->lineArtUrls as $url) {
+            $product->images()->create(['url' => $url, 'role' => 'line_art', 'position' => $position++]);
+            BrandingTemplate::query()->firstOrCreate(['product_id' => $product->id, 'url' => $url], ['source' => 'promodata']);
         }
         app(ImageTagger::class)->apply($product);
 

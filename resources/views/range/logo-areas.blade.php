@@ -67,6 +67,7 @@
     <div class="small muted">
       @if($a->approved_at) Approved {{ $a->approved_at->timezone(config('app.timezone'))->format('j M') }}{{ $a->approver ? ' by '.$a->approver->name : '' }}
       @elseif($a->source === 'learned') Learned from {{ ['group' => 'this supplier and type', 'type' => 'this product type', 'all' => 'all samples'][$a->learned_from] ?? 'samples' }}
+      @elseif($a->source === 'template') From the supplier's branding template
       @elseif($a->source === 'ai') Predicted by Claude
       @else Predicted from the product type @endif
     </div>

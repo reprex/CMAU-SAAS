@@ -7,6 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'AllowDynamicProperties' => $vendorDir . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
+    'App\\Catalogue\\BrandingTemplates' => $baseDir . '/app/Catalogue/BrandingTemplates.php',
     'App\\Catalogue\\CatalogueWriter' => $baseDir . '/app/Catalogue/CatalogueWriter.php',
     'App\\Catalogue\\ImageTagger' => $baseDir . '/app/Catalogue/ImageTagger.php',
     'App\\Catalogue\\ImageVision' => $baseDir . '/app/Catalogue/ImageVision.php',
@@ -23,6 +24,7 @@ return array(
     'App\\Console\\Commands\\CatalogueDemoteCommand' => $baseDir . '/app/Console/Commands/CatalogueDemoteCommand.php',
     'App\\Console\\Commands\\CatalogueHydrateCommand' => $baseDir . '/app/Console/Commands/CatalogueHydrateCommand.php',
     'App\\Console\\Commands\\CatalogueLogoAreasCommand' => $baseDir . '/app/Console/Commands/CatalogueLogoAreasCommand.php',
+    'App\\Console\\Commands\\CatalogueReadTemplatesCommand' => $baseDir . '/app/Console/Commands/CatalogueReadTemplatesCommand.php',
     'App\\Console\\Commands\\CatalogueTagImagesCommand' => $baseDir . '/app/Console/Commands/CatalogueTagImagesCommand.php',
     'App\\Console\\Commands\\PricingPatternsCommand' => $baseDir . '/app/Console/Commands/PricingPatternsCommand.php',
     'App\\Console\\Commands\\PricingRecalculateCommand' => $baseDir . '/app/Console/Commands/PricingRecalculateCommand.php',
@@ -46,6 +48,7 @@ return array(
     'App\\Http\\Controllers\\Auth\\LoginController' => $baseDir . '/app/Http/Controllers/Auth/LoginController.php',
     'App\\Http\\Controllers\\Auth\\SetupController' => $baseDir . '/app/Http/Controllers/Auth/SetupController.php',
     'App\\Http\\Controllers\\Auth\\TwoFactorController' => $baseDir . '/app/Http/Controllers/Auth/TwoFactorController.php',
+    'App\\Http\\Controllers\\BrandingTemplateController' => $baseDir . '/app/Http/Controllers/BrandingTemplateController.php',
     'App\\Http\\Controllers\\Controller' => $baseDir . '/app/Http/Controllers/Controller.php',
     'App\\Http\\Controllers\\DraftOrderController' => $baseDir . '/app/Http/Controllers/DraftOrderController.php',
     'App\\Http\\Controllers\\LineTransferController' => $baseDir . '/app/Http/Controllers/LineTransferController.php',
@@ -69,6 +72,8 @@ return array(
     'App\\Jobs\\SendInstantQuote' => $baseDir . '/app/Jobs/SendInstantQuote.php',
     'App\\Mail\\InstantQuoteMail' => $baseDir . '/app/Mail/InstantQuoteMail.php',
     'App\\Models\\AuditLog' => $baseDir . '/app/Models/AuditLog.php',
+    'App\\Models\\BrandingPosition' => $baseDir . '/app/Models/BrandingPosition.php',
+    'App\\Models\\BrandingTemplate' => $baseDir . '/app/Models/BrandingTemplate.php',
     'App\\Models\\DecTypeCode' => $baseDir . '/app/Models/DecTypeCode.php',
     'App\\Models\\ImageCheck' => $baseDir . '/app/Models/ImageCheck.php',
     'App\\Models\\PriceBreak' => $baseDir . '/app/Models/PriceBreak.php',

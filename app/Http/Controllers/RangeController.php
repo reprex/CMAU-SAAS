@@ -6,6 +6,7 @@ use App\Catalogue\ImageTagger;
 use App\Catalogue\RangeManager;
 use App\Jobs\RangeBulkAction;
 use App\Models\AuditLog;
+use App\Models\BrandingTemplate;
 use App\Models\DecTypeCode;
 use App\Models\PriceOption;
 use App\Models\PriceOptionSetting;
@@ -122,6 +123,7 @@ class RangeController extends Controller
     {
         $product->load(['supplier', 'detail', 'colours', 'images', 'priceOptions', 'webPrice', 'override']);
         $imageTags = $product->images->isNotEmpty() ? app(ImageTagger::class)->tags($product) : collect();
+        $templates = BrandingTemplate::query()->where('product_id', $product->id)->with(['positions' => fn ($q) => $q->orderBy('position')])->get();
         $settings = PriceOptionSetting::query()->where('product_id', $product->id)->get()->keyBy('option_id');
         $types = DecTypeCode::query()->whereIn('code', $product->priceOptions->pluck('code'))->get()->keyBy('code');
 
@@ -132,7 +134,7 @@ class RangeController extends Controller
         $history = AuditLog::query()->with('user:id,name')->where('subject_type', 'Product')->where('subject_id', (string) $product->id)
             ->latest('id')->limit(12)->get();
 
-        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags'));
+        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags', 'templates'));
     }
 
     /**

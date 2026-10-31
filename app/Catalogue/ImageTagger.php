@@ -60,7 +60,7 @@ class ImageTagger
         $product->load('images');
 
         foreach ($this->tags($product) as $tag) {
-            $image = $product->images->firstWhere('url', $tag['url']);
+            $image = $product->images->where('role', '!=', 'line_art')->firstWhere('url', $tag['url']);
             if ($image && ($image->role !== $tag['role'] || $image->colour_name !== $tag['colour'] || $image->tagged_by !== $tag['by'] || $image->review !== $tag['review'])) {
                 $image->forceFill(['role' => $tag['role'], 'colour_name' => $tag['colour'], 'tagged_by' => $tag['by'], 'review' => $tag['review']])->save();
             }
@@ -87,7 +87,7 @@ class ImageTagger
             ->filter(fn ($m) => $m['tokens'] !== [])
             ->sortByDesc(fn ($m) => count($m['tokens']) * 100 + mb_strlen(implode('', $m['tokens'])))->values();
 
-        $urls = $product->images->pluck('url')->push($hero)->filter()->unique()->values();
+        $urls = $product->images->where('role', '!=', 'line_art')->pluck('url')->push($hero)->filter()->unique()->values();
         $checks = ImageCheck::query()->whereIn('url_hash', $urls->map(fn ($u) => ImageCheck::hashOf($u)))->get()->keyBy('url');
         $sure = (float) config('images.check.min_confidence', 0.7);
         $tags = $urls->map(function (string $url) use ($hero, $colourImage, $matchers, $nameTokens, $checks, $sure) {

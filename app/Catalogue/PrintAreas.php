@@ -177,7 +177,7 @@ class PrintAreas
     {
         $a = $this->find($product);
         // Vetted, or learned from vetted samples of the same kind of product.
-        if (! $a || (! $a->approved_at && $a->source !== 'learned')) {
+        if (! $a || (! $a->approved_at && ! in_array($a->source, ['learned', 'template'], true))) {
             return null;
         }
 
