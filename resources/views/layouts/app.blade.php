@@ -15,8 +15,11 @@
     <div class="brand"><b>CrowdMerch</b><span>Operations</span></div>
     <a href="{{ route('quotes.index') }}" class="{{ request()->routeIs('quotes.*') ? 'on' : '' }}">Quotes</a>
     <a href="{{ route('drafts.index') }}" class="{{ request()->routeIs('drafts.*') ? 'on' : '' }}">Wish lists &amp; intake</a>
+    <a href="{{ route('range.index') }}" class="{{ request()->routeIs('range.*') ? 'on' : '' }}">Range</a>
     @if(auth()->user()->isAdmin())
       <span class="group">ADMIN ONLY</span>
+      <a href="{{ route('admin.sync.index') }}" class="{{ request()->routeIs('admin.sync.*') ? 'on' : '' }}">Promodata sync</a>
+      <a href="{{ route('admin.dectypes.index') }}" class="{{ request()->routeIs('admin.dectypes.*') ? 'on' : '' }}">Decoration types</a>
       <a href="{{ route('admin.suppliers.index') }}" class="{{ request()->routeIs('admin.suppliers.*') ? 'on' : '' }}">Suppliers</a>
       <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'on' : '' }}">Users &amp; audit</a>
     @endif

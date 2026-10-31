@@ -94,3 +94,8 @@ details[open] > summary { margin-bottom: 10px; }
 .guest .card { width: 100%; max-width: 400px; }
 @media (max-width: 760px) { .shell { flex-direction: column; } .nav { flex: none; flex-direction: row; flex-wrap: wrap; } .nav .brand, .nav .group, .nav .me { display: none; } main { padding: 18px 16px 40px; } .lines td.l { padding-left: 16px; } }
 .transfer > summary { font-weight: 500; }
+
+/* Range curation */
+label.check { display: flex; gap: 8px; align-items: flex-start; flex-wrap: nowrap; }
+label.check input { margin-top: 3px; flex: none; }
+td.breaks { word-break: break-all; max-width: 260px; }
