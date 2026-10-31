@@ -149,6 +149,30 @@ class ShopifyAdmin
         return (int) $json['data']['draftOrderCreate']['draftOrder']['legacyResourceId'];
     }
 
+    /**
+     * Run a GraphQL Admin query or mutation. Writes (mutations) are checked
+     * against the store lock first. Returns the `data` part; throws on errors.
+     *
+     * @param  array<string, mixed>  $variables
+     * @return array<string, mixed>
+     */
+    public function graphql(string $query, array $variables = []): array
+    {
+        if (str_starts_with(ltrim($query), 'mutation')) {
+            $this->assertWritable();
+        } elseif (! $this->configured()) {
+            throw new RuntimeException('Shopify is not set up (SHOPIFY_SHOP_DOMAIN with SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET).');
+        }
+        $json = $this->request()->timeout(90)
+            ->post('https://'.config('shopify.store').'/admin/api/'.config('shopify.api_version').'/graphql.json', ['query' => $query, 'variables' => (object) $variables])
+            ->throw()->json();
+        if (! empty($json['errors'])) {
+            throw new RuntimeException('Shopify GraphQL error: '.mb_substr(json_encode($json['errors']), 0, 500));
+        }
+
+        return $json['data'] ?? [];
+    }
+
     /** @return array<string, mixed>|null {id, sku, product_id, title, price} */
     public function variant(int $id): ?array
     {
