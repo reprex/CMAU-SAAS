@@ -2,6 +2,7 @@
 
 namespace App\Catalogue;
 
+use App\Models\ImageCheck;
 use App\Models\Product;
 use Illuminate\Support\Collection;
 
@@ -15,6 +16,9 @@ use Illuminate\Support\Collection;
  *  3. Any other image whose file name contains a colour's name (for example
  *     4001_maple_tee_pistacio_back) is an "other colour" image of that colour.
  *  4. Everything else is "other style".
+ * Then Claude's look at the image (ImageVision, stored in image_checks)
+ * settles the images the file name says nothing about, and flags for review
+ * any image where it and the file name or Promodata disagree.
  * Staff tags on the product screen (override image_tags) always win, and
  * survive every Promodata refresh because they are keyed by image URL.
  */
@@ -54,14 +58,14 @@ class ImageTagger
 
         foreach ($this->tags($product) as $tag) {
             $image = $product->images->firstWhere('url', $tag['url']);
-            if ($image && ($image->role !== $tag['role'] || $image->colour_name !== $tag['colour'] || $image->tagged_by !== $tag['by'])) {
-                $image->forceFill(['role' => $tag['role'], 'colour_name' => $tag['colour'], 'tagged_by' => $tag['by']])->save();
+            if ($image && ($image->role !== $tag['role'] || $image->colour_name !== $tag['colour'] || $image->tagged_by !== $tag['by'] || $image->review !== $tag['review'])) {
+                $image->forceFill(['role' => $tag['role'], 'colour_name' => $tag['colour'], 'tagged_by' => $tag['by'], 'review' => $tag['review']])->save();
             }
         }
     }
 
     /**
-     * @return Collection<int, array{url:string, role:string, colour:?string, by:string, auto_role:string, auto_colour:?string}>
+     * @return Collection<int, array{url:string, role:string, colour:?string, by:string, auto_role:string, auto_colour:?string, review:?string, seen:?array}>
      */
     public function tags(Product $product): Collection
     {
@@ -81,14 +85,38 @@ class ImageTagger
             ->sortByDesc(fn ($m) => count($m['tokens']) * 100 + mb_strlen(implode('', $m['tokens'])))->values();
 
         $urls = $product->images->pluck('url')->push($hero)->filter()->unique()->values();
-        $tags = $urls->map(function (string $url) use ($hero, $colourImage, $matchers, $nameTokens) {
+        $checks = ImageCheck::query()->whereIn('url_hash', $urls->map(fn ($u) => ImageCheck::hashOf($u)))->get()->keyBy('url');
+        $sure = (float) config('images.check.min_confidence', 0.7);
+        $tags = $urls->map(function (string $url) use ($hero, $colourImage, $matchers, $nameTokens, $checks, $sure) {
             [$role, $colour] = match (true) {
                 isset($colourImage[$url]) && $url !== $hero => [self::COLOUR, $colourImage[$url]],
                 $url === $hero => [self::HERO_STYLE, $colourImage[$url] ?? null],
                 default => ($c = $this->colourInFileName($url, $matchers, $nameTokens)) ? [self::OTHER_COLOUR, $c] : [self::OTHER_STYLE, null],
             };
+            $by = 'auto';
+            $review = null;
+            $check = $checks[$url] ?? null;
+            $seen = $check ? ['tag' => $check->tag, 'colour' => $check->colour_name, 'shows' => $check->shows, 'confidence' => $check->confidence, 'note' => $check->note] : null;
+            if ($check && $check->tag === null) {
+                $review = $check->note ?: 'Claude could not check this image';
+            } elseif ($check && ($check->confidence ?? 0) < $sure) {
+                $review = 'Claude is unsure'.($check->note ? ": {$check->note}" : '');
+            } elseif ($check) {
+                $saw = $check->tag === self::OTHER_COLOUR ? $check->colour_name : null;
+                [$role, $colour, $by, $review] = match ($role) {
+                    // Promodata's own hero and colour images stay; Claude only flags doubts.
+                    self::HERO_STYLE => [$role, $colour, 'auto', $check->shows && ! in_array($check->shows, ['whole_product', 'angle'], true)
+                        ? 'Claude: hero shows '.str_replace('_', ' ', $check->shows).($check->note ? ". {$check->note}" : '') : null],
+                    self::COLOUR => [$role, $colour, 'auto', $saw && $saw !== $colour ? "Claude sees {$saw}, not {$colour}" : null],
+                    // The file name named a colour: keep it when Claude agrees, flag it when not.
+                    self::OTHER_COLOUR => $saw === $colour ? [$role, $colour, 'ai', null]
+                        : [$role, $colour, 'auto', $saw ? "Claude sees {$saw}, the file name says {$colour}" : "Claude sees the hero's colour; the file name says {$colour}"],
+                    // Nothing in the file name: Claude decides.
+                    default => $saw ? [self::OTHER_COLOUR, $saw, 'ai', null] : [self::OTHER_STYLE, null, 'ai', null],
+                };
+            }
 
-            return ['url' => $url, 'role' => $role, 'colour' => $colour, 'by' => 'auto', 'auto_role' => $role, 'auto_colour' => $colour];
+            return ['url' => $url, 'role' => $role, 'colour' => $colour, 'by' => $by, 'auto_role' => $role, 'auto_colour' => $colour, 'review' => $review, 'seen' => $seen];
         });
 
         // Staff tags win. A staff "hero style" replaces the automatic hero.
@@ -98,7 +126,7 @@ class ImageTagger
             if (is_array($m) && isset(self::ROLES[$m['role'] ?? ''])) {
                 $needsColour = in_array($m['role'], [self::COLOUR, self::OTHER_COLOUR], true);
                 $colour = in_array($m['colour'] ?? null, $colourNames, true) ? $m['colour'] : null;
-                $t = ['role' => $m['role'], 'colour' => $needsColour || $m['role'] === self::HERO_STYLE ? $colour : null, 'by' => 'staff'] + $t;
+                $t = ['role' => $m['role'], 'colour' => $needsColour || $m['role'] === self::HERO_STYLE ? $colour : null, 'by' => 'staff', 'review' => null] + $t;
                 if ($needsColour && $t['colour'] === null) {
                     $t['role'] = $t['auto_role'] === self::HERO_STYLE ? self::HERO_STYLE : self::OTHER_STYLE;
                     $t['colour'] = $t['auto_colour'];
