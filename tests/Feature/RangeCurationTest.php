@@ -129,9 +129,9 @@ class RangeCurationTest extends TestCase
     {
         $product = $this->summaryProduct();
         $user = $this->staff('readonly');
-        // Summary-only rows show the minimum order and an estimated unbranded price (0.41 × 1.45).
+        // Summary-only rows show the minimum order and the supplier's unbranded cost there.
         $this->get(route('range.index', ['view' => 'all']))->assertOk()->assertSee($product->name)
-            ->assertSee('Unbranded each at MOQ')->assertSee('250')->assertSee('0.59')->assertSee('est.');
+            ->assertSee('Unbranded cost at MOQ')->assertSee('250')->assertSee('0.41');
         $this->post(route('range.action', $product), ['action' => 'add'])->assertForbidden();
         $this->get(route('admin.sync.index'))->assertForbidden();
         $this->get(route('admin.dectypes.index'))->assertForbidden();

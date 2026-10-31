@@ -47,7 +47,7 @@ class RangeController extends Controller
         $products = Product::query()
             ->select(['id', 'supplier_id', 'code', 'name', 'tier', 'discontinued', 'promodata_type_name', 'hero_image_url',
                 'colour_count', 'min_unit_cost', 'min_qty', 'last_changed_at', 'range_changed_at', 'published_at', 'reprice_error', 'hydrated_at'])
-            ->with(['supplier:id,name,markup_undecorated', 'webPrice:product_id,collection_variant_price,collection_moq,decoration_source,actual_moq,undecorated_option_id'])
+            ->with(['supplier:id,name', 'webPrice:product_id,collection_variant_price,collection_moq,decoration_source,actual_moq,undecorated_option_id'])
             ->when($view === 'live', fn ($w) => $w->where('tier', Product::TIER_LIVE))
             ->when($view === 'active', fn ($w) => $w->where('tier', Product::TIER_ACTIVE))
             ->when($view === 'changed', fn ($w) => $w->where('tier', Product::TIER_LIVE)->whereNotNull('range_changed_at')
@@ -65,10 +65,10 @@ class RangeController extends Controller
             ->when($sort === 'id', fn ($w) => $w->orderBy('id'))
             ->paginate(50)->withQueryString();
 
-        // Unbranded sell price at the minimum order, for the products on this page only.
+        // Supplier's unbranded cost at the minimum order, for the products on this page only.
         $undecorated = PriceOption::query()
             ->whereIn('option_id', $products->getCollection()->pluck('webPrice.undecorated_option_id')->filter()->all())
-            ->get(['option_id', 'price_string', 'placeholder'])->keyBy('option_id');
+            ->get(['option_id', 'cost_string', 'placeholder'])->keyBy('option_id');
 
         $counts = Cache::remember('range:counts', 60, fn () => [
             'live' => Product::query()->where('tier', Product::TIER_LIVE)->count(),
