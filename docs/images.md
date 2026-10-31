@@ -18,13 +18,36 @@ Worked out on every Promodata refresh (`App\Catalogue\ImageTagger`), in this ord
 3. Any other image whose file name contains a colour's name is an other colour image of that colour, for example `4001_maple_tee_pistacio_back` is Pistachio. The longest colour name wins ("Navy/White" before "Navy"), long words may be one letter out, and a colour word that is also in the product name ("Natural Jute Bag") is ignored.
 4. Everything else is other style.
 
-There is always exactly one hero style. With no hero from Promodata, the first style image is used, then the first colour image.
+There is always exactly one hero style.
+
+## Claude image check
+
+File names only help when the supplier names its files well (AS Colour: `4001_maple_tee_pistacio_back`; JB's Wear: `210_1_01` says nothing). So Claude also looks at the pictures (`App\Catalogue\ImageVision`, `catalogue:check-images`, every scheduler minute):
+
+- Only products on the web range, a few a minute, and each image URL only once (results in `image_checks`). Daily cap `IMAGE_CHECK_PER_DAY` (default 3,000 images). Off until `IMAGE_CHECK=true` and `ANTHROPIC_API_KEY` are set.
+- One request per product (up to 16 images): the hero and colour images first as references, then the rest, each with its file name and what the file name suggests.
+- The rule Claude applies: the product in the hero's colour (another angle, a close-up of a feature, in use) is other style; the product clearly in another colour is other colour, with that colour from the product's colour list.
+- How the answers are combined (confidence below 0.7 is shown but not used):
+
+| Automatic tag | Claude says | Result |
+| --- | --- | --- |
+| Hero style (Promodata) | Not a whole-product picture | Stays hero, flagged |
+| Colour (Promodata) | A different colour | Stays, flagged |
+| Other colour X (file name) | Colour X | Other colour X, confirmed |
+| Other colour X (file name) | Another colour, or the hero's colour | Stays X, flagged |
+| Other style (nothing in the file name) | Colour Y | Other colour Y |
+| Other style (nothing in the file name) | Hero's colour | Other style, confirmed |
+| Any | Unsure, or couldn't load the image | Unchanged, flagged |
+
+Flagged images show a warning on the product screen, and the product appears under Range > "Images to check". Saving the product keeps what staff left in place as their tag, which clears the flags. Staff tags are never changed by Claude. With no hero from Promodata, the first style image is used, then the first colour image.
 
 ## Staff tags
 
-The product screen (Range > product) shows every image with its tag and colour. Change any of them and save. Only differences from the automatic tags are stored (override `image_tags`, keyed by image URL; the hero goes in `hero_image_url`), so they survive Promodata refreshes and new images are still tagged automatically.
+The product screen (Range > product) shows every image with its tag, colour, what Claude saw and any warning. Change any of them and save. Only differences from the automatic tags are stored (override `image_tags`, keyed by image URL; the hero goes in `hero_image_url`), so they survive Promodata refreshes and new images are still tagged automatically.
 
 After deploying, tag the existing range once: `cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:tag-images`
+
+To try Claude on one product first: `cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:check-images --product=43331`
 
 ## What Shopify gets (`ImageTagger::forShopify`)
 

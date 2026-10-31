@@ -28,6 +28,7 @@ class RangeController extends Controller
         'live' => 'On the range',
         'changed' => 'Changed, not yet published',
         'problems' => 'Needs attention',
+        'images' => 'Images to check',
         'active' => 'Recently used',
         'all' => 'Whole catalogue',
     ];
@@ -55,6 +56,8 @@ class RangeController extends Controller
                 ->where(fn ($w) => $w->whereNull('published_at')->orWhereColumn('range_changed_at', '>', 'published_at')))
             ->when($view === 'problems', fn ($w) => $w->where('tier', Product::TIER_LIVE)
                 ->where(fn ($w) => $w->whereNotNull('reprice_error')->orWhere('discontinued', true)))
+            ->when($view === 'images', fn ($w) => $w->where('tier', Product::TIER_LIVE)
+                ->whereHas('images', fn ($i) => $i->whereNotNull('review')))
             ->when(! $showDiscontinued && in_array($view, ['all', 'active'], true), fn ($w) => $w->where('discontinued', false))
             ->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('name', 'like', "%{$q}%")->orWhere('code', 'like', "%{$q}%")
                 ->when(ctype_digit($q), fn ($w) => $w->orWhere('id', (int) $q))))
@@ -76,6 +79,7 @@ class RangeController extends Controller
             'active' => Product::query()->where('tier', Product::TIER_ACTIVE)->count(),
             'all' => Product::query()->count(),
             'problems' => Product::query()->where('tier', Product::TIER_LIVE)->where(fn ($w) => $w->whereNotNull('reprice_error')->orWhere('discontinued', true))->count(),
+            'images' => Product::query()->where('tier', Product::TIER_LIVE)->whereHas('images', fn ($i) => $i->whereNotNull('review'))->count(),
         ]);
 
         return view('range.index', [
@@ -224,7 +228,8 @@ class RangeController extends Controller
             }
             $colour = in_array($row['role'], [ImageTagger::COLOUR, ImageTagger::OTHER_COLOUR], true) ? ($row['colour'] ?? null) : null;
             $a = $auto[$row['url']] ?? null;
-            if (! $a || $a['role'] !== $row['role'] || ($colour !== null && $a['colour'] !== $colour)) {
+            // A flagged image that staff have now seen is kept as their tag, which clears the flag.
+            if (! $a || $a['review'] !== null || $a['role'] !== $row['role'] || ($colour !== null && $a['colour'] !== $colour)) {
                 $tags[$row['url']] = ['role' => $row['role'], 'colour' => $colour];
             }
         }

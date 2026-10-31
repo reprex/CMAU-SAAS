@@ -144,11 +144,13 @@
                 <option value="">No colour</option>
                 @foreach($product->colours->unique('name') as $c)<option value="{{ $c->name }}" @selected($t['colour'] === $c->name)>{{ $c->name }}</option>@endforeach
               </select>
-              <span class="muted">{{ $t['by'] === 'staff' ? 'Set by staff' : 'Automatic' }}@if($t['by'] === 'staff' && $t['auto_role'] !== $t['role']) (auto: {{ $roleNames[$t['auto_role']] }})@endif</span>
+              <span class="muted">{{ ['staff' => 'Set by staff', 'ai' => 'Checked by Claude', 'auto' => 'Automatic'][$t['by']] ?? $t['by'] }}@if($t['by'] === 'staff' && $t['auto_role'] !== $t['role']) (auto: {{ $roleNames[$t['auto_role']] }})@endif</span>
+              @if($t['seen'] && $t['seen']['tag'])<span class="muted">Claude: {{ str_replace('_', ' ', (string) $t['seen']['shows']) }}{{ $t['seen']['colour'] ? ', '.$t['seen']['colour'] : '' }}@if($t['seen']['confidence'] !== null) ({{ round($t['seen']['confidence'] * 100) }}%)@endif</span>@endif
+              @if($t['review'])<span class="pill warn" style="white-space:normal">{{ $t['review'] }}</span>@endif
             </div>
           @endforeach
         </div>
-        <p class="small muted" style="margin:4px 0 0">One hero only: picking a new hero turns the old one into other style. Colour and other colour images need a colour.</p>
+        <p class="small muted" style="margin:4px 0 0">Saving a tag clears its warning. One hero only: picking a new hero turns the old one into other style. Colour and other colour images need a colour.</p>
       </fieldset>
       @endif
 

@@ -35,6 +35,11 @@ Schedule::command('pricing:patterns')
     ->dailyAt('04:00')
     ->withoutOverlapping();
 
+// Image check: Claude looks at unsure images on the web range, a few products a minute (docs/images.md).
+Schedule::command('catalogue:check-images')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
 // Quote desk: bring in new/changed Shopify draft orders (backup to webhooks).
 Schedule::command('shopify:pull-drafts')
     ->everyFiveMinutes()
