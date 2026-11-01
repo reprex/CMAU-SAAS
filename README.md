@@ -61,6 +61,7 @@ CI (GitHub Actions) runs the tests and `composer audit` on PHP 8.4 for every pus
 
 - [Requirements summary](docs/requirements.md)
 - [Pricing engine rules](docs/pricing.md)
+- [Website checkout and My Orders](docs/website-checkout.md) (CMAUDEV-CHECKOUT: direct orders, invoices, freight and delivery estimates)
 - [Shopify product contract](docs/contracts/shopify-product.md)
 - [DecorationJSON contract](docs/contracts/decorationjson.md) and its [JSON Schema](docs/contracts/decorationjson.schema.json)
 - Full requirements document (with diagrams): https://claude.ai/artifact/VhmB9Q9PXU2CtbBBGodLq9

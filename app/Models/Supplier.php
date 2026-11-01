@@ -28,6 +28,7 @@ class Supplier extends Model
             'freight_decorator_leg' => 'boolean',
             'freight_effective_from' => 'date',
             'is_decorator' => 'boolean',
+            'stock_lead_days' => 'integer',
         ];
     }
 
@@ -35,6 +36,12 @@ class Supplier extends Model
         'per_delivery' => 'Once per delivery address',
         'per_line' => 'Once per product line',
     ];
+
+    /** Business days to get stock from this supplier (website order delivery estimate). */
+    public function stockLeadDays(): int
+    {
+        return $this->stock_lead_days ?? (int) config('website.lead_times.stock_default');
+    }
 
     public function hasStandardFreight(): bool
     {

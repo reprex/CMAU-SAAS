@@ -2,6 +2,12 @@
 
 namespace App\Providers;
 
+use App\Checkout\Address\AddressLookup;
+use App\Checkout\Address\NoAddressLookup;
+use App\Checkout\Sms\LogSmsSender;
+use App\Checkout\Sms\SmsSender;
+use App\Freight\EstimateFreightDriver;
+use App\Freight\FreightDriver;
 use App\Sources\Promodata\PromodataClient;
 use App\Sources\Promodata\PromodataSource;
 use App\Sources\SupplierSource;
@@ -24,6 +30,18 @@ class AppServiceProvider extends ServiceProvider
         // The catalogue sync talks to a SupplierSource, so Promodata can later be
         // swapped for (or combined with) direct supplier APIs.
         $this->app->bind(SupplierSource::class, PromodataSource::class);
+
+        // Website checkout drivers (docs/website-checkout.md). Each is chosen in config
+        // so MachShip/FedEx, an SMS provider and an address provider can be added later.
+        $this->app->bind(FreightDriver::class, fn ($app) => match (config('freight.driver')) {
+            default => $app->make(EstimateFreightDriver::class),
+        });
+        $this->app->bind(SmsSender::class, fn ($app) => match (config('website.sms.driver')) {
+            default => $app->make(LogSmsSender::class),
+        });
+        $this->app->bind(AddressLookup::class, fn ($app) => match (config('website.address.driver')) {
+            default => $app->make(NoAddressLookup::class),
+        });
     }
 
     /**

@@ -98,6 +98,12 @@ class Product extends Model
         return $this->hasOne(ProductWebPrice::class);
     }
 
+    /** Staff-vetted related styles (womens, kids...) that can share a website order. */
+    public function relatedStyles(): HasMany
+    {
+        return $this->hasMany(RelatedStyle::class)->orderBy('position')->orderBy('id');
+    }
+
     /** A staff override value (stored in product_overrides.data), or $default. */
     public function overrideValue(string $key, mixed $default = null): mixed
     {

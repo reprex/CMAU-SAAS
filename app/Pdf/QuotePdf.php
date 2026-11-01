@@ -5,6 +5,7 @@ namespace App\Pdf;
 use App\Models\Quote;
 use App\Models\QuoteExtra;
 use App\Models\QuoteItem;
+use App\Models\WebsiteOrder;
 use App\Pricing\Money;
 use App\Quotes\QuoteCalculator;
 use App\Quotes\QuoteNumbers;
@@ -78,6 +79,22 @@ class QuotePdf
             'quote' => $quote,
             'number' => QuoteNumbers::comparisonNumber($quote->number),
             'cards' => $this->comparisonCards($quote),
+        ] + $this->common());
+    }
+
+    /**
+     * Invoice for a website order (CM-xxxxx, docs/website-checkout.md): same
+     * design as the quote, with the order's sizes, branding positions, delivery
+     * estimate and any pre-payment alerts. GST-free exports say so.
+     */
+    public function websiteInvoice(WebsiteOrder $order): string
+    {
+        $order->loadMissing(['lines', 'positions']);
+
+        return $this->render('pdf.website-invoice', [
+            'order' => $order,
+            'image' => $this->images->dataUri($order->product?->hero_image_url),
+            'styles' => $order->lines->groupBy('product_id'),
         ] + $this->common());
     }
 

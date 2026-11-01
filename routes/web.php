@@ -16,15 +16,20 @@ use App\Http\Controllers\LineTransferController;
 use App\Http\Controllers\LogoAreaController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProductLookupController;
+use App\Http\Controllers\Public\AddressLookupController;
 use App\Http\Controllers\Public\ShopifyWebhookController;
 use App\Http\Controllers\Public\StockRelayController;
+use App\Http\Controllers\Public\WebsiteAccountController;
+use App\Http\Controllers\Public\WebsiteCheckoutController;
 use App\Http\Controllers\Public\WebsiteQuoteController;
 use App\Http\Controllers\Public\WebsiteSearchController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteExtraController;
 use App\Http\Controllers\QuoteItemController;
 use App\Http\Controllers\RangeController;
+use App\Http\Controllers\RelatedStyleController;
 use App\Http\Controllers\SubstituteController;
+use App\Http\Controllers\WebsiteOrderController;
 use Illuminate\Support\Facades\Route;
 
 // ---- Public endpoints (no login) -----------------------------------------
@@ -50,6 +55,21 @@ Route::prefix('crowdmerch/search')->controller(WebsiteSearchController::class)->
     Route::get('token', 'token');
     Route::post('/', 'search');
 });
+
+// Website checkout and My Orders (docs/website-checkout.md): CMAUDEV-CHECKOUT.
+Route::prefix('crowdmerch/checkout')->controller(WebsiteCheckoutController::class)->group(function () {
+    Route::options('{any}', 'preflight')->where('any', '.*');
+    Route::post('price', 'price');
+    Route::post('order', 'order');
+});
+Route::prefix('crowdmerch/account')->controller(WebsiteAccountController::class)->group(function () {
+    Route::options('{any}', 'preflight')->where('any', '.*');
+    Route::post('code', 'code');
+    Route::post('verify', 'verify');
+    Route::get('orders', 'orders');
+    Route::post('change', 'change');
+});
+Route::match(['GET', 'OPTIONS'], 'crowdmerch/address', AddressLookupController::class);
 
 // ---- Sign-in --------------------------------------------------------------
 
@@ -89,6 +109,10 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/range/{product}/stock', [SubstituteController::class, 'stock'])->whereNumber('product')->name('range.stock');
     Route::get('/range/{product}/stock/live', [RangeController::class, 'liveStock'])->whereNumber('product')->name('range.stock.live');
     Route::get('/logo-areas', [LogoAreaController::class, 'index'])->name('range.logo-areas');
+    Route::get('/website-orders', [WebsiteOrderController::class, 'index'])->name('website-orders.index');
+    Route::get('/website-orders/{order}', [WebsiteOrderController::class, 'show'])->whereNumber('order')->name('website-orders.show');
+    Route::get('/website-orders/{order}/invoice.pdf', [WebsiteOrderController::class, 'invoice'])->whereNumber('order')->name('website-orders.invoice');
+    Route::get('/website-orders/{order}/positions/{position}/logo', [WebsiteOrderController::class, 'logo'])->whereNumber(['order', 'position'])->name('website-orders.logo');
 
     Route::middleware('role:edit')->group(function () {
         Route::get('/quotes/new', [QuoteController::class, 'create'])->name('quotes.create');
@@ -125,6 +149,12 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/logo-areas/apply', [LogoAreaController::class, 'apply'])->name('range.logo-areas.apply');
         Route::put('/range/{product}', [RangeController::class, 'update'])->name('range.update');
         Route::put('/range/{product}/options', [RangeController::class, 'options'])->name('range.options');
+        Route::post('/range/{product}/related', [RelatedStyleController::class, 'store'])->whereNumber('product')->name('range.related.store');
+        Route::delete('/range/{product}/related/{style}', [RelatedStyleController::class, 'destroy'])->whereNumber('product')->name('range.related.destroy');
+
+        Route::put('/website-orders/{order}', [WebsiteOrderController::class, 'update'])->whereNumber('order')->name('website-orders.update');
+        Route::post('/website-orders/{order}/emails/{email}/send', [WebsiteOrderController::class, 'sendEmail'])->whereNumber('order')->name('website-orders.send');
+        Route::post('/website-orders/{order}/changes/{change}/handled', [WebsiteOrderController::class, 'handleChange'])->whereNumber('order')->name('website-orders.change-handled');
         Route::post('/range/{product}/action', [RangeController::class, 'action'])->name('range.action');
     });
 

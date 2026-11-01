@@ -134,7 +134,9 @@ class RangeController extends Controller
         $history = AuditLog::query()->with('user:id,name')->where('subject_type', 'Product')->where('subject_id', (string) $product->id)
             ->latest('id')->limit(12)->get();
 
-        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags', 'templates'));
+        $related = $product->relatedStyles()->with('related:id,code,name,supplier_id,discontinued')->get();
+
+        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags', 'templates', 'related'));
     }
 
     /**

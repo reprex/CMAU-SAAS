@@ -27,6 +27,14 @@ The product page has one **Branding** section (below the colours, not under the 
 
 **Price = unbranded price + each position's decoration (its setup and its per-unit price).** Each decoration's prices come from the product's DecorationJSON, priced as one position. There are no combined options such as "Front and back": a front and a back are two positions, each with its own decoration. Combined Promodata lines (e.g. "Front and back print") are not offered as methods.
 
+**Solid-colour processes** need artwork made of flat colours. When one is chosen, the logo is checked in the browser: its colours are counted (shown as swatches, which the shopper can correct with − / +), and artwork with gradients or photo detail is switched to the full colour method (DTF) with a message and an "Upload a solid-colour version" button. Pricing by method (Scott, 1 Nov):
+
+- **Screen print:** a separate price grid for each number of colours (the supplier's 1, 2, 3, 4 colour price lines in Promodata). The SaaS picks the line matching the colour count; above the largest grid the top line is shown and our team prices it.
+- **Pad print:** the single colour price (setup and per unit) times the number of colours.
+- **Embroidery:** solid thread colours required, but one price whatever the number of colours (priced on stitch count).
+
+Whenever one of these is selected the page, the quote PDF and the quote show: **"Prices subject to the CrowdMerch team reviewing your artwork."** The SaaS repeats the colour check on the uploaded file when the PDF is made, and staff confirm colours (and stitch count for embroidery) before the order.
+
 Follow-up work in the SaaS:
 - **Website quote API and intake:** a cart or list line carries several decorations (position, decID, logo per position) instead of one `decID`; the quote desk splits them into the product line plus one decoration line per position (it already splits product and decoration).
 - **DecorationJSON:** add each option's methods and which template positions it suits (additive keys the current theme ignores), and leave combined options out of the new templates.
