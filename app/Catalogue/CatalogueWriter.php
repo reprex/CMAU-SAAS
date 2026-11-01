@@ -55,16 +55,16 @@ class CatalogueWriter
             $product->fill([
                 'source' => $source->source,
                 'supplier_id' => $source->supplierId,
-                'code' => self::clip($source->code),
-                'name' => self::clip($source->name !== '' ? $source->name : ($source->code ?? (string) $source->id)),
+                'code' => $source->code,
+                'name' => $source->name !== '' ? $source->name : ($source->code ?? (string) $source->id),
                 'discontinued' => $source->discontinued,
                 'can_check_stock' => $source->canCheckStock,
-                'country' => self::clip($source->country, 8),
-                'supplier_category' => self::clip($source->supplierCategory),
-                'supplier_subcategory' => self::clip($source->supplierSubcategory),
-                'promodata_type_id' => self::clip($source->promodataTypeId, 32),
-                'promodata_type_name' => self::clip($source->promodataTypeName),
-                'hero_image_url' => self::clip($source->heroImageUrl ?? ($source->imageUrls[0] ?? null), 1024),
+                'country' => $source->country,
+                'supplier_category' => $source->supplierCategory,
+                'supplier_subcategory' => $source->supplierSubcategory,
+                'promodata_type_id' => $source->promodataTypeId,
+                'promodata_type_name' => $source->promodataTypeName,
+                'hero_image_url' => $source->heroImageUrl ?? ($source->imageUrls[0] ?? null),
                 'colour_count' => $source->colourCount(),
                 'min_unit_cost' => $minCost,
                 'min_qty' => $minQty,
@@ -74,7 +74,7 @@ class CatalogueWriter
                 'discontinued_at' => $source->discontinuedAt,
                 'content_hash' => $source->contentHash,
                 'summary_version' => self::SUMMARY_VERSION,
-            ] + self::clipFacts(ProductFacts::from($source)));
+            ] + ProductFacts::from($source));
 
             if ($wantsDetail) {
                 $product->hydrated_at = now();
@@ -132,8 +132,8 @@ class CatalogueWriter
 
         $product->detail()->create([
             'description' => $source->description,
-            'supplier_brand' => self::clip($source->supplierBrand),
-            'supplier_label' => self::clip($source->supplierLabel),
+            'supplier_brand' => $source->supplierBrand,
+            'supplier_label' => $source->supplierLabel,
             'supplier_catalogue' => $source->supplierCatalogue,
             'supplier_website_page' => $source->supplierWebsitePage,
             'details' => $source->details,
@@ -207,24 +207,5 @@ class CatalogueWriter
         // Add-on lines reference base lines, so delete them first.
         $product->priceLines()->whereNotNull('base_price_line_id')->delete();
         $product->priceLines()->delete();
-    }
-
-    /**
-     * Promodata sometimes sends a category or name longer than its column (lists
-     * joined with commas). Clip it so one long value can't stall the whole sync.
-     */
-    private static function clip(?string $value, int $max = 255): ?string
-    {
-        return $value === null ? null : mb_substr($value, 0, $max);
-    }
-
-    /** @param array<string, mixed> $facts */
-    private static function clipFacts(array $facts): array
-    {
-        if (isset($facts['material']) && is_string($facts['material'])) {
-            $facts['material'] = self::clip($facts['material']);
-        }
-
-        return $facts;
     }
 }
