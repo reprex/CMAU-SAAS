@@ -91,18 +91,17 @@ class CatalogueTierTest extends TestCase
         $this->assertSame(Product::TIER_LIVE, Product::find(1001)->tier);
     }
 
-    public function test_overlong_promodata_categories_are_clipped_so_the_sync_keeps_going(): void
+    public function test_long_promodata_categories_are_stored_in_full(): void
     {
         Supplier::create(['id' => 3, 'name' => 'Test Supplier Pty Ltd']);
         $payload = PromodataFixtures::product(1001);
         $payload['product']['categorisation']['supplier_category'] = array_fill(0, 60, 'Drinkware Accessories');
-        $payload['product']['categorisation']['supplier_subcategory'] = str_repeat('Stubby holders ', 40);
+        $payload['product']['categorisation']['supplier_subcategory'] = trim(str_repeat('Stubby holders ', 40));
 
         app(CatalogueWriter::class)->store((new PromodataNormaliser)->normalise($payload));
 
         $product = Product::findOrFail(1001);
-        $this->assertSame(255, mb_strlen($product->supplier_category));
-        $this->assertStringStartsWith('Drinkware Accessories, Drinkware Accessories', $product->supplier_category);
-        $this->assertLessThanOrEqual(255, mb_strlen($product->supplier_subcategory));
+        $this->assertSame(implode(', ', array_fill(0, 60, 'Drinkware Accessories')), $product->supplier_category);
+        $this->assertSame(trim(str_repeat('Stubby holders ', 40)), $product->supplier_subcategory);
     }
 }
