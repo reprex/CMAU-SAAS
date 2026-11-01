@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\PublicHoliday;
 use App\Models\QuoteExtra;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
@@ -56,7 +57,13 @@ class SupplierController extends Controller
             'is_decorator' => 'boolean',
             'freight_effective_from' => 'nullable|date',
             'template_url_pattern' => ['nullable', 'string', 'max:500', 'regex:/^https:\/\/.+\{(code|CODE|appaid)\}/'],
+            // Website orders (docs/website-checkout.md).
+            'state' => ['nullable', Rule::in(PublicHoliday::STATES)],
+            'stock_lead_days' => 'nullable|integer|min:0|max:60',
+            'payment_terms' => ['nullable', Rule::in(array_keys(config('website.payment_terms.options')))],
         ]);
+        $data['state'] = $data['state'] ?? $supplier->state ?? config('website.lead_times.default_state');
+        $data['payment_terms'] = $data['payment_terms'] ?? $supplier->payment_terms ?? config('website.payment_terms.default');
         $data['freight_decorator_leg'] = $request->boolean('freight_decorator_leg');
         $data['is_decorator'] = $request->boolean('is_decorator');
 

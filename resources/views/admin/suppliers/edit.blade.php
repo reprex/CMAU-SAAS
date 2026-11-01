@@ -21,8 +21,15 @@
     <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" name="freight_decorator_leg" value="1" @checked(old('freight_decorator_leg', $supplier->freight_decorator_leg)) style="margin-top:4px"><span><b>Charge this freight when the goods go to an outside decorator first</b><br><span class="small muted">The decorator's own freight covers delivery to the client.</span></span></label>
     <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" name="is_decorator" value="1" @checked(old('is_decorator', $supplier->is_decorator)) style="margin-top:4px"><span><b>This supplier is a decorator</b><br><span class="small muted">Items it decorates are delivered by it, at its freight.</span></span></label>
     <label class="f">Branding template address (optional)<input name="template_url_pattern" value="{{ old('template_url_pattern', $supplier->template_url_pattern) }}" placeholder="https://supplier.com.au/templates/{code}.pdf"><span class="small muted">If the supplier publishes a template per product, give its address with {code} where the product code goes. Products on the range are checked for one and it is read automatically (docs/branding-templates.md).</span></label>
+    <h2 style="margin-top:8px">Website orders</h2>
+    <div class="fgrid">
+      <label class="f">State (public holidays)<select name="state">@foreach(\App\Models\PublicHoliday::STATES as $st)<option @selected(old('state', $supplier->state ?? 'VIC') === $st)>{{ $st }}</option>@endforeach</select></label>
+      <label class="f">Stock lead time (business days)<input class="n" name="stock_lead_days" value="{{ old('stock_lead_days', $supplier->stock_lead_days) }}" inputmode="numeric" placeholder="{{ config('website.lead_times.stock_default') }}"></label>
+      <label class="f">Payment terms<select name="payment_terms">@foreach(config('website.payment_terms.options') as $k => $label)<option value="{{ $k }}" @selected(old('payment_terms', $supplier->payment_terms ?? 'full') === $k)>{{ $label }}</option>@endforeach</select></label>
+    </div>
+    <p class="small muted" style="margin:-4px 0 0">The delivery estimate skips weekends and this state's public holidays, and adds the stock lead time (empty = {{ config('website.lead_times.stock_default') }} days). Decoration lead times are in config/website.php.</p>
     <p class="small muted" style="margin:0">Changes apply to new quotes and any quote recalculated from now on. Quotes already sent keep the freight they were sent with.</p>
-    <div><button class="btn primary" type="submit">Save freight</button> <a class="btn link" href="{{ route('admin.suppliers.index') }}">Back to suppliers</a></div>
+    <div><button class="btn primary" type="submit">Save supplier</button> <a class="btn link" href="{{ route('admin.suppliers.index') }}">Back to suppliers</a></div>
   </form>
   <div class="card side">
     <h2>History</h2>

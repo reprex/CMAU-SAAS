@@ -16,11 +16,14 @@ use Throwable;
  */
 class PromodataStock
 {
-    /** @return array{status: int, body: string} Promodata's reply, unchanged. */
-    public function raw(int $productId): array
+    /**
+     * @param  bool  $fresh  ask Promodata even if a recent reply is cached (website checkout)
+     * @return array{status: int, body: string} Promodata's reply, unchanged.
+     */
+    public function raw(int $productId, bool $fresh = false): array
     {
         $key = "stock:{$productId}";
-        if ($hit = Cache::get($key)) {
+        if (! $fresh && ($hit = Cache::get($key))) {
             return $hit + ['cached' => true];
         }
 
@@ -63,9 +66,9 @@ class PromodataStock
      *
      * @return array{ok: bool, message: string|null, rows: list<array{colour: string|null, size: string|null, qty: int|null, sku: string|null}>}
      */
-    public function rows(int $productId): array
+    public function rows(int $productId, bool $fresh = false): array
     {
-        $raw = $this->raw($productId);
+        $raw = $this->raw($productId, $fresh);
         $json = json_decode($raw['body'], true);
 
         if ($raw['status'] !== 200 || ! is_array($json)) {

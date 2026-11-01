@@ -194,6 +194,25 @@
       @endif
     </div>
 
+    <div class="card">
+      <h2>Related styles</h2>
+      <p class="small muted" style="margin:0">Other styles of this product from the same supplier (womens, kids, long sleeve…). A website order can mix them in one print run, priced at the total quantity (docs/website-checkout.md).</p>
+      @forelse($related as $r)
+        <div class="row between small" style="border-top:1px solid var(--line, #E5E3DE);padding:6px 0">
+          <span><a href="{{ route('range.show', $r->related_product_id) }}">{{ $r->related?->name ?? $r->related_product_id }}</a> <span class="mono muted">{{ $r->related?->code }}</span>@if($r->label) · {{ $r->label }}@endif @if($r->related?->discontinued)<span class="pill bad">discontinued</span>@endif</span>
+          @if($canEdit)<form method="post" action="{{ route('range.related.destroy', [$product, $r]) }}">@csrf @method('DELETE')<button class="btn small link">Remove</button></form>@endif
+        </div>
+      @empty
+        <p class="small muted" style="margin:0">None yet.</p>
+      @endforelse
+      @if($canEdit)
+        <form method="post" action="{{ route('range.related.store', $product) }}" class="row" style="gap:6px;margin-top:6px">@csrf
+          <input name="related_product_id" inputmode="numeric" placeholder="APPAID" required style="width:110px" aria-label="Related product id">
+          <input name="label" placeholder="e.g. Womens fit" style="flex:1 1 120px" aria-label="Label">
+          <button class="btn small">Add</button></form>
+      @endif
+    </div>
+
     @if($product->can_check_stock)
     <div class="card">
       <div class="row between"><h2>Live stock</h2><button type="button" class="btn small" data-live-stock="{{ route('range.stock.live', $product) }}">Check now</button></div>

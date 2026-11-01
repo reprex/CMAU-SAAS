@@ -38,6 +38,18 @@ return [
             'report' => false,
         ],
 
+        // Customer artwork from website orders (docs/website-checkout.md). Private:
+        // outside the web root, not served by the framework, never a public URL.
+        // Staff download it through the signed-in Website orders screen only.
+        'artwork' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/artwork'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
