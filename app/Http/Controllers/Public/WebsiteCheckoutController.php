@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Checkout\AccountTokens;
 use App\Checkout\CheckoutPricer;
 use App\Checkout\OrderCreator;
+use App\Checkout\SamplesPricer;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Public\Concerns\GuardsWebsiteOrders;
 use Illuminate\Http\Request;
@@ -18,8 +19,11 @@ use Throwable;
  *    delivery estimate and whether it can be ordered directly (with the issues if not);
  *  - POST crowdmerch/checkout/order  multipart (a logo file per position):
  *    recompute everything, create the order CM-xxxxx, and return its number and
- *    a My Orders account token.
+ *    a My Orders account token;
+ *  - POST crowdmerch/checkout/samples/price  JSON: the samples cart by factory, freight, GST and ETA;
+ *  - POST crowdmerch/checkout/samples/order  JSON or form: one samples order and one invoice.
  * Prices are always worked out here; any price the client sends is ignored.
+ * Replies carry our codes only, never the supplier's name or its own codes.
  */
 class WebsiteCheckoutController extends Controller
 {
@@ -54,7 +58,7 @@ class WebsiteCheckoutController extends Controller
         }
         unset($result['found']);
 
-        return $this->reply($request, ['success' => true] + $result);
+        return $this->reply($request, ['success' => true] + CheckoutPricer::publicReply($result));
     }
 
     public function order(Request $request, OrderCreator $creator, AccountTokens $tokens)
@@ -139,7 +143,110 @@ class WebsiteCheckoutController extends Controller
         ], 201);
     }
 
+    public function samplesPrice(Request $request, SamplesPricer $pricer)
+    {
+        if ($blocked = $this->guard($request, 'samples-price', (int) config('website.orders.price_per_hour'))) {
+            return $blocked;
+        }
+        $v = Validator::make($request->all(), $this->sampleRules() + [
+            'postcode' => 'nullable|string|max:16',
+            'country' => 'nullable|string|size:2',
+        ]);
+        if ($v->fails()) {
+            return $this->reply($request, ['success' => false, 'message' => 'Please check your samples.', 'errors' => $v->errors()], 422);
+        }
+        $data = $v->validated();
+        try {
+            $result = $pricer->evaluate(['items' => $this->sampleItems($data), 'postcode' => $data['postcode'] ?? null, 'country' => $data['country'] ?? 'AU']);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->reply($request, ['success' => false, 'message' => 'Sorry, we could not price your samples just now. Please try again.'], 503);
+        }
+
+        return $this->reply($request, ['success' => true] + SamplesPricer::publicReply($result));
+    }
+
+    public function samplesOrder(Request $request, OrderCreator $creator, AccountTokens $tokens)
+    {
+        if ($blocked = $this->guard($request, 'samples-order', (int) config('website.orders.orders_per_hour'), write: true)) {
+            return $blocked;
+        }
+        $v = Validator::make($request->all(), $this->sampleRules() + $this->contactRules($request));
+        if ($v->fails()) {
+            return $this->reply($request, ['success' => false, 'message' => 'Please check the order details.', 'errors' => $v->errors()], 422);
+        }
+        $data = $v->validated();
+        $data['items'] = $this->sampleItems($data);
+
+        try {
+            ['order' => $order, 'result' => $result] = $creator->createSamples($data, $request->ip());
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->reply($request, ['success' => false, 'message' => 'Sorry, we could not create your sample order just now. Please try again or call '.config('quotes.pdf.phone').'.'], 503);
+        }
+        if ($order === null) {
+            return $this->reply($request, [
+                'success' => false,
+                'message' => 'These samples can\'t be ordered online. Please check the issues or ask us for a quote.',
+                'can_order' => false,
+                'issues' => $result['issues'],
+                'totals' => $result['totals'],
+            ], 422);
+        }
+        $token = $tokens->issue($order->email);
+
+        return $this->reply($request, [
+            'success' => true,
+            'kind' => 'samples',
+            'order_number' => $order->number,
+            'email' => $order->email,
+            'total' => (float) $order->total,
+            'inc_gst' => true,
+            'eta' => $order->eta->toDateString(),
+            'invoice' => config('website.orders.auto_send_invoice') ? 'sending' : 'pending_review',
+            'account_token' => $token,
+            'account_token_expires_at' => date(DATE_ATOM, (int) $tokens->expiresAt($token)),
+        ], 201);
+    }
+
     // ---------------------------------------------------------------------
+
+    /** @return array<string, mixed> */
+    private function sampleRules(): array
+    {
+        return [
+            'items' => 'present|array|max:'.(int) config('website.samples.max_items'),
+            'items.*.product' => 'required|integer|min:1',
+            'items.*.colour' => 'nullable|string|max:120',
+        ];
+    }
+
+    /** @return list<array{product: int, colour: ?string}> */
+    private function sampleItems(array $data): array
+    {
+        return collect($data['items'] ?? [])->map(fn ($i) => ['product' => (int) $i['product'], 'colour' => isset($i['colour']) ? (string) $i['colour'] : null])->values()->all();
+    }
+
+    /** Contact and delivery address, as for an order (no need-by, branding or proof for samples). @return array<string, mixed> */
+    private function contactRules(Request $request): array
+    {
+        return [
+            'contact' => 'required|array',
+            'contact.name' => 'required|string|max:120',
+            'contact.organisation' => 'nullable|string|max:160',
+            'contact.email' => 'required|email:rfc|max:190',
+            'contact.phone' => ['required', 'string', 'max:40', 'regex:/^[0-9+()\s.-]{6,40}$/'],
+            'address' => 'required|array',
+            'address.unit' => 'nullable|string|max:60',
+            'address.street' => 'required|string|max:190',
+            'address.suburb' => 'required|string|max:120',
+            'address.state' => ['nullable', 'string', 'max:60', 'required_if:address.country,AU', Rule::when($request->input('address.country') === 'AU', [Rule::in(['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'])])],
+            'address.postcode' => ['required', 'string', 'max:16', Rule::when($request->input('address.country') === 'AU', ['regex:/^\d{4}$/'])],
+            'address.country' => ['required', 'string', 'size:2'],
+        ];
+    }
 
     /** @return array<string, mixed> */
     private function cartRules(): array

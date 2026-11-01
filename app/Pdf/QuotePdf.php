@@ -90,6 +90,10 @@ class QuotePdf
     public function websiteInvoice(WebsiteOrder $order): string
     {
         $order->loadMissing(['lines', 'positions']);
+        if ($order->isSamples()) {
+            // One invoice for the samples cart, by factory, with no supplier names.
+            return $this->render('pdf.website-samples-invoice', ['order' => $order, 'factories' => $order->factoryGroups()] + $this->common());
+        }
 
         return $this->render('pdf.website-invoice', [
             'order' => $order,

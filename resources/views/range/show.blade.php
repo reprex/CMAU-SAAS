@@ -195,6 +195,20 @@
     </div>
 
     <div class="card">
+      <h2>Branding positions on the website</h2>
+      @if($webPositions)
+        <p class="small muted" style="margin:0">{{ ['template' => "From the supplier's branding template.", 'decoration' => "From the print areas in Promodata's decoration options. No vetting needed.", 'default' => 'No print area stated: the product type default.'][$webPositions[0]['source'] ?? ''] ?? '' }} A logo area approved on Range › Logo areas moves the first front box.</p>
+        <table class="list small"><thead><tr><th>Position</th><th>View</th><th>Methods and max size</th><th class="num">Box</th></tr></thead><tbody>
+        @foreach($webPositions as $p)<tr><td>{{ $p['name'] }}</td><td>{{ $p['view'] }}</td>
+          <td>{{ collect($p['method_areas'] ?? [])->map(fn ($m) => $m['name'].(! empty($m['max_mm']) ? ' '.$m['max_mm'][0].' × '.($m['max_mm'][1] ?? '?').' mm' : ''))->implode(', ') ?: '–' }}</td>
+          <td class="num">{{ isset($p['left']) ? round($p['left']).'/'.round($p['top']).'/'.round($p['width']).'%' : '–' }}</td></tr>@endforeach
+        </tbody></table>
+      @else
+        <p class="small muted" style="margin:0">None: this product has no decoration options.</p>
+      @endif
+    </div>
+
+    <div class="card">
       <h2>Related styles</h2>
       <p class="small muted" style="margin:0">Other styles of this product from the same supplier (womens, kids, long sleeve…). A website order can mix them in one print run, priced at the total quantity (docs/website-checkout.md).</p>
       @forelse($related as $r)

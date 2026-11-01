@@ -44,7 +44,11 @@ Before go-live, check this contract against a downloaded copy of the CMAU theme.
 | `custom.printarea` | json | New, additive: where the logo goes on the hero image, once vetted or learned from vetted samples: `{image, left, top, width}` in percent (docs/logo-preview.md) |
 | `custom.brandingpositions` | json | New, additive: branding positions read from the supplier's template (docs/branding-templates.md) |
 | `custom.brandingtemplate` | url | New, additive: the supplier's branding template |
+| `custom.ourcode` | single_line_text_field | New, additive (1 Nov 2026): our code `SupplierID-Code`, e.g. `3-104743`; the theme shows it under the title (docs/supplier-codes.md) |
+| `custom.supplierproductcode` | single_line_text_field | New, additive (1 Nov 2026): the supplier's product code alone, e.g. `104743`; the theme may show it as the title chip, never the supplier name |
 | `title_tag` | string | `"Custom " + SEODecorationText + " " + name + " [" + SupplierProductID + "]"`; if that is over 70 characters, use just the name and the code |
+
+Additive notes (1 Nov 2026), existing fields unchanged: the theme must not display `custom.suppliercode` or `custom.supplierskus` (supplier name and codes are for Google and search only). `custom.printarea` and `custom.brandingpositions` are now produced for every product with decoration options (template, else Promodata's decoration print areas, else the type default), and each `brandingpositions` entry gains the keys `method_areas` and `source` (docs/branding-templates.md).
 
 ## Variants (colours as variants)
 

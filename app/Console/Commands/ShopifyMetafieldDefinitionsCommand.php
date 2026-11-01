@@ -20,8 +20,10 @@ class ShopifyMetafieldDefinitionsCommand extends Command
     public const DEFINITIONS = [
         ['PRODUCT', 'custom', 'suppliercode', 'single_line_text_field', 'Supplier code', 'Supplier name and product code, e.g. AS Colour 5001'],
         ['PRODUCT', 'custom', 'supplierskus', 'json', 'Supplier SKUs', 'Colour, size and supplier SKU for every SKU'],
+        ['PRODUCT', 'custom', 'ourcode', 'single_line_text_field', 'Our code', 'CrowdMerch code SupplierID-Code, e.g. 3-104743 (shown under the title)'],
+        ['PRODUCT', 'custom', 'supplierproductcode', 'single_line_text_field', 'Supplier product code', "The supplier's product code alone, e.g. 5001 (title chip; never the supplier name)"],
         ['PRODUCT', 'custom', 'printarea', 'json', 'Logo area', 'Where the logo goes on the hero image (percent)'],
-        ['PRODUCT', 'custom', 'brandingpositions', 'json', 'Branding positions', 'From the supplier template: name, view, max size, box on the picture'],
+        ['PRODUCT', 'custom', 'brandingpositions', 'json', 'Branding positions', 'From the supplier template, else Promodata decoration print areas, else the type default: name, view, methods, max size, box on the picture'],
         ['PRODUCT', 'custom', 'brandingtemplate', 'url', 'Branding template', 'The supplier\'s branding template (PDF or drawing)'],
         ['PRODUCTVARIANT', 'custom', 'altimages', 'list.url', 'Other colour images', 'More pictures of this colour'],
         ['PRODUCTVARIANT', 'custom', 'colourfamily', 'list.single_line_text_field', 'Colour family', 'APPA colour families, for the colour filter'],

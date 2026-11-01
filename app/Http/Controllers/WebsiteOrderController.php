@@ -6,6 +6,7 @@ use App\Checkout\InvoiceFiles;
 use App\Checkout\OutboundEmails;
 use App\Models\AuditLog;
 use App\Models\PendingEmail;
+use App\Models\Supplier;
 use App\Models\WebsiteOrder;
 use App\Models\WebsiteOrderChange;
 use App\Models\WebsiteOrderPosition;
@@ -19,33 +20,37 @@ class WebsiteOrderController extends Controller
     public function index(Request $request)
     {
         $stage = $request->query('stage');
+        $kind = in_array($request->query('kind'), [WebsiteOrder::KIND_ORDER, WebsiteOrder::KIND_SAMPLES], true) ? $request->query('kind') : null;
         $q = trim((string) $request->query('q'));
         $orders = WebsiteOrder::query()
             ->withCount(['changeRequests as open_changes_count' => fn ($c) => $c->whereNull('handled_at')])
             ->withCount(['emails as draft_emails_count' => fn ($e) => $e->whereIn('status', ['draft', 'failed'])])
             ->when(is_numeric($stage), fn ($w) => $w->where('stage', (int) $stage))
+            ->when($kind, fn ($w) => $w->where('kind', $kind))
             ->when($stage === 'open', fn ($w) => $w->where('stage', '<', WebsiteOrder::STAGE_DELIVERED))
             ->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('number', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%")
                 ->orWhere('contact_name', 'like', "%{$q}%")->orWhere('organisation', 'like', "%{$q}%")))
             ->orderByRaw('case when stage < ? then 0 else 1 end', [WebsiteOrder::STAGE_DELIVERED])
-            ->orderBy('need_by')->latest('id')
+            ->orderByRaw('case when need_by is null then 1 else 0 end')->orderBy('need_by')->latest('id')
             ->paginate(50)->withQueryString();
 
-        return view('website-orders.index', compact('orders', 'stage', 'q'));
+        return view('website-orders.index', compact('orders', 'stage', 'q', 'kind'));
     }
 
     public function show(WebsiteOrder $order)
     {
         $order->load(['lines', 'positions', 'changeRequests.handler', 'emails.sender', 'product', 'supplier']);
+        // Staff see which supplier each sample factory is (clients never do).
+        $supplierNames = Supplier::query()->whereIn('id', $order->lines->pluck('supplier_id')->filter()->push($order->supplier_id)->filter()->unique())->pluck('name', 'id');
         $history = AuditLog::query()->with('user:id,name')->where('subject_type', 'WebsiteOrder')->where('subject_id', (string) $order->id)->latest('id')->limit(20)->get();
 
-        return view('website-orders.show', compact('order', 'history'));
+        return view('website-orders.show', compact('order', 'history', 'supplierNames'));
     }
 
     public function update(Request $request, WebsiteOrder $order)
     {
         $data = $request->validate([
-            'stage' => ['required', 'integer', Rule::in(array_keys(WebsiteOrder::STAGES))],
+            'stage' => ['required', 'integer', Rule::in(array_keys($order->stageOptions()))], // samples: no proof or production
             'carrier' => ['nullable', Rule::in(WebsiteOrder::CARRIERS)],
             'consignment' => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9 -]+$/'],
             'delivered_on' => 'nullable|date',

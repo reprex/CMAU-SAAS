@@ -1,12 +1,14 @@
 # Website checkout and My Orders (CMAUDEV-CHECKOUT)
 
-Built 1 Nov 2026 on `feat/quotes`, from the prototype Scott approved that day (`cmau-dev-checkout.html`: the Carts, Checkout and My Orders sections). Clients can order **one product, plus its related styles**, straight from the product page, without a quote. The Shopify theme (Galleria 4.1.0, built later) calls the SaaS for everything dynamic. There is no online payment: the order is created here and an invoice is emailed.
+Built 1 Nov 2026 on `feat/quotes`, from the prototype Scott approved that day (`cmau-dev-checkout.html`: the Carts, Checkout and My Orders sections). Clients can order **one product, plus its related styles**, straight from the product page, without a quote, and order **samples** from suppliers that offer them ([Samples](#samples), added the same day). The Shopify theme (Galleria 4.1.0, built later) calls the SaaS for everything dynamic. There is no online payment: the order is created here and an invoice is emailed.
 
 The Shopify product contract and DecorationJSON in `docs/contracts/` are unchanged. The checkout uses the same decoration options (`DecID`) the theme already reads.
 
 | Part | Where |
 | --- | --- |
 | Pricing, stock and the direct-order rules | `app/Checkout/CheckoutPricer.php`, `BrandingPricer.php`, `DecorationMethods.php` |
+| Samples cart | `app/Checkout/SamplesPricer.php`, `OrderCreator::createSamples`, `resources/views/pdf/website-samples-invoice.blade.php` |
+| Our codes (what clients see) | `app/Catalogue/OurCodes.php` (docs/supplier-codes.md) |
 | Freight estimate (driver interface) | `app/Freight/*`, `config/freight.php` |
 | Business days, delivery estimate, deadline check | `app/Checkout/BusinessDays.php`, `DeliveryEstimator.php`, `public_holidays` table |
 | Order creation, CM numbers, private logos, invoice PDF | `app/Checkout/OrderCreator.php`, `InvoiceFiles.php`, `QuotePdf::websiteInvoice`, `resources/views/pdf/website-invoice.blade.php` |
@@ -15,7 +17,7 @@ The Shopify product contract and DecorationJSON in `docs/contracts/` are unchang
 | Address lookup (driver interface) | `app/Checkout/Address/*` |
 | Public API | `Public/WebsiteCheckoutController`, `Public/WebsiteAccountController`, `Public/AddressLookupController` |
 | Staff screens | **Website orders** (`WebsiteOrderController`), Range › product › **Related styles**, Admin › Suppliers › **Website orders** |
-| Settings | `config/website.php`, `config/freight.php`, `suppliers.state / stock_lead_days / payment_terms` |
+| Settings | `config/website.php`, `config/freight.php`, `suppliers.state / stock_lead_days / payment_terms / offers_samples / sample_freight / sample_lead_days` |
 
 ## Business rules (Scott, 1 Nov 2026)
 
@@ -55,6 +57,7 @@ The Shopify product contract and DecorationJSON in `docs/contracts/` are unchang
 7. **Order creation** recomputes everything and refuses (422 with the issues) if any rule fails. It saves the order (CM-xxxxx), a line per SKU (product, colour, size, supplier SKU, qty, unit ex GST, stock seen), the positions (position, method, colours, width, logo), freight service, ETA and its breakdown, need-by, event, totals and GST. Each logo is stored on the **private `artwork` disk** (`storage/app/private/artwork`, not served, no URL); staff download it from Website orders when signed in. The invoice PDF is made and kept on the private local disk. Pre-payment alerts go on the invoice: `deadline_at_risk` (1 business day or fewer to spare), `stock_low` (a line takes 80% or more of the supplier's stock), `export`.
 8. **My Orders.** A 6-digit one-time code by email or SMS, then a signed 90-day token the theme keeps in a cookie. The token only ever shows its own email's orders. Stages: Order received, Invoice sent, Paid, Proof approved, In production, Dispatched, Delivered. Change requests are accepted until Dispatched.
 9. **Emails.** See [Emails and REPSTACK principle 6](#emails-and-repstack-principle-6).
+10. **Codes (Scott, 1 Nov 2026, reversing the earlier decision).** Every client-facing reply, the invoice PDF, the emails and My Orders show **our code** only: `SupplierID-Code` (e.g. `7-5001`, `3-104743`, as at the end of the product title) and **our SKU**: our code + colour + size (`7-5001-BLAC-M`; colour = the first 4 letters, or the first 2 of each of the first two words: Light Grey Marle = `LIGR`). The supplier's name and its own product code and SKUs are never in them. The supplier code and supplier SKU are still saved on each order line for staff and for ordering from the supplier, and staff screens show them. The delivery estimate's stock stage says "Stock from the supplier", not the supplier's name. Product names are Promodata's and can contain a brand (e.g. "AS Colour Mens Staple Tee"); they are not changed.
 
 ## Endpoints
 
@@ -91,16 +94,16 @@ Reply (abridged; the same cart with `need_by` 2026-11-13, priced on Fri 30 Oct 2
   "success": true,
   "can_order": false,
   "issues": [{"code": "deadline", "message": "TNT Road Express arrives too late for Fri 13 Nov. Choose TNT Overnight Express.", "faster_service": "tnt_overnight"}],
-  "product": {"id": 43446, "code": "5001", "name": "AS Colour Mens Staple Tee", "supplier": "AS Colour"},
-  "related_styles": [{"product_id": 43447, "code": "4001", "name": "AS Colour Womens Maple Tee", "label": "Womens fit"}],
+  "product": {"id": 43446, "code": "7-5001", "name": "AS Colour Mens Staple Tee"},
+  "related_styles": [{"product_id": 43447, "code": "7-4001", "name": "AS Colour Womens Maple Tee", "label": "Womens fit"}],
   "units": 110,
   "priced_at_qty": 110,
   "styles": [
-    {"product_id": 43446, "code": "5001", "name": "AS Colour Mens Staple Tee", "units": 60, "unbranded_unit": 8, "branding_unit": 7.75, "unit": 15.75, "goods": 945},
-    {"product_id": 43447, "code": "4001", "name": "AS Colour Womens Maple Tee", "units": 50, "unbranded_unit": 7.55, "branding_unit": 7.75, "unit": 15.3, "goods": 765}
+    {"product_id": 43446, "code": "7-5001", "name": "AS Colour Mens Staple Tee", "units": 60, "unbranded_unit": 8, "branding_unit": 7.75, "unit": 15.75, "goods": 945},
+    {"product_id": 43447, "code": "7-4001", "name": "AS Colour Womens Maple Tee", "units": 50, "unbranded_unit": 7.55, "branding_unit": 7.75, "unit": 15.3, "goods": 765}
   ],
-  "lines": [{"product_id": 43446, "colour": "Black", "size": "M", "qty": 30, "product_code": "5001", "product_name": "AS Colour Mens Staple Tee",
-             "supplier_sku": "5001-BLK-M", "stock": 500, "unbranded_unit": 8, "branding_unit": 7.75, "unit": 15.75, "total": 472.5}],
+  "lines": [{"product_id": 43446, "colour": "Black", "size": "M", "qty": 30, "product_code": "7-5001", "product_name": "AS Colour Mens Staple Tee",
+             "sku": "7-5001-BLAC-M", "stock": 500, "unbranded_unit": 8, "branding_unit": 7.75, "unit": 15.75, "total": 472.5}],
   "positions": [{"name": "Front centre", "width_mm": 280, "has_logo": true, "method": "dtf", "method_name": "DTF", "decoration_option_id": "43446-dtf",
                  "decoration_name": "DTF print up to A3", "colours": null, "unit": 7.75, "setup": 0, "needs_review": false, "over_colour_limit": false}],
   "setup": {"positions": [{"name": "Front centre", "amount": 0}], "product": 0, "total": 0},
@@ -117,7 +120,7 @@ Reply (abridged; the same cart with `need_by` 2026-11-13, priced on Fri 30 Oct 2
     "start": "2026-10-30", "state": "VIC",
     "stages": [
       {"key": "order_check", "name": "Order check and invoice", "days": 1, "ends": "2026-11-02"},
-      {"key": "stock", "name": "Stock from AS Colour", "days": 2, "ends": "2026-11-05"},
+      {"key": "stock", "name": "Stock from the supplier", "days": 2, "ends": "2026-11-05"},
       {"key": "decoration", "name": "DTF decoration", "method": "dtf", "days": 5, "ends": "2026-11-12"},
       {"key": "freight", "name": "TNT Road Express", "service": "tnt_road", "days": 2, "ends": "2026-11-16"}
     ],
@@ -138,6 +141,7 @@ Reply (abridged; the same cart with `need_by` 2026-11-13, priced on Fri 30 Oct 2
 }
 ```
 
+- `product.code`, `styles[].code`, `related_styles[].code` and `lines[].product_code` are our codes; `lines[].sku` is our SKU. The supplier's SKU (`supplier_sku`) is kept for the order but not sent.
 - `deadline` is null until there is a need-by date and a delivery option. `delivery_estimate` is for the chosen service; every option carries its own `delivery_date`.
 - `alerts`: `deadline_at_risk`, `stock_low`, `export`, each `{code, message}`; they go on the invoice.
 - `artwork_review_note`: "Prices subject to the CrowdMerch team reviewing your artwork." when a position needs review (those carts go to the quote flow).
@@ -216,9 +220,12 @@ Header `Authorization: Bearer <token>`. 401 `{"success": false, "message": "Plea
   "stages": ["Order received", "Invoice sent", "Paid", "Proof approved", "In production", "Dispatched", "Delivered"],
   "orders": [{
     "number": "CM-10001",
+    "kind": "order",
+    "stages": ["Order received", "Invoice sent", "Paid", "Proof approved", "In production", "Dispatched", "Delivered"],
     "placed_at": "2026-10-30T10:00:00+11:00",
     "total": 1912.36, "inc_gst": true, "export": false, "total_label": "inc GST",
-    "items": "AS Colour Mens Staple Tee 5001 × 60, AS Colour Womens Maple Tee 4001 × 50 · 1 branding position",
+    "items": "AS Colour Mens Staple Tee 7-5001 × 60, AS Colour Womens Maple Tee 7-4001 × 50 · 1 branding position",
+    "factories": null,
     "stage": 5, "stage_name": "Dispatched",
     "delivery_date": "2026-11-16", "delivered": false, "need_by": "2026-12-04",
     "carrier": "TNT", "consignment": "GEA412387690",
@@ -229,7 +236,7 @@ Header `Authorization: Bearer <token>`. 401 `{"success": false, "message": "Plea
 }
 ```
 
-`delivery_date` is the actual delivery date once staff set it, otherwise the estimate. Tracking: TNT `https://www.tnt.com/express/en_au/site/shipping-tools/tracking.html?searchType=con&cons={n}`, FedEx `https://www.fedex.com/fedextrack/?trknbr={n}`.
+Each order carries its own `stages` list and `stage` is the index **in that list**: a samples order (`kind: "samples"`) has five stages (Order received, Invoice sent, Paid, Dispatched, Delivered), `need_by: null`, items like `"Cotton tote bag 3-4126 · Natural, Aluminium sports bottle 20-M101 · Blue"` and `factories: [{"label": "From factory 1", "samples": 2, "freight": 12.5, "subtotal": 19.7}, …]`. The top-level `stages` is still the order list, for older theme code. `delivery_date` is the actual delivery date once staff set it, otherwise the estimate. Tracking: TNT `https://www.tnt.com/express/en_au/site/shipping-tools/tracking.html?searchType=con&cons={n}`, FedEx `https://www.fedex.com/fedextrack/?trknbr={n}`.
 
 ### POST `crowdmerch/account/change`
 
@@ -245,6 +252,69 @@ Header `Authorization: Bearer <token>`.
 
 Address suggestions for checkout: `{"success": true, "results": [{"unit": null, "street": "12 Smith Street", "suburb": "Collingwood", "state": "VIC", "postcode": "3066", "country": "AU"}]}`. The default driver is `none`, which always returns `[]`, so the theme offers manual entry. Queries under 3 characters return `[]`.
 
+## Samples
+
+Scott, 1 Nov 2026, from the approved prototype (`// ── Samples`). "Order sample" on the product page of suppliers that offer samples (Trends and Dex to start). Every sample the client adds goes into **one samples cart**, paid on **one invoice**.
+
+- **Who offers them:** Admin › Suppliers › supplier › Website orders › "Offers samples on the website" (`suppliers.offers_samples`, default off). TOD's own flag (`sample_available`) is shown there as a hint but is not used, so a TOD import can't switch samples on.
+- **Price:** the product's **unbranded price at its minimum order** (the first break of its unbranded price option), from the SaaS pricing; nothing the client sends is used.
+- **Unprinted or print overrun:** the factory decides; the client doesn't choose and nothing is stored. The reply's `note` says so.
+- **Factories:** samples are grouped by supplier, labelled "From factory 1", "From factory 2" in order of first appearance. The supplier is never named in the reply, invoice, email or My Orders; staff see it.
+- **Freight:** each factory's `suppliers.sample_freight` (ex GST, per consignment; already loaded from TOD's `SupplierSampleFreight`, editable on Admin › Suppliers) once, with a factory subtotal. A supplier with no sample freight makes the cart fail with `sample_freight`. GST 10% on the total of all factories.
+- **Australia only** for now: any other country fails with `not_australia`.
+- **Delivery estimate:** order check (`LEAD_ORDER_CHECK_DAYS`, 1), then the slowest factory's supply days (`suppliers.sample_lead_days`, else its stock lead time, else 2) in that supplier's state, then the slowest TNT Road Express transit day for the postcode's zone (`config/freight.php`; `website.samples.freight_service`). Holidays as for orders.
+- **The order** reuses the order, invoice, pending-email and My Orders machinery: `website_orders.kind = samples`, number CM-xxxxx from the same counter, one line per sample (qty 1, our code, our SKU, the supplier's code for staff, `factory`, `supplier_id`), each factory's freight and supplier in `freight_breakdown.factories`, no need-by, branding, proof or setup. Stages: Order received, Invoice sent, Paid, Dispatched, Delivered (stored as the same stage numbers as orders, so Dispatched and Delivered mean the same). Change requests until Dispatched; tracking as for orders. The invoice (`pdf.website-samples-invoice`) lists each factory's samples, freight and subtotal; the email follows principle 6 like the order invoice.
+
+### POST `crowdmerch/checkout/samples/price` (JSON)
+
+```json
+{"items": [{"product": 4126, "colour": "Natural"}, {"product": 9101, "colour": "Blue"}, {"product": 4243, "colour": "Black"}], "postcode": "3066"}
+```
+
+`product` is the APPAID. `colour` is optional (the first colour is used) and must be one of the product's colours. Repeats of the same product and colour count once. `country` is optional (`AU`). Up to `website.samples.max_items` (30). Limit: `WEBSITE_ORDER_PRICES_PER_HOUR` per IP.
+
+Reply (priced on Fri 30 Oct 2026):
+
+```json
+{
+  "success": true, "can_order": true, "issues": [], "samples": 3,
+  "factories": [
+    {"factory": 1, "label": "From factory 1", "days": 2,
+     "items": [{"product_id": 4126, "code": "3-4126", "sku": "3-4126-NATU", "name": "Cotton tote bag", "colour": "Natural", "unit": 4, "moq": 25},
+               {"product_id": 4243, "code": "3-4243", "sku": "3-4243-BLAC", "name": "Knitted beanie", "colour": "Black", "unit": 3.2, "moq": 50}],
+     "goods": 7.2, "freight": 12.5, "subtotal": 19.7},
+    {"factory": 2, "label": "From factory 2", "days": 3,
+     "items": [{"product_id": 9101, "code": "20-M101", "sku": "20-M101-BLUE", "name": "Aluminium sports bottle", "colour": "Blue", "unit": 1.8, "moq": 100}],
+     "goods": 1.8, "freight": 14, "subtotal": 15.8}
+  ],
+  "delivery_estimate": {"start": "2026-10-30", "stages": [
+      {"key": "order_check", "name": "Order check and invoice", "days": 1, "ends": "2026-11-02"},
+      {"key": "supply", "name": "Samples from the factories", "days": 3, "ends": "2026-11-05"},
+      {"key": "freight", "name": "Delivery to VIC", "days": 2, "ends": "2026-11-09"}],
+    "business_days": 6, "delivery_date": "2026-11-09", "holidays_skipped": []},
+  "totals": {"goods": 9, "freight": 26.5, "subtotal": 35.5, "gst_rate": 0.1, "gst": 3.55, "total": 39.05, "inc_gst": true, "currency": "AUD"},
+  "note": "Samples may be unprinted or taken from another client's print overrun. The factory decides, and it can vary."
+}
+```
+
+| Issue code | Rule |
+| --- | --- |
+| `no_samples` | The product's supplier doesn't offer samples (`product`, `product_code` = our code) |
+| `not_australia` | Delivery outside Australia |
+| `empty` | No samples in the cart |
+| `colour` | The product doesn't come in that colour |
+| `postcode` | No 4-digit Australian postcode we deliver to |
+| `sample_freight` | A factory's supplier has no sample freight set |
+| `product`, `price` | Not found or discontinued; no unbranded price to use |
+
+`delivery_estimate` is null until there is a postcode and a sample.
+
+### POST `crowdmerch/checkout/samples/order` (JSON or form)
+
+The same `items`, plus `contact` and `address` exactly as for `checkout/order` (no need-by, event, branding, logos or proof). Everything is recomputed; any rule failing gives 422 `{"success": false, "can_order": false, "issues": […], "totals": {…}}` and nothing is saved. Limit: `WEBSITE_ORDERS_PER_HOUR` per IP; Turnstile as for orders.
+
+201: `{"success": true, "kind": "samples", "order_number": "CM-10002", "email": "…", "total": 39.05, "inc_gst": true, "eta": "2026-11-09", "invoice": "pending_review", "account_token": "…", "account_token_expires_at": "…"}`.
+
 ## Emails and REPSTACK principle 6
 
 Principle 6 says client emails go to drafts and are never sent automatically. Scott wants "we'll email an invoice in a few moments" but has not lifted principle 6 yet, so:
@@ -258,9 +328,9 @@ The existing website instant quote email (`SendInstantQuote`, `WEBSITE_EMAIL_INS
 
 ## Staff screens
 
-- **Website orders** (all signed-in staff; changes need the sales or admin role): the list shows each order's stage and need-by date, flags late estimates, invoices waiting to be sent and open change requests. The order page shows the SKU lines (with the supplier SKU and the stock seen at order), positions with a private logo download, totals and freight breakdown, the invoice PDF, the pending emails with **Send**, the stage, carrier, consignment and delivered date, the change requests (**Mark handled**), the client, the delivery estimate and the history.
+- **Website orders** (all signed-in staff; changes need the sales or admin role): sample orders carry a **Samples** tag (filter: Orders / Samples); their page shows **Samples by factory** with each factory's supplier name, samples, freight and subtotal, and the stage list has only the five sample stages. The list shows each order's stage and need-by date, flags late estimates, invoices waiting to be sent and open change requests. The order page shows the SKU lines (our SKU, the supplier code and SKU, and the stock seen at order), positions with a private logo download, totals and freight breakdown, the invoice PDF, the pending emails with **Send**, the stage, carrier, consignment and delivered date, the change requests (**Mark handled**), the client, the delivery estimate and the history.
 - **Range › product › Related styles**: add another product (by APPAID, same supplier only) with a label such as "Womens fit".
-- **Admin › Suppliers › supplier › Website orders**: state for public holidays, stock lead time, payment terms. These are per-supplier settings, so they live on the supplier as the freight settings do. The decoration lead times and the order check day are global and stay in `config/website.php` (`LEAD_ORDER_CHECK_DAYS`, `LEAD_STOCK_DAYS` for the default), because there is no global settings screen yet.
+- **Admin › Suppliers › supplier › Website orders**: state for public holidays, stock lead time, payment terms, **offers samples**, **sample freight** per consignment (ex GST) and **sample lead time**. These are per-supplier settings, so they live on the supplier as the freight settings do. The decoration lead times and the order check day are global and stay in `config/website.php` (`LEAD_ORDER_CHECK_DAYS`, `LEAD_STOCK_DAYS` for the default), because there is no global settings screen yet.
 
 ## Settings
 
@@ -280,6 +350,8 @@ The existing website instant quote email (`SendInstantQuote`, `WEBSITE_EMAIL_INS
 | `config/freight.php` | | **All rates and transit times are placeholders** from the prototype; pack defaults other than tees are guesses |
 | `SMS_DRIVER` | log | Writes the text (with the code) to the log. Development only |
 | `ADDRESS_LOOKUP_DRIVER` / `ADDRESS_LOOKUP_KEY` | none / – | |
+| `website.samples` | TNT Road transit, 30 items | Samples cart: the freight service whose transit days count, the note shown with samples |
+| `suppliers.offers_samples` / `sample_freight` / `sample_lead_days` | off / TOD value / stock lead time | Per supplier (Admin › Suppliers) |
 
 ## Public holidays
 
@@ -300,4 +372,6 @@ To add or correct holidays: `php artisan holidays:import holidays.csv` (header `
 - **Scott's principle 6 decision** on auto-sending invoices (and on the instant quote email), and confirming the one-time code exception.
 - **Related styles** need vetting product by product (Range › product). There is no automatic suggestion from Promodata yet.
 - **Payment terms** other than full payment (e.g. deposits for Trends): add them to `payment_terms.options`; the invoice already prints the order's terms.
-- **The theme** (Galleria 4.1.0): send `has_logo` on `price`, the files on `order`, keep `account_token` in a cookie, and show `issues`, `alerts`, the estimate and the duty note.
+- **Samples from Scott:** which suppliers offer samples (switch them on under Admin › Suppliers; Trends and Dex to start), and check each one's sample freight (TOD's values are loaded; a TOD re-import overwrites `sample_freight` but never `offers_samples`) and sample lead time.
+- **The quote PDF and the quote desk** still print the supplier's product code ("Code 5001") on client quotes; they weren't part of this change. Move them to our code too if Scott wants the rule everywhere.
+- **The theme** (Galleria 4.1.0): the samples cart (one per client, "From factory n"), `checkout/samples/*`, per-order `stages` in My Orders; send `has_logo` on `price`, the files on `order`, keep `account_token` in a cookie, and show `issues`, `alerts`, the estimate and the duty note.

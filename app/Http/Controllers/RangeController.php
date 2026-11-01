@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Catalogue\ImageTagger;
+use App\Catalogue\PositionResolver;
 use App\Catalogue\RangeManager;
 use App\Jobs\RangeBulkAction;
 use App\Models\AuditLog;
@@ -136,7 +137,10 @@ class RangeController extends Controller
 
         $related = $product->relatedStyles()->with('related:id,code,name,supplier_id,discontinued')->get();
 
-        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags', 'templates', 'related'));
+        // What the website gets as branding positions: template, else Promodata decoration print areas, else the type default.
+        $webPositions = app(PositionResolver::class)->forShopify($product);
+
+        return view('range.show', compact('product', 'settings', 'types', 'decorationChoices', 'history', 'imageTags', 'templates', 'related', 'webPositions'));
     }
 
     /**

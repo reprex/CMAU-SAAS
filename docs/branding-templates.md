@@ -2,6 +2,8 @@
 
 Suppliers publish a branding template (PDF or line drawing) for most products: every branding position (front centre, left chest, back, sleeve, lid, wrap…), its maximum print size and often the decoration methods. Where one exists it is used for **precise logo placement** and to show **every position available** on the product page.
 
+**Priority (Scott, 1 Nov 2026):** a staff-approved logo area, then the template, then the print areas in Promodata's own decoration data, then the product type default. Products without a template still get positions automatically from Promodata's decoration options (docs/logo-preview.md), so no product needs manual vetting.
+
 ## Where templates come from
 
 1. **Promodata line art** (`product.line_art`), stored on every sync (kept apart from the product photos).
@@ -12,18 +14,27 @@ Suppliers publish a branding template (PDF or line drawing) for most products: e
 
 `catalogue:read-templates` (every minute, two templates a run, sharing the image check's daily cap) sends Claude the template with our front picture (hero) and back picture (an other style image marked as a back view). Claude returns each position: name, view (front, back, side, top), maximum print size in mm, decoration methods, and where it sits on our picture (percent). Range › product shows the positions; "Read now" / "Read again" / "Remove".
 
-- The first front position becomes the product's **logo area** (source `template`): it is published without vetting and the sample learning never changes it. Staff can still adjust and approve it on Logo areas.
+- The first front position becomes the product's **logo area** (source `template`): it is published without vetting, comes before Promodata's decoration print areas, and the sample learning never changes it. Staff can still adjust and approve it on Logo areas (that wins).
 - Positions without a matching picture (e.g. a sleeve with no side photo) keep their name and size, without a box.
 - Reading a template marks a live product for publishing.
 
 ## What Shopify gets
 
-- `custom.brandingpositions` (json): `[{"name":"Front centre","view":"front","image":"…","left":35,"top":28,"width":30,"max_mm":[280,350],"methods":["Screen print","DTF"]}, …]`
+- `custom.brandingpositions` (json), from `PositionResolver::forShopify`: the template's positions; else the positions from Promodata's decoration data; else one type-default position. Every product with decoration options has at least one.
+  ```json
+  [{"name":"Front centre","view":"front","image":"…","left":35,"top":28,"width":30,"max_mm":[280,350],"methods":["Screen print","DTF"],
+    "method_areas":[{"method":"screen","name":"Screen print","max_mm":[280,350]},{"method":"dtf","name":"DTF","max_mm":[280,350]}],"source":"template"}]
+  ```
+  ```json
+  [{"name":"Wrap around","view":"front","image":"…","left":32,"top":36,"width":36,"max_mm":[209,108],"methods":["Sublimation"],
+    "method_areas":[{"method":"sublimation","name":"Sublimation","max_mm":[209,108],"decIDs":["2119-sub"]}],"source":"decoration"}]
+  ```
+  `name`, `view`, `image`, `left`, `top`, `width`, `max_mm` and `methods` are as before. New, additive: `method_areas` (each allowed method with its own max size where the data gives one, e.g. DTF 297 × 420 and Oversize DTF 380 × 480 on the same front; `decIDs` = the DecorationJSON options for that method, for decoration and default positions) and `source` (`template`, `decoration` or `default`). `image`/`left`/`top`/`width` are left out when there is no picture for the view.
 - `custom.brandingtemplate` (url): the template, for a "View the supplier's branding template" link.
 
 ## Branding suite and pricing (Scott, 1 Nov)
 
-The product page has one **Branding** section (below the colours, not under the pictures). Every position from the template can be switched on; each has its own decoration method (DTF, oversize DTF, screen print, embroidery, as the product's decoration options and the template allow for that position) and can have its own logo. The pictures and a small preview in the section update as choices are made.
+The product page has one **Branding** section (below the colours, not under the pictures). Every position (from the template, else from Promodata's decoration data) can be switched on; each has its own decoration method (DTF, oversize DTF, screen print, embroidery, as the product's decoration options and the template allow for that position) and can have its own logo. The pictures and a small preview in the section update as choices are made.
 
 **Price = unbranded price + each position's decoration (its setup and its per-unit price).** Each decoration's prices come from the product's DecorationJSON, priced as one position. There are no combined options such as "Front and back": a front and a back are two positions, each with its own decoration. Combined Promodata lines (e.g. "Front and back print") are not offered as methods.
 

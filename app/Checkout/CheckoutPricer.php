@@ -2,6 +2,7 @@
 
 namespace App\Checkout;
 
+use App\Catalogue\OurCodes;
 use App\Freight\Consignment;
 use App\Freight\FreightDriver;
 use App\Freight\PackData;
@@ -152,17 +153,20 @@ class CheckoutPricer
                     $alerts[] = ['code' => 'stock_low', 'message' => "Stock low: {$label} takes {$l['qty']} of the supplier's {$row['qty']}. We'll confirm it's still there before you pay."];
                 }
             }
+            $our = OurCodes::code($allowed[$pid]);
             $lines[$i] += [
-                'product_code' => $allowed[$pid]->code,
+                'product_code' => $our,                      // our code (SupplierID-Code); clients never see the supplier's
                 'product_name' => $allowed[$pid]->name,
-                'supplier_sku' => $row['sku'] ?? null,
+                'sku' => OurCodes::sku($our, $l['colour'], $l['size']),
+                'supplier_product_code' => $allowed[$pid]->code, // staff only: removed from the public reply
+                'supplier_sku' => $row['sku'] ?? null,           // staff only: removed from the public reply
                 'stock' => $row['qty'] ?? null,
                 'unbranded_unit' => $unbranded,
                 'branding_unit' => Money::roundToCent($brandUnit),
                 'unit' => $unit,
                 'total' => Money::roundToCent($unit * $l['qty']),
             ];
-            $styles[$pid] ??= ['product_id' => $pid, 'code' => $allowed[$pid]->code, 'name' => $allowed[$pid]->name, 'units' => 0, 'unbranded_unit' => $unbranded, 'branding_unit' => Money::roundToCent($brandUnit), 'unit' => $unit, 'goods' => 0.0];
+            $styles[$pid] ??= ['product_id' => $pid, 'code' => $our, 'name' => $allowed[$pid]->name, 'units' => 0, 'unbranded_unit' => $unbranded, 'branding_unit' => Money::roundToCent($brandUnit), 'unit' => $unit, 'goods' => 0.0];
             $styles[$pid]['units'] += $l['qty'];
             $styles[$pid]['goods'] = Money::roundToCent($styles[$pid]['goods'] + $lines[$i]['total']);
         }
@@ -195,7 +199,8 @@ class CheckoutPricer
         }
         $estimates = [];
         foreach ($freight['options'] ?? [] as $o) {
-            $estimates[$o['id']] = $this->estimator->estimate($state, (string) $supplier?->name, $stockDays, $slowest, $o, $today);
+            // No supplier name: the estimate is shown to the client ("Stock from the supplier").
+            $estimates[$o['id']] = $this->estimator->estimate($state, '', $stockDays, $slowest, $o, $today);
         }
         foreach ($freight['options'] ?? [] as $k => $o) {
             $freight['options'][$k]['delivery_date'] = $estimates[$o['id']]['delivery_date'];
@@ -230,8 +235,8 @@ class CheckoutPricer
             'found' => true,
             'can_order' => $issues === [],
             'issues' => $issues,
-            'product' => ['id' => $main->id, 'code' => $main->code, 'name' => $main->name, 'supplier' => $supplier?->name],
-            'related_styles' => $related->values()->map(fn (RelatedStyle $r) => ['product_id' => $r->related_product_id, 'code' => $r->related->code, 'name' => $r->related->name, 'label' => $r->label])->all(),
+            'product' => ['id' => $main->id, 'code' => OurCodes::code($main), 'name' => $main->name],
+            'related_styles' => $related->values()->map(fn (RelatedStyle $r) => ['product_id' => $r->related_product_id, 'code' => OurCodes::code($r->related), 'name' => $r->related->name, 'label' => $r->label])->all(),
             'units' => $units,
             'priced_at_qty' => $units,
             'styles' => array_values($styles),
@@ -256,6 +261,22 @@ class CheckoutPricer
             'alerts' => $alerts,
             'artwork_review_note' => collect($positions)->contains('needs_review', true) ? 'Prices subject to the CrowdMerch team reviewing your artwork.' : null,
         ];
+    }
+
+    /**
+     * The reply for the website (Scott, 1 Nov 2026): our codes only, never the
+     * supplier's name or its own codes (those stay for staff and ordering).
+     *
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    public static function publicReply(array $result): array
+    {
+        if (isset($result['lines'])) {
+            $result['lines'] = array_map(fn ($l) => array_diff_key($l, ['supplier_sku' => 1, 'supplier_product_code' => 1]), $result['lines']);
+        }
+
+        return $result;
     }
 
     /** @param list<array{colour: ?string, size: ?string, qty: ?int, sku: ?string}> $rows */

@@ -27,6 +27,12 @@
       <label class="f">Stock lead time (business days)<input class="n" name="stock_lead_days" value="{{ old('stock_lead_days', $supplier->stock_lead_days) }}" inputmode="numeric" placeholder="{{ config('website.lead_times.stock_default') }}"></label>
       <label class="f">Payment terms<select name="payment_terms">@foreach(config('website.payment_terms.options') as $k => $label)<option value="{{ $k }}" @selected(old('payment_terms', $supplier->payment_terms ?? 'full') === $k)>{{ $label }}</option>@endforeach</select></label>
     </div>
+    <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" name="offers_samples" value="1" @checked(old('offers_samples', $supplier->offers_samples)) style="margin-top:4px"><span><b>Offers samples on the website</b><br><span class="small muted">"Order sample" on its product pages, at the unbranded price at the minimum order. Unprinted or a print overrun: the factory decides.@if($supplier->sample_available) TOD marks this supplier as having samples.@endif</span></span></label>
+    <div class="fgrid">
+      <label class="f">Sample freight per consignment ex GST<input class="n" name="sample_freight" value="{{ old('sample_freight', $supplier->sample_freight) }}" inputmode="decimal" placeholder="not set"></label>
+      <label class="f">Sample lead time (business days)<input class="n" name="sample_lead_days" value="{{ old('sample_lead_days', $supplier->sample_lead_days) }}" inputmode="numeric" placeholder="stock lead time"></label>
+    </div>
+    <p class="small muted" style="margin:-4px 0 0">Sample freight is charged once for all of this supplier's samples in a client's samples cart. Without it, its samples can't be ordered online. Clients never see the supplier's name: its samples show as "From factory 1", "From factory 2"…</p>
     <p class="small muted" style="margin:-4px 0 0">The delivery estimate skips weekends and this state's public holidays, and adds the stock lead time (empty = {{ config('website.lead_times.stock_default') }} days). Decoration lead times are in config/website.php.</p>
     <p class="small muted" style="margin:0">Changes apply to new quotes and any quote recalculated from now on. Quotes already sent keep the freight they were sent with.</p>
     <div><button class="btn primary" type="submit">Save supplier</button> <a class="btn link" href="{{ route('admin.suppliers.index') }}">Back to suppliers</a></div>

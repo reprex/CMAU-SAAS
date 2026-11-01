@@ -20,6 +20,7 @@ class PrintAreas
     /** Default areas by product type keyword: [left, top, width] in %. First match wins. */
     public const DEFAULTS = [
         'cap|hat|beanie|visor' => [36, 34, 28],
+        'stubby|stubbie|can cooler|can holder|koozie' => [32, 36, 36],
         'shirt|tee|polo|hoodie|jumper|sweat|jacket|vest|singlet|top' => [37, 30, 26],
         'bag|tote|backpack|satchel|cooler' => [32, 44, 36],
         'bottle|mug|cup|tumbler|flask|glass' => [38, 42, 24],
@@ -159,28 +160,49 @@ class PrintAreas
         if (! $hero) {
             return null;
         }
-        [$l, $t, $w] = $this->default($product);
+        // The print area in the supplier's decoration data comes before the type default.
+        $deco = app(PositionResolver::class)->decorationLogoArea($product);
+        [$l, $t, $w] = $deco ? [$deco['left'], $deco['top'], $deco['width']] : $this->default($product);
 
         return PrintArea::query()->firstOrCreate(['url_hash' => sha1($hero)], [
             'url' => $hero, 'product_id' => $product->id, 'group_key' => $this->groupKey($product),
-            'left' => $l, 'top' => $t, 'width' => $w, 'pred_left' => $l, 'pred_top' => $t, 'pred_width' => $w, 'source' => 'default',
+            'left' => $l, 'top' => $t, 'width' => $w, 'pred_left' => $l, 'pred_top' => $t, 'pred_width' => $w, 'source' => $deco ? 'decoration' : 'default',
         ]);
     }
 
     /**
-     * What Shopify gets: product metafield `custom.printarea` (json), once
-     * vetted or learned from vetted samples: {"image": url, "left": %, "top": %, "width": %}.
+     * What Shopify gets: product metafield `custom.printarea` (json):
+     * {"image": url, "left": %, "top": %, "width": %}. Priority (Scott, 1 Nov 2026):
+     * a staff-approved area, the supplier's template, the print area in
+     * Promodata's decoration data, an area learned from vetted samples, then
+     * (for a product that has decoration options) Claude's suggestion or the
+     * product type default. A product with no decoration options gets none.
      *
      * @return array{image: string, left: float, top: float, width: float}|null
      */
     public function forShopify(Product $product): ?array
     {
         $a = $this->find($product);
-        // Vetted, or learned from vetted samples of the same kind of product.
-        if (! $a || (! $a->approved_at && ! in_array($a->source, ['learned', 'template'], true))) {
+        $row = fn (PrintArea $a) => ['image' => $a->url, 'left' => $a->left, 'top' => $a->top, 'width' => $a->width];
+        if ($a && ($a->approved_at || $a->source === 'template')) {
+            return $row($a);
+        }
+        $resolver = app(PositionResolver::class);
+        if ($deco = $resolver->decorationLogoArea($product)) {
+            return $deco;
+        }
+        if ($a && $a->source === 'learned') {
+            return $row($a);
+        }
+        $hero = $this->heroOf($product);
+        if (! $hero || ! $resolver->isBrandable($product)) {
             return null;
         }
+        if ($a && $a->source === 'ai') {
+            return $row($a);
+        }
+        [$l, $t, $w] = $this->default($product);
 
-        return ['image' => $a->url, 'left' => $a->left, 'top' => $a->top, 'width' => $a->width];
+        return ['image' => $hero, 'left' => (float) $l, 'top' => (float) $t, 'width' => (float) $w];
     }
 }

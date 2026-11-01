@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Cache;
  *   --sample=N pick N products for staff to vet
  *   (always)   learn from the vetted samples and apply the corrections to the rest
  * Scheduled every 10 minutes; it only re-learns when something was approved.
+ * Optional since 1 Nov 2026: positions and logo areas come automatically from
+ * templates and Promodata decoration print areas (PositionResolver), so the
+ * --sample step is never scheduled; staff run it from Range › Logo areas if wanted.
  */
 class CatalogueLogoAreasCommand extends Command
 {

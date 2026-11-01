@@ -42,9 +42,9 @@
       <td style="padding-left: 16px; padding-right: 12px">
         <div class="label orange">Item {{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</div>
         <div class="iname">{{ $first->product_name }}</div>
-        <div class="muted">Code {{ $first->product_code }}</div>
+        <div class="muted">Code {{ $o->ourCodeFor($first) }}</div>
         @foreach($lines->groupBy('colour') as $colour => $sizes)
-          <div style="margin-top: 4px"><span class="small muted">{{ $colour }}&nbsp;</span>@foreach($sizes as $s)<span class="chip"><span class="muted">{{ $s->size }}</span> <b>{{ $s->qty }}</b>@if($s->supplier_sku) <span class="muted">{{ $s->supplier_sku }}</span>@endif</span>@endforeach</div>
+          <div style="margin-top: 4px"><span class="small muted">{{ $colour }}&nbsp;</span>@foreach($sizes as $s)<span class="chip"><span class="muted">{{ $s->size }}</span> <b>{{ $s->qty }}</b>@if($s->sku) <span class="muted">{{ $s->sku }}</span>@endif</span>@endforeach</div>
         @endforeach
       </td>
       <td class="right" style="width: 140px">
@@ -67,7 +67,7 @@
   <tr>
     <td style="padding-right: 30px">
       <div class="label orange">Delivery</div>
-      <div class="soft" style="margin: 3px 0 8px">{{ $o->freight_name }} · estimated <b>{{ $o->eta->format('D j M Y') }}</b> · needed by {{ $o->need_by->format('D j M Y') }}@if($o->event_name) · {{ $o->event_name }}@endif</div>
+      <div class="soft" style="margin: 3px 0 8px">{{ $o->freight_name }} · estimated <b>{{ $o->eta->format('D j M Y') }}</b>@if($o->need_by) · needed by {{ $o->need_by->format('D j M Y') }}@endif @if($o->event_name) · {{ $o->event_name }}@endif</div>
       @if(! empty($o->eta_breakdown['stages']))
         <table class="stage small" style="margin-bottom: 10px">
           @foreach($o->eta_breakdown['stages'] as $st)<tr><td>{{ $st['name'] }}</td><td class="right muted">{{ $st['days'] }} business day{{ $st['days'] === 1 ? '' : 's' }} · by {{ \Carbon\CarbonImmutable::parse($st['ends'])->format('D j M') }}</td></tr>@endforeach

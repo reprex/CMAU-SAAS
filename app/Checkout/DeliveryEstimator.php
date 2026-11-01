@@ -30,9 +30,22 @@ class DeliveryEstimator
             ['key' => 'freight', 'name' => $service['name'], 'service' => $service['id'], 'days' => (int) max($service['days'])],
         ];
 
+        return $this->stages($state, $stages, $start);
+    }
+
+    /**
+     * Any list of stages, one after another in business days from $start
+     * (also used for samples: order check, factory supply, freight).
+     *
+     * @param  list<array{key: string, name: string, days: int}>  $stages
+     * @return array<string, mixed>
+     */
+    public function stages(string $state, array $stages, ?CarbonImmutable $start = null): array
+    {
+        $start = ($start ?? CarbonImmutable::now(config('app.timezone')))->startOfDay();
         $d = $start;
         foreach ($stages as $i => $stage) {
-            $d = $this->days->add($d, $stage['days'], $state);
+            $d = $this->days->add($d, (int) $stage['days'], $state);
             $stages[$i]['ends'] = $d->toDateString();
         }
 

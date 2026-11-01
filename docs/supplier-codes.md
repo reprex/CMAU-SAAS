@@ -1,14 +1,14 @@
-# Supplier codes on the website
+# Codes on the website
 
-Clients search for supplier codes (AS Colour 5001, JB's 1HT) and quote them to us, and we are usually cheaper than other distributors, so supplier codes are shown, not hidden.
+## What clients see (Scott, 1 Nov 2026; this reverses the earlier "show supplier codes" decision)
 
-## Where they show
-
-- Product title: unchanged, still ends in `[SupplierID-Code]` (docs/contracts/shopify-product.md).
-- Product page (new `product.hybrid` template): the supplier's code next to the name, a line "AS Colour code 5001 · our code 43446" with a Copy button, a "Supplier codes" switch on the stock table, and a list of every colour and size SKU in the page text so search engines index them.
-- Collection cards: the supplier code after the name.
-- Search box: "Search products or supplier codes".
-- Google: the product's structured data (JSON-LD) gives `mpn` = supplier code and, per colour, the supplier SKUs, so a search for a code can find our page.
+- **Our code** is `SupplierID-Code`, e.g. `3-104743`, as already at the end of every product title (`[SupplierID-Code]`, docs/contracts/shopify-product.md). **Our SKU** is our code + colour + size, e.g. `7-5001-BLAC-M` (`App\Catalogue\OurCodes`; colour = its first 4 letters, or the first 2 letters of each of its first two words).
+- **The supplier's name is never shown to clients**, anywhere.
+- **Product page:**
+  - the **title chip** beside the product name may show the **supplier's own product code** (e.g. `5001`, `104743`), from `custom.supplierproductcode`;
+  - the **line under the title** shows **only our code**: "Our code 3-104743" (with Copy), from `custom.ourcode`. No supplier name or supplier code in that line.
+- **Everywhere else client-facing** shows our code only, never the supplier's code or name: collection cards, the stock table, the SaaS checkout replies (`crowdmerch/checkout/*`), the invoice PDF, the emails, My Orders and samples (docs/website-checkout.md, rule 10).
+- **Staff** see everything: supplier name, supplier code and supplier SKUs, on Range, the quote desk and Website orders. Order lines keep the supplier code and SKU for ordering from the supplier.
 
 ## Live stock, and where the SKUs come from
 
@@ -17,11 +17,19 @@ Stock levels are always live from Promodata (`check-stock-levels`: colour, size,
 - CMAU product page: Check stock calls the SaaS relay (`/stock.php?id=APPAID`), which keeps the Promodata token on the server and caches each answer for 5 minutes.
 - SaaS: Range > product > Live stock > Check now shows every colour and size with the supplier SKU; the quote desk checks stock per line.
 
-Each live check also keeps the SKU codes it returned (codes only, no quantities) in `product_skus`, so the product page text can list every supplier SKU for search engines. No extra calls are made to collect them; a product gets its list the first time anyone checks its stock. A changed SKU list marks the product for publishing.
+Each live check also keeps the SKU codes it returned (codes only, no quantities) in `product_skus`. No extra calls are made to collect them; a product gets its list the first time anyone checks its stock. A changed SKU list marks the product for publishing.
 
 Products whose supplier doesn't support stock checks have only the product code.
 
-## What Shopify gets (`SupplierCodes::forShopify`)
+## What Shopify gets
 
-- `custom.suppliercode`: supplier name and code, e.g. `AS Colour 5001`.
-- `custom.supplierskus` (json): `[{"colour":"Black","size":"M","sku":"5001-BLK-M"}, ...]`, hidden colours left out. No quantities: those change daily and come live from the stock check.
+| Metafield | Value | The theme |
+| --- | --- | --- |
+| `custom.ourcode` | Our code, e.g. `3-104743` (new, additive) | **Shows it** under the title ("Our code 3-104743") |
+| `custom.supplierproductcode` | The supplier's product code alone, e.g. `104743` (new, additive) | May show it as the title chip |
+| `custom.suppliercode` | Supplier name and code, e.g. `AS Colour 5001` (`SupplierCodes::forShopify`, unchanged) | **Must not display it** (it contains the supplier name). Kept for Google `mpn` and search |
+| `custom.supplierskus` | `[{"colour":"Black","size":"M","sku":"5001-BLK-M"}, ...]`, hidden colours left out, no quantities (unchanged) | **Must not display it.** Kept for Google (the JSON-LD per-colour SKUs) and search |
+
+- Google: the product's structured data (JSON-LD) may still give `mpn` = the supplier code and the supplier SKUs, so a search for a supplier code can find our page. That is metadata for search engines, not shown on the page.
+- Search box: clients can still search by supplier code ("Search products or codes"); results show our code.
+- `custom.suppliercode` and `custom.supplierskus` were left unchanged because docs/contracts/shopify-product.md fixes existing fields; the theme simply stops displaying them, and uses the two new fields instead.
