@@ -61,7 +61,12 @@ class SupplierController extends Controller
             'state' => ['nullable', Rule::in(PublicHoliday::STATES)],
             'stock_lead_days' => 'nullable|integer|min:0|max:60',
             'payment_terms' => ['nullable', Rule::in(array_keys(config('website.payment_terms.options')))],
+            // Website samples (docs/website-checkout.md).
+            'offers_samples' => 'boolean',
+            'sample_freight' => 'nullable|numeric|min:0|max:9999',
+            'sample_lead_days' => 'nullable|integer|min:0|max:60',
         ]);
+        $data['offers_samples'] = $request->boolean('offers_samples');
         $data['state'] = $data['state'] ?? $supplier->state ?? config('website.lead_times.default_state');
         $data['payment_terms'] = $data['payment_terms'] ?? $supplier->payment_terms ?? config('website.payment_terms.default');
         $data['freight_decorator_leg'] = $request->boolean('freight_decorator_leg');

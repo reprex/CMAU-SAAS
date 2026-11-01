@@ -4,6 +4,8 @@ namespace App\Shopify;
 
 use App\Catalogue\BrandingTemplates;
 use App\Catalogue\ImageTagger;
+use App\Catalogue\OurCodes;
+use App\Catalogue\PositionResolver;
 use App\Catalogue\PrintAreas;
 use App\Catalogue\SupplierCodes;
 use App\Models\Product;
@@ -39,6 +41,7 @@ class ProductPayload
         private readonly SupplierCodes $codes,
         private readonly PrintAreas $areas,
         private readonly BrandingTemplates $templates,
+        private readonly PositionResolver $positions,
     ) {}
 
     /**
@@ -115,8 +118,12 @@ class ProductPayload
             // New, additive (the live theme ignores them)
             $codes['supplier_code'] !== '' ? $this->mf('custom', 'suppliercode', 'single_line_text_field', $codes['supplier_code']) : null,
             $codes['skus'] ? $this->mf('custom', 'supplierskus', 'json', json_encode($codes['skus'])) : null,
+            // Shown to clients (docs/supplier-codes.md): our code under the title; the supplier's code alone as the title chip.
+            ($our = OurCodes::code($product)) ? $this->mf('custom', 'ourcode', 'single_line_text_field', $our) : null,
+            filled($product->code) ? $this->mf('custom', 'supplierproductcode', 'single_line_text_field', (string) $product->code) : null,
             $area ? $this->mf('custom', 'printarea', 'json', json_encode($area)) : null,
-            ($positions = $this->templates->forShopify($product)) ? $this->mf('custom', 'brandingpositions', 'json', json_encode($positions)) : null,
+            // Template, else Promodata's decoration print areas, else the type default (docs/logo-preview.md).
+            ($positions = $this->positions->forShopify($product)) ? $this->mf('custom', 'brandingpositions', 'json', json_encode($positions)) : null,
             ($tpl = $this->templates->templateUrl($product)) ? $this->mf('custom', 'brandingtemplate', 'url', $tpl) : null,
         ]));
 

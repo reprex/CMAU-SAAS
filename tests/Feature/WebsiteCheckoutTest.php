@@ -52,8 +52,12 @@ class WebsiteCheckoutTest extends TestCase
         $this->assertSame(15.75, (float) $styles[self::MENS]['unit']);   // + DTF 7.75
         $this->assertSame(15.3, (float) $styles[self::WOMENS]['unit']);
         $this->assertSame(1710.0, (float) $r->json('totals.goods'));     // 60 × 15.75 + 50 × 15.30
-        $this->assertSame('5001-BLK-M', $r->json('lines.0.supplier_sku'));
-        $this->assertSame([['product_id' => self::WOMENS, 'code' => '4001', 'name' => 'AS Colour Womens Maple Tee', 'label' => 'Womens fit']], $r->json('related_styles'));
+        // Clients see our codes only (Scott, 1 Nov 2026): SupplierID-Code and our SKU, never the supplier's SKU or name.
+        $this->assertSame('7-5001-BLAC-M', $r->json('lines.0.sku'));
+        $this->assertSame('7-5001', $r->json('lines.0.product_code'));
+        $this->assertArrayNotHasKey('supplier_sku', $r->json('lines.0'));
+        $this->assertArrayNotHasKey('supplier', $r->json('product'));
+        $this->assertSame([['product_id' => self::WOMENS, 'code' => '7-4001', 'name' => 'AS Colour Womens Maple Tee', 'label' => 'Womens fit']], $r->json('related_styles'));
     }
 
     public function test_setup_is_charged_once_per_position_and_methods_price_by_their_own_rules(): void

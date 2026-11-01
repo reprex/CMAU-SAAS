@@ -61,6 +61,8 @@ Route::prefix('crowdmerch/checkout')->controller(WebsiteCheckoutController::clas
     Route::options('{any}', 'preflight')->where('any', '.*');
     Route::post('price', 'price');
     Route::post('order', 'order');
+    Route::post('samples/price', 'samplesPrice');
+    Route::post('samples/order', 'samplesOrder');
 });
 Route::prefix('crowdmerch/account')->controller(WebsiteAccountController::class)->group(function () {
     Route::options('{any}', 'preflight')->where('any', '.*');

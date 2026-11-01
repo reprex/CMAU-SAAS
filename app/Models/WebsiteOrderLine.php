@@ -10,6 +10,6 @@ class WebsiteOrderLine extends Model
 
     protected function casts(): array
     {
-        return ['qty' => 'integer', 'unit_ex_gst' => 'decimal:2', 'total_ex_gst' => 'decimal:2', 'stock_at_order' => 'integer'];
+        return ['qty' => 'integer', 'unit_ex_gst' => 'decimal:2', 'total_ex_gst' => 'decimal:2', 'stock_at_order' => 'integer', 'factory' => 'integer', 'supplier_id' => 'integer'];
     }
 }

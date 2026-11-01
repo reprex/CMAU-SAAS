@@ -6,7 +6,7 @@
 @php($canEdit = auth()->user()->canEdit())
 <div class="row between">
   <div><div class="eyebrow">Website orders · {{ $o->created_at->timezone(config('app.timezone'))->format('j M Y, g:ia') }}</div>
-    <h1>{{ $o->number }} <span class="pill {{ $o->stage === 6 ? 'ok' : 'accent' }}" style="vertical-align:middle">{{ $o->stageName() }}</span></h1></div>
+    <h1>{{ $o->number }}@if($o->isSamples()) <span class="pill" style="vertical-align:middle">Samples</span>@endif <span class="pill {{ $o->stage === 6 ? 'ok' : 'accent' }}" style="vertical-align:middle">{{ $o->stageName() }}</span></h1></div>
   <a class="btn" href="{{ route('website-orders.invoice', $o) }}" target="_blank" rel="noopener">Invoice PDF</a>
 </div>
 
@@ -17,13 +17,32 @@
 
 <div class="cols">
   <div class="main">
+    @if($o->isSamples())
+    <div class="card">
+      <h2>Samples by factory</h2>
+      <p class="small muted" style="margin:0">The client sees "From factory 1", "From factory 2"… never the supplier. Each sample may be unprinted or a print overrun: the factory decides.</p>
+      @foreach($o->factoryGroups() as $f)
+        <h3 style="margin:10px 0 4px">{{ $f['label'] }} · {{ $supplierNames[$f['supplier_id']] ?? 'Supplier '.$f['supplier_id'] }}</h3>
+        <table class="list">
+          <thead><tr><th>Product</th><th>Colour</th><th>Our SKU</th><th>Supplier code</th><th class="num">Price ex GST</th></tr></thead>
+          <tbody>
+          @foreach($f['lines'] as $l)
+            <tr><td>{{ $l->product_name }} <span class="mono muted">{{ $o->ourCodeFor($l) }}</span></td><td>{{ $l->colour ?: '–' }}</td><td class="mono">{{ $l->sku ?? '–' }}</td><td class="mono">{{ $l->product_code ?? '–' }}</td><td class="num">{{ $m($l->total_ex_gst) }}</td></tr>
+          @endforeach
+          <tr><td colspan="4">Sample freight (once for this factory)</td><td class="num">{{ $m($f['freight']) }}</td></tr>
+          <tr><td colspan="4"><b>{{ $f['label'] }} subtotal ex GST</b></td><td class="num"><b>{{ $m($f['subtotal']) }}</b></td></tr>
+          </tbody>
+        </table>
+      @endforeach
+    </div>
+    @else
     <div class="card">
       <h2>Sizes and colours</h2>
       <table class="list">
-        <thead><tr><th>Product</th><th>Colour</th><th>Size</th><th>Supplier SKU</th><th class="num">Qty</th><th class="num">Stock at order</th><th class="num">Unit ex GST</th><th class="num">Total ex GST</th></tr></thead>
+        <thead><tr><th>Product</th><th>Colour</th><th>Size</th><th>Our SKU</th><th>Supplier SKU</th><th class="num">Qty</th><th class="num">Stock at order</th><th class="num">Unit ex GST</th><th class="num">Total ex GST</th></tr></thead>
         <tbody>
         @foreach($o->lines as $l)
-          <tr><td>{{ $l->product_name }} <span class="mono muted">{{ $l->product_code }}</span></td><td>{{ $l->colour }}</td><td>{{ $l->size }}</td><td class="mono">{{ $l->supplier_sku ?? '–' }}</td>
+          <tr><td>{{ $l->product_name }} <span class="mono muted">{{ $o->ourCodeFor($l) }} · supplier {{ $l->product_code }}</span></td><td>{{ $l->colour }}</td><td>{{ $l->size }}</td><td class="mono">{{ $l->sku ?? '–' }}</td><td class="mono">{{ $l->supplier_sku ?? '–' }}</td>
             <td class="num">{{ $l->qty }}</td><td class="num">{{ $l->stock_at_order ?? '–' }}</td><td class="num">{{ $m($l->unit_ex_gst) }}</td><td class="num">{{ $m($l->total_ex_gst) }}</td></tr>
         @endforeach
         </tbody>
@@ -45,11 +64,13 @@
       <p class="small muted" style="margin:0">Logos are stored privately and only download from this screen when signed in.</p>
     </div>
 
+    @endif
+
     <div class="card">
       <h2>Totals</h2>
       <table class="list" style="max-width:420px">
         <tr><td>Goods</td><td class="num">{{ $m($o->goods) }}</td></tr>
-        <tr><td>Setup (once)</td><td class="num">{{ $m($o->setup) }}</td></tr>
+        @unless($o->isSamples())<tr><td>Setup (once)</td><td class="num">{{ $m($o->setup) }}</td></tr>@endunless
         <tr><td>Delivery · {{ $o->freight_name }}</td><td class="num">{{ $m($o->freight) }}</td></tr>
         <tr><td>Subtotal ex GST</td><td class="num">{{ $m($o->subtotal) }}</td></tr>
         <tr><td>{{ $o->export ? 'GST (export, not charged)' : 'GST 10%' }}</td><td class="num">{{ $m($o->gst) }}</td></tr>
@@ -57,7 +78,7 @@
       </table>
       <p class="small muted" style="margin:0">Payment terms: {{ config('website.payment_terms.options.'.$o->payment_terms) ?? $o->payment_terms }}.@if($o->export) {{ config('website.orders.duty_note') }}@endif</p>
       @php($fb = $o->freight_breakdown ?? [])
-      @if($fb)<p class="small muted" style="margin:0">{{ $fb['cartons'] ?? '?' }} cartons · {{ $fb['kg'] ?? '?' }} kg · {{ $fb['m3'] ?? '?' }} m³ · charged on {{ $fb['chargeable_kg'] ?? '?' }} kg ({{ $fb['basis'] ?? '' }}) to {{ $fb['zone'] ?? '' }}. Placeholder rates.</p>@endif
+      @if($fb && ! $o->isSamples())<p class="small muted" style="margin:0">{{ $fb['cartons'] ?? '?' }} cartons · {{ $fb['kg'] ?? '?' }} kg · {{ $fb['m3'] ?? '?' }} m³ · charged on {{ $fb['chargeable_kg'] ?? '?' }} kg ({{ $fb['basis'] ?? '' }}) to {{ $fb['zone'] ?? '' }}. Placeholder rates.</p>@endif
     </div>
 
     <div class="card">
@@ -97,7 +118,7 @@
     <form method="post" action="{{ route('website-orders.update', $o) }}" class="card">@csrf @method('PUT')
       <h2>Progress</h2>
       <label class="f">Stage
-        <select name="stage" @disabled(! $canEdit)>@foreach(\App\Models\WebsiteOrder::STAGES as $i => $label)<option value="{{ $i }}" @selected($o->stage === $i)>{{ $i + 1 }}. {{ $label }}</option>@endforeach</select></label>
+        <select name="stage" @disabled(! $canEdit)>@foreach($o->stageOptions() as $i => $label)<option value="{{ $i }}" @selected($o->stage === $i)>{{ $loop->iteration }}. {{ $label }}</option>@endforeach</select></label>
       <div class="fgrid">
         <label class="f">Carrier<select name="carrier" @disabled(! $canEdit)><option value="">–</option>@foreach(\App\Models\WebsiteOrder::CARRIERS as $c)<option @selected($o->carrier === $c)>{{ $c }}</option>@endforeach</select></label>
         <label class="f">Consignment number<input name="consignment" value="{{ old('consignment', $o->consignment) }}" @disabled(! $canEdit)></label>
@@ -111,14 +132,14 @@
       <h2>Client</h2>
       <div class="small"><b>{{ $o->contact_name }}</b>@if($o->organisation), {{ $o->organisation }}@endif<br>{{ $o->email }} · {{ $o->phone }}</div>
       <div class="small"><b>Deliver to</b><br>{{ $o->addressLine() }}</div>
-      <div class="small"><b>Need by</b> {{ $o->need_by->format('D j M Y') }} · <b>estimated</b> {{ $o->eta->format('D j M Y') }}
+      <div class="small">@if($o->need_by)<b>Need by</b> {{ $o->need_by->format('D j M Y') }} · @endif<b>estimated</b> {{ $o->eta->format('D j M Y') }}
         @if(isset($o->eta_breakdown['deadline']['spare_business_days'])) · {{ $o->eta_breakdown['deadline']['spare_business_days'] }} business days to spare @endif</div>
       @if($o->event_name || $o->event_date || $o->event_place)<div class="small"><b>Event</b> {{ collect([$o->event_name, $o->event_date?->format('D j M Y'), $o->event_place])->filter()->implode(' · ') }}</div>@endif
       @if(! empty($o->eta_breakdown['stages']))
         <table class="list small">@foreach($o->eta_breakdown['stages'] as $st)<tr><td>{{ $st['name'] }}</td><td class="num">{{ $st['days'] }}</td><td>{{ \Carbon\CarbonImmutable::parse($st['ends'])->format('D j M') }}</td></tr>@endforeach</table>
         @if(! empty($o->eta_breakdown['holidays_skipped']))<div class="small muted">Skipped {{ $o->eta_breakdown['state'] }} holidays: {{ collect($o->eta_breakdown['holidays_skipped'])->map(fn ($h) => $h['name'].' '.\Carbon\CarbonImmutable::parse($h['date'])->format('j M'))->implode(', ') }}</div>@endif
       @endif
-      <div class="small muted">Proof terms acknowledged {{ $o->proof_acknowledged_at?->timezone(config('app.timezone'))->format('j M g:ia') }}</div>
+      @if($o->proof_acknowledged_at)<div class="small muted">Proof terms acknowledged {{ $o->proof_acknowledged_at->timezone(config('app.timezone'))->format('j M g:ia') }}</div>@endif
     </div>
 
     <div class="card">

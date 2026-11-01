@@ -12,9 +12,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Logo areas (docs/logo-preview.md): staff vet a sample of about 100 products
- * (drag the CrowdMerch logo into place, approve); the corrections are learned
- * and applied to the rest of the web range, which can be spot-checked.
+ * Logo areas (docs/logo-preview.md). Optional since 1 Nov 2026: every product
+ * gets its positions and logo area automatically (PositionResolver). Staff can
+ * still approve any product by hand (that always wins), or vet a sample whose
+ * corrections are learned and applied to products with only a prediction.
  */
 class LogoAreaController extends Controller
 {

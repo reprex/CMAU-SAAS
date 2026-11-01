@@ -23,6 +23,7 @@ class OrderCreator
         private readonly CheckoutPricer $pricer,
         private readonly InvoiceFiles $invoices,
         private readonly OutboundEmails $emails,
+        private readonly SamplesPricer $samples,
     ) {}
 
     /**
@@ -53,6 +54,7 @@ class OrderCreator
                 $chosen = collect($result['freight']['options'])->firstWhere('id', $result['freight']['chosen']);
                 $order = WebsiteOrder::query()->create([
                     'number' => $this->nextNumber(),
+                    'kind' => WebsiteOrder::KIND_ORDER,
                     'email' => mb_strtolower(trim($data['contact']['email'])),
                     'contact_name' => trim($data['contact']['name']),
                     'organisation' => filled($data['contact']['organisation'] ?? null) ? trim($data['contact']['organisation']) : null,
@@ -92,8 +94,8 @@ class OrderCreator
 
                 foreach ($result['lines'] as $l) {
                     $order->lines()->create([
-                        'product_id' => $l['product_id'], 'product_code' => $l['product_code'], 'product_name' => $l['product_name'],
-                        'colour' => $l['colour'], 'size' => $l['size'], 'supplier_sku' => $l['supplier_sku'], 'qty' => $l['qty'],
+                        'product_id' => $l['product_id'], 'product_code' => $l['supplier_product_code'], 'our_code' => $l['product_code'], 'product_name' => $l['product_name'],
+                        'colour' => $l['colour'], 'size' => $l['size'], 'supplier_sku' => $l['supplier_sku'], 'sku' => $l['sku'], 'qty' => $l['qty'],
                         'unit_ex_gst' => $l['unit'], 'total_ex_gst' => $l['total'], 'stock_at_order' => $l['stock'],
                     ]);
                 }
@@ -127,6 +129,89 @@ class OrderCreator
         $this->emails->prepareInvoice($order);
 
         return ['order' => $order->fresh(['lines', 'positions']), 'result' => $result];
+    }
+
+    /**
+     * The samples cart (docs/website-checkout.md): recompute, refuse if any rule
+     * fails, then save one order (kind "samples") with a line per sample and its
+     * factory group, make the invoice and prepare its email, as for an order.
+     *
+     * @param  array<string, mixed>  $data  validated request (WebsiteCheckoutController::samplesOrder)
+     * @return array{order: ?WebsiteOrder, result: array<string, mixed>}
+     */
+    public function createSamples(array $data, ?string $ip = null): array
+    {
+        $result = $this->samples->evaluate([
+            'items' => $data['items'],
+            'postcode' => $data['address']['postcode'],
+            'country' => $data['address']['country'] ?? 'AU',
+        ]);
+        if (! $result['can_order']) {
+            return ['order' => null, 'result' => $result];
+        }
+
+        $order = DB::transaction(function () use ($data, $result, $ip) {
+            $suppliers = collect($result['factories'])->pluck('supplier_id')->unique();
+            $first = $result['factories'][0]['items'][0];
+            $order = WebsiteOrder::query()->create([
+                'number' => $this->nextNumber(),
+                'kind' => WebsiteOrder::KIND_SAMPLES,
+                'email' => mb_strtolower(trim($data['contact']['email'])),
+                'contact_name' => trim($data['contact']['name']),
+                'organisation' => filled($data['contact']['organisation'] ?? null) ? trim($data['contact']['organisation']) : null,
+                'phone' => trim($data['contact']['phone']),
+                'address_unit' => filled($data['address']['unit'] ?? null) ? trim($data['address']['unit']) : null,
+                'address_street' => trim($data['address']['street']),
+                'address_suburb' => trim($data['address']['suburb']),
+                'address_state' => filled($data['address']['state'] ?? null) ? trim($data['address']['state']) : null,
+                'address_postcode' => trim($data['address']['postcode']),
+                'address_country' => 'AU',
+                'need_by' => null,
+                'product_id' => $first['product_id'],
+                'supplier_id' => $suppliers->count() === 1 ? $suppliers->first() : null,
+                'payment_terms' => config('website.payment_terms.default'),
+                'freight_service' => 'samples',
+                'freight_name' => 'Sample freight',
+                // Each factory's freight and supply days, with its supplier (staff screens only).
+                'freight_breakdown' => ['factories' => collect($result['factories'])->map(fn ($f) => collect($f)->only(['factory', 'supplier_id', 'days', 'goods', 'freight', 'subtotal'])->all() + ['items' => count($f['items'])])->all()],
+                'eta' => $result['delivery_estimate']['delivery_date'],
+                'eta_breakdown' => $result['delivery_estimate'],
+                'export' => false,
+                'goods' => $result['totals']['goods'],
+                'setup' => 0,
+                'freight' => $result['totals']['freight'],
+                'subtotal' => $result['totals']['subtotal'],
+                'gst' => $result['totals']['gst'],
+                'total' => $result['totals']['total'],
+                'alerts' => [],
+                'stage' => 0,
+                'stage_changed_at' => now(),
+                'ip_hash' => $ip ? hash('sha256', $ip) : null,
+            ]);
+            $codes = Product::query()->whereIn('id', collect($result['factories'])->pluck('items')->flatten(1)->pluck('product_id'))->pluck('code', 'id');
+            foreach ($result['factories'] as $f) {
+                foreach ($f['items'] as $it) {
+                    $order->lines()->create([
+                        'product_id' => $it['product_id'], 'product_code' => $codes[$it['product_id']] ?? null, 'our_code' => $it['code'],
+                        'product_name' => $it['name'], 'colour' => $it['colour'], 'size' => '', 'sku' => $it['sku'],
+                        'factory' => $f['factory'], 'supplier_id' => $f['supplier_id'],
+                        'qty' => 1, 'unit_ex_gst' => $it['unit'], 'total_ex_gst' => $it['unit'],
+                    ]);
+                }
+            }
+
+            return $order;
+        });
+
+        AuditLog::record('website_order.created', $order, ['kind' => 'samples', 'total' => $order->total, 'samples' => $result['samples']]);
+        try {
+            $this->invoices->store($order);
+        } catch (Throwable $e) {
+            report($e);
+        }
+        $this->emails->prepareInvoice($order);
+
+        return ['order' => $order->fresh(['lines']), 'result' => $result];
     }
 
     /** CM-xxxxx from the counters table (the same pattern as quote numbers). */

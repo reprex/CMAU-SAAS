@@ -29,6 +29,9 @@ class Supplier extends Model
             'freight_effective_from' => 'date',
             'is_decorator' => 'boolean',
             'stock_lead_days' => 'integer',
+            'offers_samples' => 'boolean',
+            'sample_freight' => 'decimal:2',
+            'sample_lead_days' => 'integer',
         ];
     }
 
@@ -41,6 +44,12 @@ class Supplier extends Model
     public function stockLeadDays(): int
     {
         return $this->stock_lead_days ?? (int) config('website.lead_times.stock_default');
+    }
+
+    /** Business days for this supplier to send website samples: its sample lead time, else its stock lead time. */
+    public function sampleLeadDays(): int
+    {
+        return $this->sample_lead_days ?? $this->stockLeadDays();
     }
 
     public function hasStandardFreight(): bool

@@ -209,7 +209,7 @@ class WebsiteAccountTest extends TestCase
         $token = $this->withHeaders(['Origin' => self::ORIGIN, 'Accept' => 'application/json'])
             ->post('/crowdmerch/checkout/order', $this->orderForm($this->cart()))->assertCreated()->json('account_token');
         $this->api('GET', '/crowdmerch/account/orders', [], $token)->assertOk()->assertJsonPath('orders.0.number', 'CM-10001')
-            ->assertJsonPath('orders.0.items', 'AS Colour Mens Staple Tee 5001 × 60, AS Colour Womens Maple Tee 4001 × 50 · 1 branding position');
+            ->assertJsonPath('orders.0.items', 'AS Colour Mens Staple Tee 7-5001 × 60, AS Colour Womens Maple Tee 7-4001 × 50 · 1 branding position');
         Carbon::setTestNow();
     }
 }

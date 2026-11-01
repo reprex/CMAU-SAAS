@@ -20,7 +20,7 @@ Who does what: **J** = Judd (server), **S** = Scott, **C** = Claude (code, in th
 Secrets go in the server `.env` only. Then `config:cache` again.
 
 - Already set: Promodata token, `SHOPIFY_DEV_STORE` / `SHOPIFY_SHOP_DOMAIN` (CMAU_DEV), Shopify client id and secret. Keep `SHOPIFY_ALLOW_LIVE=false`.
-- `ANTHROPIC_API_KEY` (image check, logo areas, search). Start with `IMAGE_CHECK=true`, `IMAGE_CHECK_PER_DAY=1500`.
+- `ANTHROPIC_API_KEY` (image check, branding templates, search). Start with `IMAGE_CHECK=true`, `IMAGE_CHECK_PER_DAY=1500`.
 - `WEBSITE_QUOTE_ORIGINS` and `WEBSITE_SEARCH_ORIGINS`: the CMAU_DEV storefront address (https://<store>.myshopify.com and its preview domain).
 - Turnstile can wait: search runs keyword-only until `TURNSTILE_*` are set.
 
@@ -47,23 +47,23 @@ Use Range filters (supplier, product type) and bulk Add. A spread that exercises
 
 Or use **Add a whole supplier** for JB's Wear and Legend Life, as already planned.
 
-## 4. Prepare images, codes and logo areas (S, mostly waiting)
+## 4. Prepare images and codes (S, mostly waiting)
 
 ```
 cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:tag-images
 cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:check-images --product=35681
-cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:logo-areas --predict
 ```
 - Look at product 35681's images in Range first; if the tags look right, leave the scheduler to check the rest (250 products take about 1–2 hours).
 - Range > Images to check: fix any flagged images.
-- Range > Logo areas: Pick 100 samples (25 is plenty for 250 products: use "Add 25 more samples" once), vet them, Apply to the range, check "What was learned".
+- **Branding positions and logo areas come automatically** (docs/logo-preview.md): from the supplier's branding template, else the print areas in Promodata's decoration options, else the product type default. No vetting is needed. Spot-check a few on Range > product > "Branding positions on the website" (e.g. the Trends stubby holder 104743 should show Wrap around, sublimation, 209 × 108 mm). Range > Logo areas is optional: approve any product whose logo sits wrongly.
+- **Samples:** Admin > Suppliers > Trends and Dex > tick "Offers samples on the website" and check the sample freight and sample lead time (docs/website-checkout.md, Samples).
 - Supplier SKUs fill in as stock is checked (Range > product > Live stock > Check now on a few).
 
 ## 5. Theme on CMAU_DEV (S, then C)
 
 1. **S:** in CMAU_DEV's Online Store > Themes, add **Galleria 4.1.0** from the Theme Store (unpublished on the dev store is fine).
 2. **S:** create the GitHub repo `reprex/CMAU-THEME`, connect it to that theme (Shopify GitHub integration, branch `main`), and add it to this Claude session.
-3. **C:** port the current custom templates from the live theme export (colour_as_variant_product, custom collection grid), then build the new templates from the prototype: `page.finder` (step 1), `collection.finder` (step 2 with colour filter and Saved hearts), `product.hybrid` (colours panel, stock box, logo preview, free mockup, front/back), `page.my-list` (saved lists). Assign them to the test products and collections only.
+3. **C:** port the current custom templates from the live theme export (colour_as_variant_product, custom collection grid), then build the new templates from the prototype: `page.finder` (step 1), `collection.finder` (step 2 with colour filter and Saved hearts), `product.hybrid` (colours panel, stock box, logo preview, free mockup, front/back, branding positions from `custom.brandingpositions`, "Order sample", our code under the title from `custom.ourcode`), `page.my-list` (saved lists). Assign them to the test products and collections only.
 
 ## 6. Publish the test products to CMAU_DEV (S)
 

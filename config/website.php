@@ -83,6 +83,19 @@ return [
         'dtf' => ['name' => 'DTF', 'review' => false, 'pricing' => 'flat', 'match' => '/\bdtf\b|direct to film|digital transfer|full colou?r transfer/i'],
     ],
 
+    /*
+    | Samples (Scott, 1 Nov 2026): "Order sample" for suppliers with
+    | suppliers.offers_samples. Price = the unbranded price at the MOQ; freight =
+    | the supplier's sample_freight once per factory (Admin › Suppliers). One
+    | invoice for the whole samples cart. Australia only for now.
+    */
+    'samples' => [
+        'freight_service' => 'tnt_road',  // transit days for the delivery estimate (config/freight.php au_zones)
+        'transit_days_default' => 3,
+        'max_items' => 30,
+        'note' => "Samples may be unprinted or taken from another client's print overrun. The factory decides, and it can vary.",
+    ],
+
     'account' => [
         'code_minutes' => 10,
         'max_attempts' => 5,

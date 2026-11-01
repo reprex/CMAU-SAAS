@@ -6,11 +6,11 @@
   <div style="display:flex;flex-direction:column;gap:6px;max-width:860px">
     <span class="eyebrow"><a href="{{ route('range.index') }}">Range</a> · Website</span>
     <h1>Logo areas</h1>
-    <p class="muted" style="margin:0">The website shows the CrowdMerch logo where the branding normally goes on each hero image, and swaps in the shopper's own logo when they try theirs. Every product starts with a prediction. Vet a sample (drag the logo into place, drag its corner to size it, Approve); the corrections you make are learned and applied to the rest of the range.</p>
+    <p class="muted" style="margin:0">The website shows the CrowdMerch logo where the branding normally goes on each hero image, and swaps in the shopper's own logo when they try theirs. Every product now gets its logo area and branding positions automatically: from the supplier's branding template, else the print areas in Promodata's decoration options, else the product type default. <b>Vetting here is optional</b>: approve any product to place its logo by hand (that always wins), or vet a sample and the corrections are learned and applied to products that only have a prediction.</p>
   </div>
   @if($canEdit)
   <div class="row" style="gap:8px">
-    <form method="post" action="{{ route('range.logo-areas.sample') }}">@csrf<input type="hidden" name="size" value="{{ $counts['done'] ? 25 : 100 }}"><button class="btn">{{ $counts['done'] ? 'Add 25 more samples' : 'Pick 100 samples' }}</button></form>
+    <form method="post" action="{{ route('range.logo-areas.sample') }}">@csrf<input type="hidden" name="size" value="{{ $counts['done'] ? 25 : 100 }}"><button class="btn">{{ $counts['done'] ? 'Add 25 more samples' : 'Pick 100 samples (optional)' }}</button></form>
     <form method="post" action="{{ route('range.logo-areas.apply') }}">@csrf<button class="btn primary" @disabled(! $counts['done'])>Apply to the range</button></form>
   </div>
   @endif

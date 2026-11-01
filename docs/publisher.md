@@ -9,7 +9,8 @@
 - handle = APPAID; title "name [SupplierID-Code]" (staff web title first); body: description, sizes, dimensions, accessory options and specifications; type `Product`; tags (`style`, brand, label, product type, Promodata attributes, `external` above 10,000,000, staff `extra_tags`); status Active, or Archived when off the range or discontinued; template suffix `SHOPIFY_PRODUCT_TEMPLATE` (default `colour_as_variant_product`; use `hybrid` for the new templates on CMAU_DEV); SEO title "Custom Embroidered/Printed/Engraved name [code]" (70 characters at most).
 - Variants: one per visible colour (Color option; "Custom Print" when there are none), SKU `APPAID-colour`, price = collection price, colour image, `custom.productmoq`, `custom.altimagepublicpath`, and new `custom.altimages`, `custom.colourfamily`.
 - Images: hero style, other style, then colour images (docs/images.md); hidden images left out.
-- Product metafields: `decorationjson`, `collectiondisplayqty`, `collectiondisplayprice`, `mastersortorder`, the `tag*` fields, the subcategory fields, `stockcolumns`, `nostockmessage`, `my_fields.pdpcollectionname`, and new `suppliercode`, `supplierskus`, `printarea`.
+- Product metafields: `decorationjson`, `collectiondisplayqty`, `collectiondisplayprice`, `mastersortorder`, the `tag*` fields, the subcategory fields, `stockcolumns`, `nostockmessage`, `my_fields.pdpcollectionname`, and new `suppliercode`, `supplierskus`, `printarea`, `brandingpositions`, `brandingtemplate`, plus (1 Nov 2026) `ourcode` (our code `SupplierID-Code`, shown under the title) and `supplierproductcode` (the supplier's code alone, for the title chip). The theme must not display `suppliercode` or `supplierskus` (docs/supplier-codes.md).
+- `printarea` and `brandingpositions` now come for every product with decoration options, without vetting: staff-approved area, then the supplier's template, then Promodata's decoration print areas, then the type default (docs/logo-preview.md). `brandingpositions` gains the additive keys `method_areas` and `source`.
 
 **Not yet produced** (TOD's tagging tables; the "tagging and collections" module): category codes, special and collection tags (sent as `any,`), essentials/urgent/ecorec subcategories (sent as the product type), the master sort order (99999 unless overridden), the under-MOQ text. Fine for CMAU_DEV testing; needed before live.
 
@@ -28,6 +29,6 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --product=43446
 cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --limit=50
 ```
 
-- `shopify:metafield-definitions` once per store: creates definitions for the new fields (needed for the colour family filter).
+- `shopify:metafield-definitions` once per store: creates definitions for the new fields (needed for the colour family filter). Run it again after this change for `ourcode` and `supplierproductcode`.
 - `--preview` writes what would be sent to `storage/app/publish-preview/<id>.json` and sends nothing.
 - Run in batches of 50 for the first load (about a minute each); it is not scheduled yet.
