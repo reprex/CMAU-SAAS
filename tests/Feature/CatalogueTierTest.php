@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Catalogue\CatalogueWriter;
 use App\Catalogue\ProductHydrator;
 use App\Catalogue\TierManager;
 use App\Models\PriceLine;
 use App\Models\Product;
 use App\Models\ProductOverride;
 use App\Models\Supplier;
+use App\Sources\Promodata\PromodataNormaliser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\PromodataFixtures;
@@ -87,5 +89,20 @@ class CatalogueTierTest extends TestCase
 
         $this->assertSame(0, app(TierManager::class)->demoteStale());
         $this->assertSame(Product::TIER_LIVE, Product::find(1001)->tier);
+    }
+
+    public function test_overlong_promodata_categories_are_clipped_so_the_sync_keeps_going(): void
+    {
+        Supplier::create(['id' => 3, 'name' => 'Test Supplier Pty Ltd']);
+        $payload = PromodataFixtures::product(1001);
+        $payload['product']['categorisation']['supplier_category'] = array_fill(0, 60, 'Drinkware Accessories');
+        $payload['product']['categorisation']['supplier_subcategory'] = str_repeat('Stubby holders ', 40);
+
+        app(CatalogueWriter::class)->store((new PromodataNormaliser)->normalise($payload));
+
+        $product = Product::findOrFail(1001);
+        $this->assertSame(255, mb_strlen($product->supplier_category));
+        $this->assertStringStartsWith('Drinkware Accessories, Drinkware Accessories', $product->supplier_category);
+        $this->assertLessThanOrEqual(255, mb_strlen($product->supplier_subcategory));
     }
 }
