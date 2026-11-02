@@ -136,7 +136,7 @@ ADMIN_ALLOWED_IPS=202.169.99.148,2401:d002:3803:1a00::/56
 
 - **Shopify (CMAU_DEV) app.** Since 1 Jan 2026 stores can't make new custom apps in their own admin; apps come from the Shopify **Dev Dashboard**, and the SaaS asks for a 24-hour token itself (client credentials grant) and renews it.
   1. dev.shopify.com → Apps → **Create app** (start from Dev Dashboard), name `CMAU SaaS`.
-  2. On the app's version: scopes `read_draft_orders`, `write_draft_orders`, `read_products`. App URL can be `https://saas.replicat.com.au`. **Release** the version.
+  2. On the app's version: scopes `read_draft_orders`, `write_draft_orders`, `read_products`, `write_products`, `read_publications`, `write_publications`. App URL can be `https://saas.replicat.com.au`. **Release** the version.
   3. **Install** the app on CMAU_DEV. The store must belong to the same Dev Dashboard organisation as the app.
   4. App → Settings: copy the Client ID and Client secret into `.env` (`SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`), set `SHOPIFY_SHOP_DOMAIN` and `SHOPIFY_DEV_STORE` to the store's `….myshopify.com` address, then `artisan config:cache`.
 - **Webhooks (CMAU_DEV):** store admin → Settings → Notifications → Webhooks → Create webhook: events *Draft order creation* and *Draft order update*, format JSON, URL `https://saas.replicat.com.au/webhooks/shopify/draft-orders`, API version 2026-07. Copy the signing key shown on that page into `SHOPIFY_WEBHOOK_SECRET`. The 5-minute pull covers any missed.

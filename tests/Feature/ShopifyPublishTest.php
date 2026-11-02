@@ -6,6 +6,7 @@ use App\Catalogue\ImageTagger;
 use App\Models\Product;
 use App\Models\ProductOverride;
 use App\Shopify\ProductPayload;
+use App\Shopify\ProductPublisher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -45,7 +46,14 @@ class ShopifyPublishTest extends TestCase
     private function fakeShopify(): void
     {
         $n = 0;
-        Http::fake(['cmau-dev.myshopify.com/*' => function () use (&$n) {
+        Http::fake(['cmau-dev.myshopify.com/*' => function ($request) use (&$n) {
+            $q = (string) ($request->data()['query'] ?? '');
+            if (str_contains($q, 'publications(')) {
+                return Http::response(['data' => ['publications' => ['nodes' => [['id' => 'gid://shopify/Publication/9', 'name' => 'Online Store']]]]]);
+            }
+            if (str_contains($q, 'publishablePublish')) {
+                return Http::response(['data' => ['publishablePublish' => ['userErrors' => []]]]);
+            }
             $n++;
 
             return Http::response(['data' => ['productSet' => ['userErrors' => [], 'product' => ['id' => 'gid://shopify/Product/777',
@@ -86,8 +94,10 @@ class ShopifyPublishTest extends TestCase
         $this->fakeShopify();
         $this->artisan('shopify:publish')->expectsOutputToContain('1 create')->assertSuccessful();
 
-        Http::assertSentCount(2); // upload, then link the colour images
-        $second = json_decode(Http::recorded()[1][0]->body(), true)['variables'];
+        // upload, then link the colour images (plus the Online Store channel calls)
+        $sets = collect(Http::recorded())->map(fn ($r) => json_decode($r[0]->body(), true))->filter(fn ($b) => str_contains($b['query'], 'productSet'))->values();
+        $this->assertCount(2, $sets);
+        $second = $sets[1]['variables'];
         $this->assertSame(['id' => 'gid://shopify/Product/777'], $second['identifier']);
         $this->assertSame(['id' => 'gid://shopify/MediaImage/3'], $second['input']['variants'][0]['file']);
         $this->assertSame(['id' => 'gid://shopify/MediaImage/1'], $second['input']['files'][0]);
@@ -95,13 +105,15 @@ class ShopifyPublishTest extends TestCase
         $this->assertSame(777, $p->shopify_product_id);
         $this->assertSame(4, DB::table('shopify_media')->count());
 
+        $count = count(Http::recorded());
         $this->artisan('shopify:publish --product=43446')->expectsOutputToContain('1 skip')->assertSuccessful();
-        Http::assertSentCount(2);
+        $this->assertCount($count, Http::recorded()); // unchanged: nothing sent
 
         ProductOverride::query()->create(['product_id' => $p->id, 'data' => ['title' => 'Staple Tee Black Label']]);
         $this->artisan('shopify:publish --product=43446')->expectsOutputToContain('1 update')->assertSuccessful();
-        Http::assertSentCount(3); // images already known: one call
-        $this->assertSame('Staple Tee Black Label [88-5001]', json_decode(Http::recorded()[2][0]->body(), true)['variables']['input']['title']);
+        $sets = collect(Http::recorded())->map(fn ($r) => json_decode($r[0]->body(), true))->filter(fn ($b) => str_contains($b['query'], 'productSet'))->values();
+        $this->assertCount(3, $sets); // images already known: one productSet call
+        $this->assertSame('Staple Tee Black Label [88-5001]', $sets[2]['variables']['input']['title']);
     }
 
     public function test_preview_sends_nothing_and_live_store_is_blocked(): void
@@ -124,5 +136,19 @@ class ShopifyPublishTest extends TestCase
         $this->artisan('shopify:publish')->assertFailed();
         $this->assertSame('input.variants.0.price: Price is invalid', DB::table('shopify_publish_log')->value('message'));
         $this->assertNull(Product::find(43446)->shopify_product_id);
+    }
+
+    public function test_a_published_product_is_put_on_the_online_store_channel(): void
+    {
+        $this->fakeShopify();
+        $product = $this->tee();
+
+        $result = app(ProductPublisher::class)->publish($product);
+
+        $this->assertTrue($result['ok']);
+        $this->assertStringContainsString('on Online Store', (string) $result['message']);
+        $calls = collect(Http::recorded())->map(fn ($r) => json_decode($r[0]->body(), true));
+        $publish = $calls->first(fn ($b) => str_contains($b['query'], 'publishablePublish'));
+        $this->assertSame('gid://shopify/Publication/9', $publish['variables']['input'][0]['publicationId']);
     }
 }
