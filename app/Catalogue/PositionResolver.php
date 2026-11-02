@@ -158,7 +158,7 @@ class PositionResolver
                 'source' => 'template',
             ], $template);
         }
-        $positions = $this->fromDecorations($product) ?: $this->typeDefault($product);
+        $positions = $this->withGarmentPositions($product, $this->fromDecorations($product) ?: $this->typeDefault($product));
         $staff = $this->staffArea($product);
         foreach ($positions as $i => $p) {
             if ($staff && $p['view'] === 'front') { // staff placed the logo by hand: that wins on the first front position
@@ -267,6 +267,55 @@ class PositionResolver
         $left = max(0.0, min(100.0 - $width, $centre - $width / 2));
 
         return ['image' => $image, 'left' => round($left, 2), 'top' => round((float) $top, 2), 'width' => round((float) $width, 2)];
+    }
+
+    /** Garments whose decoration data names only the front still print on the back, sleeves and neck. */
+    public const GARMENT = '/\\b(t-?shirts?|tees?|shirts?|polos?|hood(ie|y|ies)s?|jumpers?|sweat\\w*|crews?|singlets?|tanks?|jackets?|vests?|long ?sleeves?)\\b/i';
+
+    /**
+     * Back, sleeves and back neck for garments (Scott, 2 Nov 2026: tees must offer
+     * printing on the back). Each copies the front's methods; the back keeps the
+     * front's size, the small positions are capped at 100 × 100 mm (sleeves) and
+     * 80 × 40 mm (back neck). Positions the data already names are left alone.
+     *
+     * @param  list<array<string, mixed>>  $positions
+     * @return list<array<string, mixed>>
+     */
+    public function withGarmentPositions(Product $product, array $positions): array
+    {
+        if ($positions === [] || ! preg_match(self::GARMENT, $product->promodata_type_name.' '.$product->name)) {
+            return $positions;
+        }
+        $front = collect($positions)->first(fn ($p) => ($p['view'] ?? 'front') === 'front');
+        if ($front === null) {
+            return $positions;
+        }
+        $have = collect($positions)->map(fn ($p) => mb_strtolower((string) $p['name']))->all();
+        $cap = fn (array $areas, ?array $max) => array_map(fn ($a) => array_merge($a, ['max_mm' => $max === null ? ($a['max_mm'] ?? null) : $max]), $areas);
+        $extra = [
+            // name, view, max size (null = the front's), box on the picture (left, top, width %)
+            ['Back', 'back', null, [$front['left'] ?? 32, $front['top'] ?? 26, $front['width'] ?? 36]],
+            ['Left sleeve', 'front', [100, 100], [78, 24, 9]],
+            ['Right sleeve', 'front', [100, 100], [13, 24, 9]],
+            ['Back neck', 'back', [80, 40], [44, 14, 12]],
+        ];
+        foreach ($extra as [$name, $view, $max, [$l, $t, $w]]) {
+            if (in_array(mb_strtolower($name), $have, true)) {
+                continue;
+            }
+            $positions[] = [
+                'name' => $name,
+                'view' => $view,
+                'max_mm' => $max ?? ($front['max_mm'] ?? null),
+                'methods' => $front['methods'] ?? [],
+                'method_areas' => $cap($front['method_areas'] ?? [], $max),
+                'source' => 'garment',
+                'image' => $view === 'front' ? ($front['image'] ?? null) : $this->templates->pictureFor($product, 'back'),
+                'left' => $l, 'top' => $t, 'width' => $w,
+            ];
+        }
+
+        return $positions;
     }
 
     /** @return Collection<int, PriceOption> */

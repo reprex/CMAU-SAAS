@@ -39,7 +39,7 @@ return [
             'undecorated_price_rounding' => 'nearest',
             'collection_moq' => 50,
         ],
-        88 => ['collection_moq' => 50],                       // AS Colour
+        88 => ['collection_moq' => 10],                       // AS Colour (Scott, 2 Nov 2026: 10, was TOD's 50)
     ],
 
 ];
