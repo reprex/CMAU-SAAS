@@ -16,7 +16,7 @@ use Throwable;
  */
 class CatalogueBackdropsCommand extends Command
 {
-    protected $signature = 'catalogue:backdrops {--product= : One product (any tier)} {--seconds=40 : Time budget for a run}';
+    protected $signature = 'catalogue:backdrops {--product= : One product (any tier)} {--seconds=40 : Time budget for a run} {--fresh : With --product, look at every photo again}';
 
     protected $description = 'Find style photos on a white background (they become the hero)';
 
@@ -29,7 +29,7 @@ class CatalogueBackdropsCommand extends Command
         }
         if ($id = $this->option('product')) {
             $product = Product::query()->findOrFail((int) $id);
-            $n = $backdrop->mark($product);
+            $n = $backdrop->mark($product, 40, (bool) $this->option('fresh'));
             $tagger->apply($product);
             $white = $product->images()->where('white_bg', true)->count();
             $this->info("Looked at {$n} photos; {$white} on white. Hero: ".($tagger->hero($product->fresh(['images', 'colours', 'override'])) ?? 'none'));

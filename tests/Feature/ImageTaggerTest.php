@@ -180,6 +180,10 @@ class ImageTaggerTest extends TestCase
         $this->assertTrue($b->whiteEdge(imagecreatefromstring($this->png(246, 247, 245))));
         $this->assertFalse($b->whiteEdge(imagecreatefromstring($this->png(225, 225, 228)))); // AS Colour's grey
         $this->assertFalse($b->whiteEdge(imagecreatefromstring($this->png(20, 20, 20))));
+        // A model shot on white, cropped at the bottom (dark trousers to the edge), is still white.
+        $im = imagecreatefromstring($this->png(255, 255, 255));
+        imagefilledrectangle($im, 60, 200, 140, 259, imagecolorallocate($im, 15, 15, 15));
+        $this->assertTrue($b->whiteEdge($im));
     }
 
     public function test_white_background_style_photo_becomes_the_hero(): void
