@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Checkout\ArtworkCheck;
 use App\Checkout\BusinessDays;
 use App\Checkout\DeliveryEstimator;
 use App\Freight\Consignment;
@@ -15,6 +16,7 @@ use App\Models\WebsiteOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -334,5 +336,32 @@ class WebsiteCheckoutTest extends TestCase
             ->assertNoContent()->assertHeader('Access-Control-Allow-Origin', self::ORIGIN);
         $this->withHeaders(['Origin' => self::ORIGIN])->getJson('/crowdmerch/address?q=12 Smith St')->assertOk()->assertExactJson(['success' => true, 'results' => []]);
         $this->price($this->cart(['product_id' => 999]))->assertNotFound();
+    }
+
+    public function test_artwork_is_never_refused_but_flagged_when_not_print_ready(): void
+    {
+        Storage::fake('artwork');
+        Storage::fake('local');
+        Mail::fake();
+
+        // A 400 px wide PNG printed 280 mm wide is about 36 dpi: accepted, flagged for our help.
+        $cart = $this->cart();
+        $cart['positions'][0]['width_mm'] = 280;
+        $this->placeOrder($this->orderForm($cart))->assertCreated();
+        $order = WebsiteOrder::first();
+        $p = $order->positions->first();
+        $this->assertSame('help', $p->preflight);
+        $this->assertStringContainsString('dpi at 280 mm', implode(' ', $p->preflight_notes));
+        $this->assertContains('artwork_help', array_column($order->alerts, 'code'));
+    }
+
+    public function test_solid_colour_methods_want_vector_artwork(): void
+    {
+        $png = UploadedFile::fake()->image('logo.png', 3000, 3000);
+        $svg = UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+
+        $this->assertSame('help', ArtworkCheck::verdict('screen', $png)[0]);
+        $this->assertSame(['ready', []], ArtworkCheck::verdict('screen', $svg));
+        $this->assertSame('ready', ArtworkCheck::verdict('dtf', $svg)[0]);
     }
 }
