@@ -51,6 +51,11 @@ Schedule::command('catalogue:read-templates')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+// Branding positions: where they come from, for Range › Positions (read-only).
+Schedule::command('catalogue:positions-report')
+    ->dailyAt('04:30')
+    ->withoutOverlapping(30);
+
 // Quote desk: bring in new/changed Shopify draft orders (backup to webhooks).
 Schedule::command('shopify:pull-drafts')
     ->everyFiveMinutes()
