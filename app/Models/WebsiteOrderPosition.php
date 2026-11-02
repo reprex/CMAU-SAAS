@@ -13,7 +13,7 @@ class WebsiteOrderPosition extends Model
 
     protected function casts(): array
     {
-        return ['colours' => 'integer', 'width_mm' => 'integer', 'unit_ex_gst' => 'decimal:2', 'setup_ex_gst' => 'decimal:2'];
+        return ['colours' => 'integer', 'width_mm' => 'integer', 'preflight_notes' => 'array', 'unit_ex_gst' => 'decimal:2', 'setup_ex_gst' => 'decimal:2'];
     }
 
     public function methodName(): string

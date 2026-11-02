@@ -57,7 +57,7 @@
         @foreach($o->positions as $p)
           <tr><td>{{ $p->position }}</td><td>{{ $p->methodName() }}<div class="muted small">{{ $p->decoration_name }}</div></td><td class="num">{{ $p->colours ?? '–' }}</td>
             <td class="num">{{ $p->width_mm ? $p->width_mm.' mm' : '–' }}</td><td class="num">{{ $m($p->unit_ex_gst) }}</td><td class="num">{{ $m($p->setup_ex_gst) }}</td>
-            <td>@if($p->logo_path)<a href="{{ route('website-orders.logo', [$o, $p]) }}">Download</a><div class="muted small">{{ $p->logo_name }}</div>@else – @endif</td></tr>
+            <td>@if($p->logo_path)<a href="{{ route('website-orders.logo', [$o, $p]) }}">Download</a><div class="muted small">{{ $p->logo_name }}</div>@if($p->preflight === 'help')<span class="pill warn">needs artwork help</span><ul class="small" style="margin:4px 0 0;padding-left:16px">@foreach((array) $p->preflight_notes as $n)<li>{{ $n }}</li>@endforeach</ul>@elseif($p->preflight === 'ready')<span class="pill ok">print ready</span>@endif @else – @endif</td></tr>
         @endforeach
         </tbody>
       </table>

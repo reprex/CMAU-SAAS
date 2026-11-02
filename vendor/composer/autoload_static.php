@@ -570,6 +570,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Checkout\\AccountTokens' => __DIR__ . '/../..' . '/app/Checkout/AccountTokens.php',
         'App\\Checkout\\Address\\AddressLookup' => __DIR__ . '/../..' . '/app/Checkout/Address/AddressLookup.php',
         'App\\Checkout\\Address\\NoAddressLookup' => __DIR__ . '/../..' . '/app/Checkout/Address/NoAddressLookup.php',
+        'App\\Checkout\\ArtworkCheck' => __DIR__ . '/../..' . '/app/Checkout/ArtworkCheck.php',
         'App\\Checkout\\BrandingPricer' => __DIR__ . '/../..' . '/app/Checkout/BrandingPricer.php',
         'App\\Checkout\\BusinessDays' => __DIR__ . '/../..' . '/app/Checkout/BusinessDays.php',
         'App\\Checkout\\CheckoutPricer' => __DIR__ . '/../..' . '/app/Checkout/CheckoutPricer.php',

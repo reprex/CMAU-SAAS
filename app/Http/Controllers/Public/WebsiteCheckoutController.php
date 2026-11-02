@@ -263,6 +263,9 @@ class WebsiteCheckoutController extends Controller
             'positions.*.decID' => 'required|string|max:190',
             'positions.*.colours' => 'nullable|integer|min:1|max:16',
             'positions.*.width_mm' => 'nullable|integer|min:5|max:1000',
+            'positions.*.preflight' => 'nullable|string|in:ready,help',
+            'positions.*.preflight_notes' => 'nullable|array|max:8',
+            'positions.*.preflight_notes.*' => 'string|max:200',
             'freight_service' => 'nullable|string|max:32',
         ];
     }

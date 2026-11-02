@@ -99,8 +99,13 @@ class OrderCreator
                         'unit_ex_gst' => $l['unit'], 'total_ex_gst' => $l['total'], 'stock_at_order' => $l['stock'],
                     ]);
                 }
+                $help = [];
                 foreach ($result['positions'] as $i => $p) {
                     $file = $logos[$i];
+                    [$preflight, $notes] = ArtworkCheck::verdict($p['method'], $file, $data['positions'][array_keys($data['positions'])[$i]] ?? []);
+                    if ($preflight === 'help') {
+                        $help[] = $p['name'];
+                    }
                     $ext = mb_strtolower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?: 'bin'));
                     $path = "orders/{$order->number}/".($i + 1).'-'.Str::random(24).'.'.preg_replace('/[^a-z0-9]/', '', $ext);
                     Storage::disk(config('website.orders.artwork_disk'))->putFileAs(dirname($path), $file, basename($path));
@@ -110,7 +115,14 @@ class OrderCreator
                         'decoration_name' => $p['decoration_name'], 'colours' => $p['colours'], 'width_mm' => $p['width_mm'],
                         'unit_ex_gst' => $p['unit'], 'setup_ex_gst' => $p['setup'],
                         'logo_path' => $path, 'logo_name' => mb_substr($file->getClientOriginalName(), 0, 190), 'logo_mime' => mb_substr((string) $file->getMimeType(), 0, 100),
+                        'preflight' => $preflight, 'preflight_notes' => $notes,
                     ]);
+                }
+                if ($help !== []) {
+                    $order->forceFill(['alerts' => array_merge((array) $order->alerts, [[
+                        'code' => 'artwork_help',
+                        'message' => 'Artwork: our team will be in touch to help make your '.implode(' and ', $help).' artwork print-ready before your proof.',
+                    ]])])->save();
                 }
 
                 return $order;

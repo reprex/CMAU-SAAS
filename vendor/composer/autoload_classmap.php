@@ -27,6 +27,7 @@ return array(
     'App\\Checkout\\AccountTokens' => $baseDir . '/app/Checkout/AccountTokens.php',
     'App\\Checkout\\Address\\AddressLookup' => $baseDir . '/app/Checkout/Address/AddressLookup.php',
     'App\\Checkout\\Address\\NoAddressLookup' => $baseDir . '/app/Checkout/Address/NoAddressLookup.php',
+    'App\\Checkout\\ArtworkCheck' => $baseDir . '/app/Checkout/ArtworkCheck.php',
     'App\\Checkout\\BrandingPricer' => $baseDir . '/app/Checkout/BrandingPricer.php',
     'App\\Checkout\\BusinessDays' => $baseDir . '/app/Checkout/BusinessDays.php',
     'App\\Checkout\\CheckoutPricer' => $baseDir . '/app/Checkout/CheckoutPricer.php',
