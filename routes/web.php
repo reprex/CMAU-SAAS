@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SetupController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\BrandingTemplateController;
+use App\Http\Controllers\CurationRequestController;
 use App\Http\Controllers\DraftOrderController;
 use App\Http\Controllers\LineTransferController;
 use App\Http\Controllers\LogoAreaController;
@@ -26,11 +27,13 @@ use App\Http\Controllers\Public\WebsiteCheckoutController;
 use App\Http\Controllers\Public\WebsiteProjectController;
 use App\Http\Controllers\Public\WebsiteQuoteController;
 use App\Http\Controllers\Public\WebsiteSearchController;
+use App\Http\Controllers\Public\WebsiteStaffController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteExtraController;
 use App\Http\Controllers\QuoteItemController;
 use App\Http\Controllers\RangeController;
 use App\Http\Controllers\RelatedStyleController;
+use App\Http\Controllers\StaffConnectController;
 use App\Http\Controllers\SubstituteController;
 use App\Http\Controllers\WebsiteOrderController;
 use Illuminate\Support\Facades\Route;
@@ -75,6 +78,14 @@ Route::prefix('crowdmerch/account')->controller(WebsiteAccountController::class)
     Route::post('change', 'change');
 });
 Route::match(['GET', 'OPTIONS'], 'crowdmerch/address', AddressLookupController::class);
+// Website staff tools (docs/website-staff.md): Bearer staff pass from /website-staff/connect.
+Route::prefix('crowdmerch/staff')->controller(WebsiteStaffController::class)->group(function () {
+    Route::options('{any}', 'preflight')->where('any', '.*');
+    Route::get('me', 'me');
+    Route::post('signout', 'signout');
+    Route::get('products/{product}/curation', 'curation')->whereNumber('product');
+    Route::post('products/{product}/curation', 'requestCuration')->whereNumber('product');
+});
 // Website project requests (docs/website-project-requests.md).
 Route::options('crowdmerch/projects', [WebsiteProjectController::class, 'preflight']);
 Route::post('crowdmerch/projects', [WebsiteProjectController::class, 'store']);
@@ -118,6 +129,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/range/{product}/stock/live', [RangeController::class, 'liveStock'])->whereNumber('product')->name('range.stock.live');
     Route::get('/logo-areas', [LogoAreaController::class, 'index'])->name('range.logo-areas');
     Route::get('/positions', [PositionRuleController::class, 'index'])->name('range.positions');
+    Route::get('/website-staff/connect', StaffConnectController::class)->name('website-staff.connect');
+    Route::get('/curation-requests', [CurationRequestController::class, 'index'])->name('curation-requests.index');
     Route::get('/project-requests', [ProjectRequestController::class, 'index'])->name('project-requests.index');
     Route::get('/project-requests/{projectRequest}', [ProjectRequestController::class, 'show'])->whereNumber('projectRequest')->name('project-requests.show');
     Route::get('/project-requests/{projectRequest}/files/{n}', [ProjectRequestController::class, 'file'])->whereNumber(['projectRequest', 'n'])->name('project-requests.file');
@@ -165,6 +178,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/range/{product}/related', [RelatedStyleController::class, 'store'])->whereNumber('product')->name('range.related.store');
         Route::delete('/range/{product}/related/{style}', [RelatedStyleController::class, 'destroy'])->whereNumber('product')->name('range.related.destroy');
 
+        Route::post('/curation-requests/{curationRequest}/decide', [CurationRequestController::class, 'decide'])->whereNumber('curationRequest')->name('curation-requests.decide')->middleware('role:admin');
         Route::put('/project-requests/{projectRequest}', [ProjectRequestController::class, 'update'])->whereNumber('projectRequest')->name('project-requests.update');
         Route::put('/website-orders/{order}', [WebsiteOrderController::class, 'update'])->whereNumber('order')->name('website-orders.update');
         Route::post('/website-orders/{order}/emails/{email}/send', [WebsiteOrderController::class, 'sendEmail'])->whereNumber('order')->name('website-orders.send');

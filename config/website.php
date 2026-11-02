@@ -44,6 +44,13 @@ return [
         'max_positions' => 8,
     ],
 
+    // Staff tools on the website: curation pop-up, and later quotes and orders for clients
+    // (docs/website-staff.md). Passes come from a SaaS sign-in in a pop-up.
+    'staff' => [
+        'pass_hours' => (int) env('WEBSITE_STAFF_PASS_HOURS', 12),
+        'per_hour' => (int) env('WEBSITE_STAFF_CALLS_PER_HOUR', 1200),   // per IP
+    ],
+
     // Website project requests (the "Design something" survey; docs/website-project-requests.md).
     // Same guard as website orders: allowed origins, honeypot, per-IP limit and Turnstile.
     'projects' => [
