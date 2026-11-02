@@ -32,7 +32,7 @@ class LogoAreaController extends Controller
         $live = Product::query()->where('tier', Product::TIER_LIVE)->where('discontinued', false)->whereNotNull('hero_image_url')->count();
 
         if ($view === 'groups') {
-            $groups = Cache::remember('logo-areas:groups', 60, fn () => $learner->learnSummary());
+            $groups = collect(Cache::remember('logo-areas:groups:v2', 60, fn () => $learner->learnSummary()->all()));
             $names = Supplier::query()->pluck('name', 'id');
 
             return view('range.logo-areas', compact('view', 'counts', 'live', 'groups', 'names') + ['cards' => collect(), 'products' => null, 'learner' => $learner]);

@@ -90,9 +90,12 @@ class RangeController extends Controller
             'undecorated' => $undecorated,
             'view' => $view, 'q' => $q, 'supplierId' => $supplierId, 'type' => $type, 'sort' => $sort, 'showDiscontinued' => $showDiscontinued,
             'counts' => $counts,
-            'suppliers' => Cache::remember('range:suppliers', 600, fn () => Supplier::query()->whereHas('products')->orderBy('name')->get(['id', 'name'])),
-            'types' => Cache::remember('range:types', 600, fn () => Product::query()->whereNotNull('promodata_type_name')
-                ->distinct()->orderBy('promodata_type_name')->pluck('promodata_type_name')),
+            // The cache only holds plain arrays (config/cache.php serializable_classes is false), so
+            // models and collections are rebuilt here after reading.
+            'suppliers' => collect(Cache::remember('range:suppliers:v2', 600, fn () => Supplier::query()->whereHas('products')->orderBy('name')
+                ->get(['id', 'name'])->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->all()))->map(fn ($s) => (object) $s),
+            'types' => collect(Cache::remember('range:types:v2', 600, fn () => Product::query()->whereNotNull('promodata_type_name')
+                ->distinct()->orderBy('promodata_type_name')->pluck('promodata_type_name')->all())),
         ]);
     }
 
