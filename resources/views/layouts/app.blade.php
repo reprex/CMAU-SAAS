@@ -16,6 +16,7 @@
     <a href="{{ route('quotes.index') }}" class="{{ request()->routeIs('quotes.*') ? 'on' : '' }}">Quotes</a>
     <a href="{{ route('website-orders.index') }}" class="{{ request()->routeIs('website-orders.*') ? 'on' : '' }}">Website orders</a>
     <a href="{{ route('project-requests.index') }}" class="{{ request()->routeIs('project-requests.*') ? 'on' : '' }}">Project requests</a>
+    <a href="{{ route('curation-requests.index') }}" class="{{ request()->routeIs('curation-requests.*') ? 'on' : '' }}">Curation requests</a>
     <a href="{{ route('drafts.index') }}" class="{{ request()->routeIs('drafts.*') ? 'on' : '' }}">Wish lists &amp; intake</a>
     <a href="{{ route('range.index') }}" class="{{ request()->routeIs('range.*') && ! request()->routeIs('range.logo-areas*') && ! request()->routeIs('range.positions*') ? 'on' : '' }}">Range</a>
     <a href="{{ route('range.positions') }}" class="{{ request()->routeIs('range.positions*') ? 'on' : '' }}">Positions</a>
