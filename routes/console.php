@@ -40,6 +40,13 @@ Schedule::command('catalogue:check-images')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+// Range publishing to Shopify (docs/publisher.md): on with shopify:auto-publish on. Up to 60
+// changed products a minute, failed ones retried after an hour, paused by Shopify's variant limit.
+Schedule::command('shopify:publish --limit=60 --seconds=45 --retry-after=60')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->when(fn () => (bool) cache()->get('shopify:auto_publish') && ! cache()->get('shopify:publish_paused_until'));
+
 // White-background style photos become the hero (Scott, 2 Nov 2026; docs/images.md).
 Schedule::command('catalogue:backdrops')
     ->everyMinute()

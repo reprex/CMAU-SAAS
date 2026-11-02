@@ -33,3 +33,9 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --limit=50
 - `shopify:metafield-definitions` once per store: creates definitions for the new fields (needed for the colour family filter). Run it again after this change for `ourcode` and `supplierproductcode`.
 - `--preview` writes what would be sent to `storage/app/publish-preview/<id>.json` and sends nothing.
 - Run in batches of 50 for the first load (about a minute each); it is not scheduled yet.
+
+## Publishing the whole range (3 Nov 2026)
+
+- `shopify:range-report`: the web range, how much is priced and fully detailed, on the store, waiting, failed in the last day, photos still to check for white backgrounds, and the variants the range needs (one per colour) against Shopify's limit: stores over 50,000 variants can only create 1,000 new variants a day (except Shopify Plus).
+- `shopify:auto-publish on|off`: when on, the minute cron runs `shopify:publish --limit=60 --seconds=45 --retry-after=60`: up to 60 new or changed products a minute, failed ones retried after an hour (they don't block the queue). Shopify's daily new-variant limit pauses it for 6 hours. Once the range is up it keeps the store in step with range changes (curation, new heroes, price changes).
+- A new white-background hero marks the product to publish again (`catalogue:backdrops`).
