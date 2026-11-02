@@ -99,7 +99,11 @@ class AutoPositionsTest extends TestCase
         $p = $this->tee();
         $positions = collect(app(PositionResolver::class)->forShopify($p))->keyBy('name');
 
-        $this->assertSame(['Front', 'Back'], $positions->keys()->all());
+        // Garments also get sleeves and back neck (the data names front and back already).
+        $this->assertSame(['Front', 'Back', 'Left sleeve', 'Right sleeve', 'Back neck'], $positions->keys()->all());
+        $this->assertSame([100, 100], $positions['Left sleeve']['max_mm']);
+        $this->assertSame('back', $positions['Back neck']['view']);
+        $this->assertSame('garment', $positions['Back neck']['source']);
         $front = collect($positions['Front']['method_areas'])->keyBy('method');
         $this->assertSame([297, 420], $front['dtf']['max_mm']);          // "up to A3"
         $this->assertSame([380, 480], $front['dtf_oversize']['max_mm']); // DTF and oversize DTF have different areas
@@ -173,5 +177,22 @@ class AutoPositionsTest extends TestCase
         $this->staff('sales');
         $this->get(route('range.show', $p))->assertOk()->assertSee('Branding positions on the website')->assertSee('Wrap around')->assertSee('Sublimation 209 × 108 mm');
         $this->get(route('range.logo-areas'))->assertOk()->assertSee('Vetting here is optional', false);
+    }
+
+    public function test_a_tee_whose_data_names_only_the_front_still_gets_a_back_of_the_same_size(): void
+    {
+        $p = $this->tee();
+        $p->detail->update(['details' => [['name' => 'Dimensions', 'detail' => 'S-5XL']]]);
+        $positions = collect(app(PositionResolver::class)->forShopify($p->fresh()))->keyBy('name');
+
+        $this->assertSame(['Front', 'Back', 'Left sleeve', 'Right sleeve', 'Back neck'], $positions->keys()->all());
+        $this->assertSame($positions['Front']['max_mm'], $positions['Back']['max_mm']);
+        $this->assertSame('back', $positions['Back']['view']);
+        $this->assertSame($positions['Front']['methods'], $positions['Back']['methods']);
+    }
+
+    public function test_non_garments_get_no_extra_positions(): void
+    {
+        $this->assertCount(1, app(PositionResolver::class)->forShopify($this->stubby()));
     }
 }
