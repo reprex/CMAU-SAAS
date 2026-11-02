@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Catalogue\Backdrop;
 use App\Catalogue\ImageTagger;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\Support\QuoteFixtures;
 use Tests\TestCase;
 
@@ -158,5 +160,49 @@ class ImageTaggerTest extends TestCase
         $p->colours()->create(['name' => 'Blue', 'image_url' => null, 'position' => 0]);
         $out = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
         $this->assertSame(['Blue' => ['families' => [], 'image' => self::CDN.'ll5098.jpg', 'other' => []]], $out['colours']);
+    }
+
+    private function png(int $r, int $g, int $b): string
+    {
+        $im = imagecreatetruecolor(200, 260);
+        imagefill($im, 0, 0, imagecolorallocate($im, $r, $g, $b));
+        imagefilledrectangle($im, 50, 40, 150, 220, imagecolorallocate($im, 120, 30, 30)); // the product
+        ob_start();
+        imagepng($im);
+
+        return (string) ob_get_clean();
+    }
+
+    public function test_backdrop_tells_white_from_studio_grey(): void
+    {
+        $b = app(Backdrop::class);
+        $this->assertTrue($b->whiteEdge(imagecreatefromstring($this->png(255, 255, 255))));
+        $this->assertTrue($b->whiteEdge(imagecreatefromstring($this->png(246, 247, 245))));
+        $this->assertFalse($b->whiteEdge(imagecreatefromstring($this->png(225, 225, 228)))); // AS Colour's grey
+        $this->assertFalse($b->whiteEdge(imagecreatefromstring($this->png(20, 20, 20))));
+    }
+
+    public function test_white_background_style_photo_becomes_the_hero(): void
+    {
+        $p = $this->mapleTee();
+        Http::fake([
+            '*tee_side*' => Http::response($this->png(255, 255, 255)),
+            '*' => Http::response($this->png(225, 225, 228)),
+        ]);
+        $this->artisan('catalogue:backdrops', ['--product' => $p->id])->assertSuccessful();
+        $tags = $this->tagsOf($p);
+
+        $this->assertSame('hero_style', $tags['4001_maple_tee_side__57201.jpg']);
+        $this->assertSame('other_style', $tags['4001_maple_tee_main__87044.jpg']);
+        $this->assertSame('colour:Navy', $tags['navy.jpg']);
+        $this->assertNull(ProductImage::query()->where('url', self::CDN.'colours/navy.jpg')->value('white_bg')); // colour photos aren't looked at
+        $shop = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
+        $this->assertSame(self::CDN.'4001_maple_tee_side__57201.jpg', $shop['media'][0]);
+
+        // A hero staff chose still wins.
+        ProductOverride::create(['product_id' => $p->id, 'data' => ['hero_image_url' => self::CDN.'4001_maple_tee_back__90295.jpg']]);
+        $tags = $this->tagsOf($p);
+        $this->assertSame('hero_style', $tags['4001_maple_tee_back__90295.jpg']);
+        $this->assertSame('other_style', $tags['4001_maple_tee_side__57201.jpg']);
     }
 }

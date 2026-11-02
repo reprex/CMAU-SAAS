@@ -20,6 +20,8 @@ Worked out on every Promodata refresh (`App\Catalogue\ImageTagger`), in this ord
 
 There is always exactly one hero style.
 
+**White background first (Scott, 2 Nov 2026).** A style photo on a white background is the hero everywhere (collection cards, product page, cart, quote PDFs); Promodata's hero, usually a model or studio-grey shot, becomes other style. `catalogue:backdrops` (every minute, a batch of web-range products) looks at the edge of each style photo with PHP GD: at least 92% of a band round the edge white (red, green and blue all 240 or more) or see-through counts as white; studio grey (about 225) does not. The result is stored on the image (`product_images.white_bg`); colour photos aren't looked at. A hero staff picked always wins. Republish to send the new order to Shopify. One product: `catalogue:backdrops --product=ID`.
+
 ## Claude image check
 
 File names only help when the supplier names its files well (AS Colour: `4001_maple_tee_pistacio_back`; JB's Wear: `210_1_01` says nothing). So Claude also looks at the pictures (`App\Catalogue\ImageVision`, `catalogue:check-images`, every scheduler minute):
