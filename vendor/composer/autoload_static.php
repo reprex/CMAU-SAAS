@@ -733,6 +733,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Search\\Turnstile' => __DIR__ . '/../..' . '/app/Search/Turnstile.php',
         'App\\Shopify\\ProductPayload' => __DIR__ . '/../..' . '/app/Shopify/ProductPayload.php',
         'App\\Shopify\\ProductPublisher' => __DIR__ . '/../..' . '/app/Shopify/ProductPublisher.php',
+        'App\\Shopify\\RangeCollections' => __DIR__ . '/../..' . '/app/Shopify/RangeCollections.php',
         'App\\Shopify\\ShopifyAdmin' => __DIR__ . '/../..' . '/app/Shopify/ShopifyAdmin.php',
         'App\\Sources\\Promodata\\PromodataClient' => __DIR__ . '/../..' . '/app/Sources/Promodata/PromodataClient.php',
         'App\\Sources\\Promodata\\PromodataNormaliser' => __DIR__ . '/../..' . '/app/Sources/Promodata/PromodataNormaliser.php',

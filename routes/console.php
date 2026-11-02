@@ -47,6 +47,12 @@ Schedule::command('shopify:publish --limit=60 --seconds=45 --retry-after=60')
     ->withoutOverlapping(10)
     ->when(fn () => (bool) cache()->get('shopify:auto_publish') && ! cache()->get('shopify:publish_paused_until'));
 
+// Range collections: keep the product order in each subcategory collection (docs/publisher.md).
+Schedule::command('shopify:collections --sort --seconds=45')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping(10)
+    ->when(fn () => (bool) cache()->get('shopify:auto_publish'));
+
 // White-background style photos become the hero (Scott, 2 Nov 2026; docs/images.md).
 Schedule::command('catalogue:backdrops')
     ->everyMinute()

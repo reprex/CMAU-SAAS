@@ -190,6 +190,7 @@ return array(
     'App\\Search\\Turnstile' => $baseDir . '/app/Search/Turnstile.php',
     'App\\Shopify\\ProductPayload' => $baseDir . '/app/Shopify/ProductPayload.php',
     'App\\Shopify\\ProductPublisher' => $baseDir . '/app/Shopify/ProductPublisher.php',
+    'App\\Shopify\\RangeCollections' => $baseDir . '/app/Shopify/RangeCollections.php',
     'App\\Shopify\\ShopifyAdmin' => $baseDir . '/app/Shopify/ShopifyAdmin.php',
     'App\\Sources\\Promodata\\PromodataClient' => $baseDir . '/app/Sources/Promodata/PromodataClient.php',
     'App\\Sources\\Promodata\\PromodataNormaliser' => $baseDir . '/app/Sources/Promodata/PromodataNormaliser.php',

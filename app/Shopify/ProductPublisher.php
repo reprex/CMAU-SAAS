@@ -123,7 +123,7 @@ class ProductPublisher
      * read_publications and write_publications; without them the publish still
      * succeeds and the reply says what is missing.
      */
-    private function showOnOnlineStore(string $productGid): ?string
+    public function showOnOnlineStore(string $productGid): ?string
     {
         try {
             $publication = Cache::remember('shopify:online-store-publication:'.config('shopify.store'), 86400, function () {
