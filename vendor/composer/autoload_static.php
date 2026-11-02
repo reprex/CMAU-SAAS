@@ -550,6 +550,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
 
     public static $classMap = array (
         'AllowDynamicProperties' => __DIR__ . '/..' . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
+        'App\\Catalogue\\Backdrop' => __DIR__ . '/../..' . '/app/Catalogue/Backdrop.php',
         'App\\Catalogue\\BrandingTemplates' => __DIR__ . '/../..' . '/app/Catalogue/BrandingTemplates.php',
         'App\\Catalogue\\CatalogueWriter' => __DIR__ . '/../..' . '/app/Catalogue/CatalogueWriter.php',
         'App\\Catalogue\\DecorationAreas' => __DIR__ . '/../..' . '/app/Catalogue/DecorationAreas.php',
@@ -582,6 +583,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Checkout\\SamplesPricer' => __DIR__ . '/../..' . '/app/Checkout/SamplesPricer.php',
         'App\\Checkout\\Sms\\LogSmsSender' => __DIR__ . '/../..' . '/app/Checkout/Sms/LogSmsSender.php',
         'App\\Checkout\\Sms\\SmsSender' => __DIR__ . '/../..' . '/app/Checkout/Sms/SmsSender.php',
+        'App\\Console\\Commands\\CatalogueBackdropsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueBackdropsCommand.php',
         'App\\Console\\Commands\\CatalogueCheckImagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueCheckImagesCommand.php',
         'App\\Console\\Commands\\CatalogueDemoteCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueDemoteCommand.php',
         'App\\Console\\Commands\\CatalogueHydrateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueHydrateCommand.php',

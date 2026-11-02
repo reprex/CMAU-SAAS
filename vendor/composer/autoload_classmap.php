@@ -7,6 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'AllowDynamicProperties' => $vendorDir . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
+    'App\\Catalogue\\Backdrop' => $baseDir . '/app/Catalogue/Backdrop.php',
     'App\\Catalogue\\BrandingTemplates' => $baseDir . '/app/Catalogue/BrandingTemplates.php',
     'App\\Catalogue\\CatalogueWriter' => $baseDir . '/app/Catalogue/CatalogueWriter.php',
     'App\\Catalogue\\DecorationAreas' => $baseDir . '/app/Catalogue/DecorationAreas.php',
@@ -39,6 +40,7 @@ return array(
     'App\\Checkout\\SamplesPricer' => $baseDir . '/app/Checkout/SamplesPricer.php',
     'App\\Checkout\\Sms\\LogSmsSender' => $baseDir . '/app/Checkout/Sms/LogSmsSender.php',
     'App\\Checkout\\Sms\\SmsSender' => $baseDir . '/app/Checkout/Sms/SmsSender.php',
+    'App\\Console\\Commands\\CatalogueBackdropsCommand' => $baseDir . '/app/Console/Commands/CatalogueBackdropsCommand.php',
     'App\\Console\\Commands\\CatalogueCheckImagesCommand' => $baseDir . '/app/Console/Commands/CatalogueCheckImagesCommand.php',
     'App\\Console\\Commands\\CatalogueDemoteCommand' => $baseDir . '/app/Console/Commands/CatalogueDemoteCommand.php',
     'App\\Console\\Commands\\CatalogueHydrateCommand' => $baseDir . '/app/Console/Commands/CatalogueHydrateCommand.php',
