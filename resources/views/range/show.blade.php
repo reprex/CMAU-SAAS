@@ -197,7 +197,7 @@
     <div class="card">
       <h2>Branding positions on the website</h2>
       @if($webPositions)
-        <p class="small muted" style="margin:0">{{ ['template' => "From the supplier's branding template.", 'decoration' => "From the print areas in Promodata's decoration options. No vetting needed.", 'default' => 'No print area stated: the product type default.'][$webPositions[0]['source'] ?? ''] ?? '' }} A logo area approved on Range › Logo areas moves the first front box.</p>
+        <p class="small muted" style="margin:0">{{ ['template' => "From the supplier's branding template.", 'decoration' => "From the print areas in Promodata's decoration options. No vetting needed.", 'default' => 'No print area stated: the product type default.', 'staff' => 'Curated on Range › Positions.', 'garment' => 'Garment positions.'][$webPositions[0]['source'] ?? ''] ?? '' }} A logo area approved on Range › Logo areas moves the first front box.</p>
         <table class="list small"><thead><tr><th>Position</th><th>View</th><th>Methods and max size</th><th class="num">Box</th></tr></thead><tbody>
         @foreach($webPositions as $p)<tr><td>{{ $p['name'] }}</td><td>{{ $p['view'] }}</td>
           <td>{{ collect($p['method_areas'] ?? [])->map(fn ($m) => $m['name'].(! empty($m['max_mm']) ? ' '.$m['max_mm'][0].' × '.($m['max_mm'][1] ?? '?').' mm' : ''))->implode(', ') ?: '–' }}</td>
@@ -205,6 +205,13 @@
         </tbody></table>
       @else
         <p class="small muted" style="margin:0">None: this product has no decoration options.</p>
+      @endif
+      @if($webPositions)
+        <details style="margin-top:8px"><summary class="small" style="font-weight:600">Curate this product's positions</summary>
+          @php($ownRule = \App\Models\PositionRule::query()->where('product_id', $product->id)->first())
+          @include('range._position-form', ['rule' => $ownRule, 'productId' => $product->id, 'auto' => $webPositions])
+          <p class="small muted">For every product of this type: <a href="{{ route('range.positions', ['type' => $product->promodata_type_name]) }}">Range › Positions</a>.</p>
+        </details>
       @endif
     </div>
 

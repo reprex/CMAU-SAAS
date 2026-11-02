@@ -15,6 +15,7 @@ use App\Http\Controllers\DraftOrderController;
 use App\Http\Controllers\LineTransferController;
 use App\Http\Controllers\LogoAreaController;
 use App\Http\Controllers\PdfController;
+use App\Http\Controllers\PositionRuleController;
 use App\Http\Controllers\ProductLookupController;
 use App\Http\Controllers\Public\AddressLookupController;
 use App\Http\Controllers\Public\ShopifyWebhookController;
@@ -111,6 +112,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/range/{product}/stock', [SubstituteController::class, 'stock'])->whereNumber('product')->name('range.stock');
     Route::get('/range/{product}/stock/live', [RangeController::class, 'liveStock'])->whereNumber('product')->name('range.stock.live');
     Route::get('/logo-areas', [LogoAreaController::class, 'index'])->name('range.logo-areas');
+    Route::get('/positions', [PositionRuleController::class, 'index'])->name('range.positions');
     Route::get('/website-orders', [WebsiteOrderController::class, 'index'])->name('website-orders.index');
     Route::get('/website-orders/{order}', [WebsiteOrderController::class, 'show'])->whereNumber('order')->name('website-orders.show');
     Route::get('/website-orders/{order}/invoice.pdf', [WebsiteOrderController::class, 'invoice'])->whereNumber('order')->name('website-orders.invoice');
@@ -143,6 +145,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/drafts/{draft}/convert', [DraftOrderController::class, 'convert'])->name('drafts.convert');
 
         Route::post('/range/bulk', [RangeController::class, 'bulk'])->name('range.bulk');
+        Route::post('/positions', [PositionRuleController::class, 'save'])->name('range.positions.save');
         Route::post('/logo-areas/{product}', [LogoAreaController::class, 'store'])->whereNumber('product')->name('range.logo-areas.store');
         Route::post('/range/{product}/templates', [BrandingTemplateController::class, 'store'])->whereNumber('product')->name('range.templates.store');
         Route::post('/range/{product}/templates/{template}/read', [BrandingTemplateController::class, 'read'])->whereNumber('product')->name('range.templates.read');

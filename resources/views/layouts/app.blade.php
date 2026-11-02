@@ -16,7 +16,8 @@
     <a href="{{ route('quotes.index') }}" class="{{ request()->routeIs('quotes.*') ? 'on' : '' }}">Quotes</a>
     <a href="{{ route('website-orders.index') }}" class="{{ request()->routeIs('website-orders.*') ? 'on' : '' }}">Website orders</a>
     <a href="{{ route('drafts.index') }}" class="{{ request()->routeIs('drafts.*') ? 'on' : '' }}">Wish lists &amp; intake</a>
-    <a href="{{ route('range.index') }}" class="{{ request()->routeIs('range.*') && ! request()->routeIs('range.logo-areas*') ? 'on' : '' }}">Range</a>
+    <a href="{{ route('range.index') }}" class="{{ request()->routeIs('range.*') && ! request()->routeIs('range.logo-areas*') && ! request()->routeIs('range.positions*') ? 'on' : '' }}">Range</a>
+    <a href="{{ route('range.positions') }}" class="{{ request()->routeIs('range.positions*') ? 'on' : '' }}">Positions</a>
     <a href="{{ route('range.logo-areas') }}" class="{{ request()->routeIs('range.logo-areas*') ? 'on' : '' }}">Logo areas</a>
     @if(auth()->user()->isAdmin())
       <span class="group">ADMIN ONLY</span>

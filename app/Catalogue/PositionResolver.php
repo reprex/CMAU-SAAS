@@ -3,6 +3,7 @@
 namespace App\Catalogue;
 
 use App\Models\DecTypeCode;
+use App\Models\PositionRule;
 use App\Models\PriceOption;
 use App\Models\PrintArea;
 use App\Models\Product;
@@ -152,13 +153,19 @@ class PositionResolver
     public function forShopify(Product $product): array
     {
         $template = $this->templates->forShopify($product);
+        $rule = PositionRule::for($product);
         if ($template !== []) {
-            return array_map(fn ($p) => $p + [
+            $positions = array_map(fn ($p) => $p + [
                 'method_areas' => array_map(fn ($name) => ['method' => DecorationAreas::method($name), 'name' => $name, 'max_mm' => $p['max_mm'] ?? null], $p['methods'] ?? []),
                 'source' => 'template',
             ], $template);
+
+            return $rule ? $this->fromRule($product, $rule, $positions) : $positions; // staff positions beat the template
         }
         $positions = $this->withGarmentPositions($product, $this->fromDecorations($product) ?: $this->typeDefault($product));
+        if ($positions !== [] && $rule) {
+            $positions = $this->fromRule($product, $rule, $positions);
+        }
         $staff = $this->staffArea($product);
         foreach ($positions as $i => $p) {
             if ($staff && $p['view'] === 'front') { // staff placed the logo by hand: that wins on the first front position
@@ -267,6 +274,41 @@ class PositionResolver
         $left = max(0.0, min(100.0 - $width, $centre - $width / 2));
 
         return ['image' => $image, 'left' => round($left, 2), 'top' => round((float) $top, 2), 'width' => round((float) $width, 2)];
+    }
+
+    /**
+     * Staff positions (Range › Positions) replace the automatic ones. Each keeps the
+     * decoration methods the product offers, capped at the size staff set, and the box
+     * of the automatic position of the same name (else the type default box).
+     *
+     * @param  list<array<string, mixed>>  $auto
+     * @return list<array<string, mixed>>
+     */
+    public function fromRule(Product $product, PositionRule $rule, array $auto): array
+    {
+        $byName = collect($auto)->keyBy(fn ($p) => mb_strtolower((string) $p['name']));
+        $base = collect($auto)->first(fn ($p) => ($p['view'] ?? 'front') === 'front') ?? $auto[0];
+        $out = [];
+        foreach ((array) $rule->positions as $r) {
+            $name = trim((string) ($r['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $view = in_array($r['view'] ?? null, PositionRule::VIEWS, true) ? $r['view'] : 'front';
+            $max = ! empty($r['width_mm']) ? [(int) $r['width_mm'], ! empty($r['height_mm']) ? (int) $r['height_mm'] : null] : null;
+            $same = $byName->get(mb_strtolower($name));
+            $from = $same ?? $base;
+            $areas = array_map(fn ($a) => $max ? array_merge($a, ['max_mm' => $max]) : $a, $from['method_areas'] ?? []);
+            $box = $same && isset($same['width']) && ($same['view'] ?? 'front') === $view
+                ? array_intersect_key($same, array_flip(['image', 'left', 'top', 'width']))
+                : $this->box($product, $name, $view, $max);
+            $out[] = [
+                'name' => $name, 'view' => $view, 'max_mm' => $max ?? ($from['max_mm'] ?? null),
+                'methods' => $from['methods'] ?? [], 'method_areas' => $areas, 'source' => 'staff',
+            ] + $box;
+        }
+
+        return $out ?: $auto;
     }
 
     /** Garments whose decoration data names only the front still print on the back, sleeves and neck. */

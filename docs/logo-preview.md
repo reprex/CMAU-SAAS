@@ -57,3 +57,9 @@ Each hero image can have a stored area (`print_areas`, keyed by image URL so Pro
 
 - `custom.printarea` (json): `{"image": "<hero url>", "left": 37, "top": 30, "width": 26}` (percent of the image), by the priority above (`PrintAreas::forShopify`). The theme places the logo over the hero image in that box only while the hero image shown is that `image`; product page controls start from it.
 - `custom.brandingpositions` (json): every position, see docs/branding-templates.md.
+
+## Curated positions (Range › Positions, 2 Nov 2026)
+
+Staff can set the positions for a product type, or for one product (its Range page). A curated rule beats everything automatic, the supplier template included: product rule, then type rule, then template, Promodata print areas, garment extras (back, sleeves, back neck) and the type default. Each curated position keeps the decoration methods the product offers, capped at the size set, and the box of the automatic position of the same name (else the type default box). Saving marks the covered live products to publish again; clearing every name removes the rule.
+
+`catalogue:positions-report` (nightly 04:30, read-only) counts where the live range's positions come from and lists the product types relying on the type-default guess; Range › Positions shows those counts.
