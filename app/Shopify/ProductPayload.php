@@ -75,7 +75,7 @@ class ProductPayload
                     $moq ? $this->mf('custom', 'productmoq', 'number_integer', (string) $moq) : null,
                     $c['other'] ? $this->mf('custom', 'altimagepublicpath', 'url', $c['other'][0]) : null,
                     $c['other'] ? $this->mf('custom', 'altimages', 'list.url', json_encode(array_values($c['other']))) : null,
-                    ($c['families'] ?? []) ? $this->mf('custom', 'colourfamily', 'list.single_line_text_field', json_encode(array_values($c['families']))) : null,
+                    ($c['families'] ?? []) ? $this->mf('custom', 'colourfamily', 'list.single_line_text_field', json_encode(self::families($c['families']))) : null,
                 ])),
             ];
             if ($price !== null) {
@@ -223,5 +223,26 @@ class ProductPayload
     private function mf(string $ns, string $key, string $type, string $value): array
     {
         return ['namespace' => $ns, 'key' => $key, 'type' => $type, 'value' => $value];
+    }
+
+    /**
+     * Colour families without light/dark shades, and navy as blue (Scott, 2 Nov 2026):
+     * "Dark Red" is Red, "Navy" is Blue, so each family holds every shade.
+     *
+     * @param  list<string>  $families
+     * @return list<string>
+     */
+    public static function families(array $families): array
+    {
+        $out = [];
+        foreach ($families as $f) {
+            $f = trim((string) preg_replace('/\\s+/', ' ', (string) preg_replace('/\\b(light|dark|pale|deep|bright|neon|dusty|faded|soft)\\b/i', '', (string) $f)));
+            $f = strcasecmp($f, 'navy') === 0 ? 'Blue' : ucwords(strtolower($f));
+            if ($f !== '' && ! in_array($f, $out, true)) {
+                $out[] = $f;
+            }
+        }
+
+        return $out;
     }
 }

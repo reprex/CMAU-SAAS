@@ -151,4 +151,9 @@ class ShopifyPublishTest extends TestCase
         $publish = $calls->first(fn ($b) => str_contains($b['query'], 'publishablePublish'));
         $this->assertSame('gid://shopify/Publication/9', $publish['variables']['input'][0]['publicationId']);
     }
+
+    public function test_colour_families_ignore_shades_and_navy_is_blue(): void
+    {
+        $this->assertSame(['Red', 'Blue'], ProductPayload::families(['Dark Red', 'Navy', 'Light Blue', 'red']));
+    }
 }
