@@ -32,6 +32,7 @@ class Quote extends Model
     {
         return [
             'deadline' => 'date',
+            'artwork' => 'array',
             'valid_until' => 'date',
             'sent_at' => 'datetime',
             'won_at' => 'datetime',

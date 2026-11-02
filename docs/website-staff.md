@@ -1,6 +1,6 @@
 # Website staff tools
 
-Staff tools on the CMAU website (Scott, 3 Nov 2026). Stage 1: range curation from the product page. Stage 2 (next): quotes and orders for clients from the product page.
+Staff tools on the CMAU website (Scott, 3 Nov 2026): range curation from the product page, and quotes and orders for clients from the cart page.
 
 ## Signing in
 
@@ -20,3 +20,13 @@ The website's **Staff sign-in** opens `/website-staff/connect?origin=…` in a p
 - **Everyone else's wait** under SaaS › **Curation requests** for an admin to Approve or Reject. Failed ones can be tried again.
 - A **note on its own** is a to-do for the team; an admin marks it Done.
 - The website's product never changes directly: the SaaS overrides are the source and the publisher pushes them back.
+
+## Working for a client (cart page)
+
+Signed-in staff see a **Working for a client** panel at the top of the cart page (after Order now on a product page). Find the client, or add a new one, then:
+
+- **Create quote**: `POST crowdmerch/staff/quotes` (multipart: `cart` JSON with product_id, lines, positions; `client` JSON; `note`; `logos[i]` by position). The cart is priced exactly as the checkout prices it (`CheckoutPricer`) and written into the quote desk as a PHONE quote created by and assigned to the staff member: one line per style with its sizes as SKU rows and the first branding position, plus a branding-only line for each further position. Logos are kept privately with the quote (`quotes.artwork`; download links on the quote page). Missing logos or artwork review don't stop a quote; stock and deadline notes go in the internal notes.
+- **Add to quote**: the same call with `quote` (a number) instead of `client`: the lines are added to the client's open quote.
+- **Place the order for them**: the normal checkout below, with the client's details filled in. The order call carries the staff pass, so the order records `placed_by` (shown on the website order); the client gets the invoice email as usual, and the staff member's browser is not signed in to the client's My Orders.
+
+Client lookup (`GET crowdmerch/staff/clients?q=`) searches the people the SaaS already knows: quote clients and website order contacts (latest details win). ROD Contacts stays the master list; the ROD hand-off links them later. `GET crowdmerch/staff/clients/quotes?email=` lists the client's open quotes (New, Phone, Quote sent).

@@ -171,6 +171,7 @@
       <div class="small muted">Valid until {{ $quote->valid_until?->format('j M Y') ?? '–' }} · deadline {{ $quote->deadline?->format('j M Y') ?? '–' }}</div>
       @if($quote->shopify_invoice_url)<a class="small" href="{{ $quote->shopify_invoice_url }}" target="_blank" rel="noopener">Shopify invoice page</a>@endif
       @if($quote->internal_notes)<div class="small" style="white-space:pre-line;background:#F8F3EA;border-radius:8px;padding:8px 10px">{{ $quote->internal_notes }}</div>@endif
+      @if($quote->artwork)<div class="small" style="margin-top:8px"><b>Artwork from the website</b>@foreach($quote->artwork as $i => $f)<div><a href="{{ route('quotes.artwork', [$quote, $i]) }}">{{ $f['position'] }}: {{ $f['name'] }}</a></div>@endforeach</div>@endif
       @if($edit)
       <details>
         <summary>Edit details</summary>
