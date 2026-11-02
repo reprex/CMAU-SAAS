@@ -63,6 +63,10 @@ class WebsiteStaffToolsTest extends TestCase
         $this->staff('sales');
         $res = $this->get('/website-staff/connect?origin='.urlencode(self::ORIGIN))->assertOk()->assertHeader('Cache-Control');
         $res->assertSee('cm-staff-pass')->assertSee('postMessage');
+        // The page's inline script is allowed by its nonce (the site's CSP blocks inline scripts otherwise).
+        preg_match("/script-src 'self' 'nonce-([a-f0-9]+)'/", (string) $res->headers->get('Content-Security-Policy'), $m);
+        $this->assertNotEmpty($m);
+        $res->assertSee('<script nonce="'.$m[1].'">', false);
         $this->assertSame(1, WebsiteStaffPass::count());
         $this->get('/website-staff/connect?origin='.urlencode('https://evil.example'))->assertForbidden();
         $this->staff('readonly');

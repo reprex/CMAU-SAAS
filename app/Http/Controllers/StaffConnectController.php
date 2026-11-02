@@ -23,7 +23,11 @@ class StaffConnectController extends Controller
         ['token' => $token, 'pass' => $pass] = $passes->issue($user, $origin);
         AuditLog::record('website_staff.signed_in', null, ['origin' => $origin]);
 
+        $nonce = bin2hex(random_bytes(16));
+        $request->attributes->set('csp_nonce', $nonce); // SecurityHeaders allows this page's inline script and style
+
         return response()->view('staff.connect', [
+            'nonce' => $nonce,
             'origin' => $origin,
             'payload' => [
                 'type' => 'cm-staff-pass',
