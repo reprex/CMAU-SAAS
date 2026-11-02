@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Catalogue\DecorationAreas;
 use App\Checkout\ArtworkCheck;
 use App\Checkout\BusinessDays;
 use App\Checkout\DeliveryEstimator;
@@ -363,5 +364,19 @@ class WebsiteCheckoutTest extends TestCase
         $this->assertSame('help', ArtworkCheck::verdict('screen', $png)[0]);
         $this->assertSame(['ready', []], ArtworkCheck::verdict('screen', $svg));
         $this->assertSame('ready', ArtworkCheck::verdict('dtf', $svg)[0]);
+    }
+
+    public function test_the_vetted_decoration_categories_want_the_right_artwork(): void
+    {
+        $solid = fn (string $promodata) => in_array(DecorationAreas::method($promodata), ArtworkCheck::solidMethods(), true);
+        foreach (['Direct Print: Screen Print', 'Direct Print: Pad Print', 'Engraving: Laser Engrave', 'Direct Print: Imitation Etch', 'Embroidery: Standard Embroidery',
+            'Debossing', 'Embossing', 'Foil Stamp', 'Heat Transfer: Screen Print', 'Heat Transfer: Pastisol Transfer', 'Direct Print: Rotary Screen Print',
+            'Direct Print: Gloss Tone', 'Direct Print: Enamel Print', 'Applied Patch: Embroidered Badge', 'Woven', 'Knitted'] as $s) {
+            $this->assertTrue($solid($s), "{$s} should want solid colour vector artwork");
+        }
+        foreach (['Heat Transfer: Digital Transfer', 'Direct Print: Digital Print', 'Direct Print: Rotary Direct Digital', 'Applied Label/Sticker: Label with white background',
+            'Sublimation', 'Addition: Resin Coated Finish', 'Direct Print: Offset Print', 'Applied Patch: Full Colour Printed Patch'] as $c) {
+            $this->assertFalse($solid($c), "{$c} should want full colour CMYK artwork");
+        }
     }
 }

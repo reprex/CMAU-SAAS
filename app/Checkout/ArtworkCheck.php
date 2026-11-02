@@ -18,7 +18,11 @@ use Illuminate\Http\UploadedFile;
  */
 final class ArtworkCheck
 {
-    public const SOLID_METHODS = ['embroidery', 'screen', 'pad', 'laser', 'deboss', 'foil'];
+    /** @return list<string> methods that want solid colour vector artwork (config website.artwork_solid_methods) */
+    public static function solidMethods(): array
+    {
+        return (array) config('website.artwork_solid_methods', ['embroidery', 'screen', 'pad', 'laser', 'deboss', 'foil']);
+    }
 
     public const MIN_DPI = 300;
 
@@ -34,7 +38,7 @@ final class ArtworkCheck
         $head = $path !== '' ? (string) @file_get_contents($path, false, null, 0, 2_000_000) : '';
         $vector = in_array($ext, ['svg', 'ai', 'eps'], true) || ($ext === 'pdf' && ! str_contains($head, '/Subtype /Image') && ! str_contains($head, '/Subtype/Image'));
 
-        if (in_array($method, self::SOLID_METHODS, true)) {
+        if (in_array($method, self::solidMethods(), true)) {
             if (! $vector) {
                 $notes[] = 'Needs vector artwork (AI, EPS, SVG or a vector PDF) in solid colours; this is '.strtoupper($ext ?: 'an image').'.';
             }
