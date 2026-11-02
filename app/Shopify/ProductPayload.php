@@ -104,7 +104,7 @@ class ProductPayload
             $price !== null ? $this->mf('custom', 'collectiondisplayprice', 'number_decimal', $price) : null,
             $this->mf('custom', 'mastersortorder', 'number_integer', (string) ((int) $product->overrideValue('master_sort_order') ?: 99999)),
             $this->mf('custom', 'tagcategory', 'single_line_text_field', 'any,'),
-            $this->mf('custom', 'tagsubcategory', 'single_line_text_field', 'any,'.Str::slug($type, '')),
+            $this->mf('custom', 'tagsubcategory', 'single_line_text_field', 'any,'.(app(RangeCollections::class)->tagFor($type) ?? '')),
             $this->mf('custom', 'tagcolourgroup', 'single_line_text_field', 'any,'.implode(',', $families)),
             $this->mf('custom', 'tagbrandingoption', 'single_line_text_field', 'any,'.implode(',', array_unique($branding))),
             $this->mf('custom', 'tagspecial', 'single_line_text_field', 'any,'),
@@ -174,6 +174,10 @@ class ProductPayload
     {
         $d = $product->detail;
         $tags = ['style'];
+        // The subcategory tag its range collection is built on (RangeCollections).
+        if ($sub = app(RangeCollections::class)->tagFor($product->promodata_type_name)) {
+            $tags[] = $sub;
+        }
         foreach ([$d?->supplier_brand, $d?->supplier_label, $product->promodata_type_name] as $t) {
             if (filled($t)) {
                 $tags[] = trim($t);

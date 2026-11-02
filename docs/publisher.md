@@ -39,3 +39,9 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --limit=50
 - `shopify:range-report`: the web range, how much is priced and fully detailed, on the store, waiting, failed in the last day, photos still to check for white backgrounds, and the variants the range needs (one per colour) against Shopify's limit: stores over 50,000 variants can only create 1,000 new variants a day (except Shopify Plus).
 - `shopify:auto-publish on|off`: when on, the minute cron runs `shopify:publish --limit=60 --seconds=45 --retry-after=60`: up to 60 new or changed products a minute, failed ones retried after an hour (they don't block the queue). Shopify's daily new-variant limit pauses it for 6 hours. Once the range is up it keeps the store in step with range changes (curation, new heroes, price changes).
 - A new white-background hero marks the product to publish again (`catalogue:backdrops`).
+
+## Range collections (3 Nov 2026)
+
+- Every product carries its **subcategory tag** in the TOD style: the part after ">" in the Promodata type, "Other " dropped, letters and digits only ("Bags > Duffle/Sports Bags" -> `dufflesportsbags`, "Other Food & Drink" -> `fooddrink`). The `tagsubcategory` metafield carries the same tag.
+- `shopify:collections`: lists the store's collections and the range's product types. `--sync` matches each type to the store's smart collection "TAG EQUALS <tag>" (by tag, then by title) and shows the missing ones; `--sync --create` creates them like the existing ones (handle `custom-printed-<tag>`, manual sort, template `col_as_variant`, on the Online Store). Matches are kept in `shopify_collections`, and a matched collection's own tag wins over the computed one.
+- `--sort` (every 30 minutes while automatic publishing is on): sets each collection's manual order: staff sort order (`master_sort_order`), then the cheapest at the display quantity, then products with colour photos, then name.

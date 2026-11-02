@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Product;
+use App\Shopify\RangeCollections;
 use App\Shopify\ShopifyAdmin;
 use Illuminate\Console\Command;
 
@@ -12,7 +13,11 @@ use Illuminate\Console\Command;
  */
 class ShopifyCollectionsCommand extends Command
 {
-    protected $signature = 'shopify:collections';
+    protected $signature = 'shopify:collections
+        {--sync : Match each range subcategory to its smart collection (dry run unless --create)}
+        {--create : With --sync, create the missing collections}
+        {--sort : Set the product order in the range collections}
+        {--seconds=45 : Time budget for --sort}';
 
     protected $description = 'List the Shopify collections and the range product types they cover';
 
@@ -26,8 +31,23 @@ class ShopifyCollectionsCommand extends Command
     }
     GQL;
 
-    public function handle(ShopifyAdmin $shopify): int
+    public function handle(ShopifyAdmin $shopify, RangeCollections $collections): int
     {
+        if ($this->option('sync')) {
+            $rows = $collections->sync((bool) $this->option('create'));
+            $this->table(['Product type', 'Tag', 'Collection', 'Handle', 'Products'], array_map(fn ($r) => [$r['type'], $r['tag'], $r['status'], $r['handle'], $r['products']], $rows));
+            $by = collect($rows)->countBy(fn ($r) => str_starts_with($r['status'], 'FAILED') ? 'failed' : $r['status']);
+            $this->info($by->map(fn ($n, $k) => "{$n} {$k}")->implode(', ').($this->option('create') ? '' : '. Add --create to make the missing ones.'));
+
+            return self::SUCCESS;
+        }
+        if ($this->option('sort')) {
+            $n = $collections->sort((int) $this->option('seconds'));
+            $this->info("Sorted {$n} collections.");
+
+            return self::SUCCESS;
+        }
+
         $rows = [];
         $after = null;
         do {
