@@ -30,6 +30,9 @@ class TodPricingImporter
     /** @var callable(string): void */
     private $log;
 
+    /** One timestamp string for every row: a Carbon object per row exhausts memory on the big exports. */
+    private string $now;
+
     /**
      * @param  bool  $carryDefaults  keep each live product's TOD default decoration
      *                               (DefaultDecCPSID) so collection prices do not change
@@ -38,6 +41,7 @@ class TodPricingImporter
     public function __construct(private readonly string $folder, ?callable $log = null, private readonly bool $carryDefaults = true)
     {
         $this->log = $log ?? fn (string $m) => null;
+        $this->now = now()->toDateTimeString();
     }
 
     /** @return array<string, int> counts */
@@ -92,8 +96,8 @@ class TodPricingImporter
                 'sample_freight' => TsvReader::floatOrNull($r['SupplierSampleFreight']),
                 'sample_available' => TsvReader::bool($r['SupplierSampleAvailFlag']),
                 'stock_columns' => $r['SupplierStockColumnCSV'] ?: null,
-                'updated_at' => now(),
-                'created_at' => now(),
+                'updated_at' => $this->now,
+                'created_at' => $this->now,
             ]);
             $n++;
         }
@@ -123,8 +127,8 @@ class TodPricingImporter
                 'emboss_deboss' => TsvReader::bool($r['EmbossDebossFlag']),
                 'foil_stamp' => TsvReader::bool($r['FoilStampFlag']),
                 'sublimation' => TsvReader::bool($r['SublimationFlag']),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $this->now,
+                'updated_at' => $this->now,
             ];
         }
         foreach (array_chunk($rows, 500) as $chunk) {
@@ -142,11 +146,13 @@ class TodPricingImporter
      */
     private function liveProducts(): array
     {
-        $all = [];
+        // Two passes over the export (about 100 MB): the first keeps only the flags and
+        // borrowed-decoration ids, the second keeps full rows for the products wanted.
+        $borrows = [];
         $live = [];
         foreach (TsvReader::rows($this->path('dbo_PDS_Products.tsv')) as $r) {
             $id = (int) $r['APPAProductID'];
-            $all[$id] = $r;
+            $borrows[$id] = [(int) $r['WebDecLiveAPPAID'], (int) $r['WebOverrideDecAPPAID']];
             if (TsvReader::bool($r['WebProdAddFlag']) && ! TsvReader::bool($r['WebProdRemoveFlag'])) {
                 $live[$id] = true;
             }
@@ -154,17 +160,20 @@ class TodPricingImporter
 
         $wanted = $live;
         foreach (array_keys($live) as $id) {
-            foreach (['WebDecLiveAPPAID', 'WebOverrideDecAPPAID'] as $field) {
-                $other = (int) $all[$id][$field];
-                if ($other > 0 && $other !== $id && isset($all[$other])) {
+            foreach ($borrows[$id] as $other) {
+                if ($other > 0 && $other !== $id && isset($borrows[$other])) {
                     $wanted[$other] = true;
                 }
             }
         }
+        unset($borrows);
 
         $result = [];
-        foreach (array_keys($wanted) as $id) {
-            $result[$id] = $all[$id] + ['_live' => isset($live[$id]) ? '1' : '0'];
+        foreach (TsvReader::rows($this->path('dbo_PDS_Products.tsv')) as $r) {
+            $id = (int) $r['APPAProductID'];
+            if (isset($wanted[$id])) {
+                $result[$id] = $r + ['_live' => isset($live[$id]) ? '1' : '0'];
+            }
         }
         ksort($result);
 
@@ -178,7 +187,7 @@ class TodPricingImporter
         foreach ($products as $id => $r) {
             $supplierId = (int) $r['SupplierID'];
             if (! $suppliers->has($supplierId)) {
-                DB::table('suppliers')->insert(['id' => $supplierId, 'name' => $r['SupplierAPPAName'] ?: "Supplier {$supplierId}", 'created_at' => now(), 'updated_at' => now()]);
+                DB::table('suppliers')->insert(['id' => $supplierId, 'name' => $r['SupplierAPPAName'] ?: "Supplier {$supplierId}", 'created_at' => $this->now, 'updated_at' => $this->now]);
                 $suppliers[$supplierId] = true;
             }
             DB::table('products')->updateOrInsert(['id' => $id], [
@@ -188,10 +197,10 @@ class TodPricingImporter
                 'name' => mb_substr($r['WebShortDesc'] ?: ($r['ShortDescription'] ?: (string) $r['SupplierProductID']), 0, 255) ?: (string) $id,
                 'tier' => $r['_live'] === '1' ? Product::TIER_LIVE : Product::TIER_ACTIVE,
                 'discontinued' => TsvReader::bool($r['SuppplierDiscontinuedFlag']),
-                'hydrated_at' => now(),
-                'last_used_at' => now(),
-                'updated_at' => now(),
-                'created_at' => now(),
+                'hydrated_at' => $this->now,
+                'last_used_at' => $this->now,
+                'updated_at' => $this->now,
+                'created_at' => $this->now,
             ]);
         }
 
@@ -262,8 +271,8 @@ class TodPricingImporter
                     'setup_cost' => $line['setup_cost'],
                     'undecorated' => $line['undecorated'],
                     'promodata_decoration' => $line['promodata_decoration'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $this->now,
+                    'updated_at' => $this->now,
                 ]);
                 if ($line['undecorated'] && $baseId === null) {
                     $baseId = $lineId;
@@ -312,8 +321,8 @@ class TodPricingImporter
                 'price_string' => $r['PDSCP_QtyPriceString'],
                 'placeholder' => false,
                 'position' => 1000 + $n,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $this->now,
+                'updated_at' => $this->now,
             ]);
             $n++;
         }
@@ -337,8 +346,8 @@ class TodPricingImporter
                 'type_code_override' => TsvReader::intOrNull($r['PDSLP_DecType']),
                 'is_default' => TsvReader::bool($r['PDSLP_DefaultDec']),
                 'is_other' => TsvReader::bool($r['PDSLP_OtherDec']),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $this->now,
+                'updated_at' => $this->now,
             ];
         }
         // DecorationJSON display groups (TOD DecJSONSort) other than the normal 2.
@@ -353,8 +362,8 @@ class TodPricingImporter
                 'type_code_override' => null,
                 'is_default' => false,
                 'is_other' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $this->now,
+                'updated_at' => $this->now,
             ];
             $rows[$r['PDSCP_TextPDID']]['json_sort'] = (int) $r['PDSCP_DecJSONSort'];
         }
@@ -429,8 +438,8 @@ class TodPricingImporter
                 DB::table('product_overrides')->insert([
                     'product_id' => $id,
                     'data' => json_encode($data),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $this->now,
+                    'updated_at' => $this->now,
                 ]);
                 $n++;
             }

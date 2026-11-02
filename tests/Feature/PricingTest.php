@@ -251,4 +251,29 @@ class PricingTest extends TestCase
             resource_path('contracts/decorationjson.schema.json'),
         );
     }
+
+    public function test_an_ext_unbranded_price_hides_promodatas_per_colour_lines(): void
+    {
+        $product = $this->liveProduct(1003, [[
+            'base_price' => $this->line('ARCTIC BLUE, XS, S, M, L, XL, 2XL, 3XL', [1 => 8.25], undecorated: true),
+            'additions' => [],
+        ], [
+            'base_price' => $this->line('ARMY, 4XL, 5XL', [1 => 9.75], undecorated: true),
+            'additions' => [],
+        ]]);
+        PriceOption::query()->create([
+            'product_id' => 1003, 'option_id' => '1003-unbranded', 'code' => 'unbranded', 'kind' => PriceOption::KIND_EXTERNAL,
+            'type_code' => 12, 'description' => 'Unbranded', 'display_description' => 'Unbranded',
+            'setup_cost' => 0, 'setup_price' => 0, 'cost_string' => '1:7.95', 'price_string' => '1:11.93', 'placeholder' => false, 'position' => 1000,
+        ]);
+
+        $options = app(PriceOptionBuilder::class)->build($product->fresh());
+
+        $promodata = $options->where('kind', PriceOption::KIND_UNDECORATED)->where('placeholder', false);
+        $this->assertCount(2, $promodata);
+        $this->assertTrue($promodata->every(fn ($o) => $o->type_code === 23));
+        $this->assertSame(1, $options->where('type_code', 12)->count());
+        $this->assertSame('1:11.93', $options->firstWhere('type_code', 12)->price_string);
+        $this->assertFalse($options->contains(fn ($o) => $o->placeholder && $o->type_code === 12));
+    }
 }

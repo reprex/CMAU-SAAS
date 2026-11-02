@@ -35,7 +35,8 @@ use RuntimeException;
  *  6. Zero-price placeholders are added when there is no undecorated (12)
  *     option, or no decoration (10) option and the product does not borrow
  *     decorations from another product.
- * External (EXT) options are left untouched.
+ * External (EXT) options are left untouched. When one is an undecorated (12) price,
+ *     Promodata's undecorated lines are set to hidden (23): one price per product.
  */
 class PriceOptionBuilder
 {
@@ -102,8 +103,21 @@ class PriceOptionBuilder
             ];
         }
 
+        // A supplier price file (EXT) gives one unbranded price for the whole product (TOD:
+        // AS Colour). Promodata's own undecorated lines (often per colour and size) are then
+        // hidden, unless staff set a type on one, so the product keeps a single price.
+        $external = PriceOption::query()->where('product_id', $product->id)->where('kind', PriceOption::KIND_EXTERNAL)->get(['type_code']);
+        if ($external->contains(fn ($o) => (int) $o->type_code === DecTypeCode::UNDECORATED)) {
+            foreach ($options as &$option) {
+                if ($option['kind'] === PriceOption::KIND_UNDECORATED && $this->settingType($settings->get($option['option_id'])) === null) {
+                    $option['type_code'] = DecTypeCode::HIDDEN;
+                }
+            }
+            unset($option);
+        }
+
         if (! in_array($product->supplier_id, config('pricing.no_placeholder_suppliers'), true)) {
-            $options = $this->addPlaceholders($product, $options, $position, $settings);
+            $options = $this->addPlaceholders($product, $options, $position, $settings, $external->pluck('type_code')->map(fn ($t) => (int) $t)->all());
         }
 
         return DB::transaction(function () use ($product, $options) {
@@ -193,11 +207,12 @@ class PriceOptionBuilder
      *
      * @param  list<array<string, mixed>>  $options
      * @param  Collection<string, PriceOptionSetting>  $settings
+     * @param  list<int>  $externalTypes  type codes of the product's EXT options
      * @return list<array<string, mixed>>
      */
-    private function addPlaceholders(Product $product, array $options, int $position, Collection $settings): array
+    private function addPlaceholders(Product $product, array $options, int $position, Collection $settings, array $externalTypes = []): array
     {
-        $hasType = fn (int $type) => collect($options)->contains(
+        $hasType = fn (int $type) => in_array($type, $externalTypes, true) || collect($options)->contains(
             fn ($o) => $o['type_code'] === $type && ! ($type === DecTypeCode::UNDECORATED && $o['price_string'] === '1:0')
         );
 
