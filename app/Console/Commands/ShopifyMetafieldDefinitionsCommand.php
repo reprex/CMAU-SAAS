@@ -21,6 +21,7 @@ class ShopifyMetafieldDefinitionsCommand extends Command
         ['PRODUCT', 'custom', 'suppliercode', 'single_line_text_field', 'Supplier code', 'Supplier name and product code, e.g. AS Colour 5001'],
         ['PRODUCT', 'custom', 'supplierskus', 'json', 'Supplier SKUs', 'Colour, size and supplier SKU for every SKU'],
         ['PRODUCT', 'custom', 'ourcode', 'single_line_text_field', 'Our code', 'CrowdMerch code SupplierID-Code, e.g. 3-104743 (shown under the title)'],
+        ['PRODUCT', 'custom', 'leadtimedays', 'number_integer', 'Lead time (working days)', 'Fastest production lead time from the supplier, in working days (shown beside the sizes)'],
         ['PRODUCT', 'custom', 'supplierproductcode', 'single_line_text_field', 'Supplier product code', "The supplier's product code alone, e.g. 5001 (title chip; never the supplier name)"],
         ['PRODUCT', 'custom', 'printarea', 'json', 'Logo area', 'Where the logo goes on the hero image (percent)'],
         ['PRODUCT', 'custom', 'brandingpositions', 'json', 'Branding positions', 'From the supplier template, else Promodata decoration print areas, else the type default: name, view, methods, max size, box on the picture'],

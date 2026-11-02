@@ -120,6 +120,7 @@ class ProductPayload
             $codes['skus'] ? $this->mf('custom', 'supplierskus', 'json', json_encode($codes['skus'])) : null,
             // Shown to clients (docs/supplier-codes.md): our code under the title; the supplier's code alone as the title chip.
             ($our = OurCodes::code($product)) ? $this->mf('custom', 'ourcode', 'single_line_text_field', $our) : null,
+            $product->lead_time_days ? $this->mf('custom', 'leadtimedays', 'number_integer', (string) (int) ceil((float) $product->lead_time_days)) : null,
             filled($product->code) ? $this->mf('custom', 'supplierproductcode', 'single_line_text_field', (string) $product->code) : null,
             $area ? $this->mf('custom', 'printarea', 'json', json_encode($area)) : null,
             // Template, else Promodata's decoration print areas, else the type default (docs/logo-preview.md).
