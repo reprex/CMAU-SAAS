@@ -9,6 +9,7 @@ use App\Quotes\LineTransfer;
 use App\Quotes\QuoteCalculator;
 use App\Quotes\QuoteNumbers;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class QuoteController extends Controller
@@ -89,6 +90,18 @@ class QuoteController extends Controller
             'targets' => app(LineTransfer::class)->targetsFor($quote),
             'statuses' => Quote::STATUSES,
         ]);
+    }
+
+    /** A logo file staff added with the quote from the website (private disk; downloads logged). */
+    public function artwork(Quote $quote, int $n)
+    {
+        $f = ((array) $quote->artwork)[$n] ?? null;
+        abort_unless($f, 404);
+        $disk = Storage::disk(config('website.orders.artwork_disk'));
+        abort_unless($disk->exists($f['path']), 404);
+        AuditLog::record('quote.artwork_downloaded', $quote, ['file' => $f['name']]);
+
+        return $disk->download($f['path'], $f['name'], ['Content-Type' => 'application/octet-stream', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     public function update(Request $request, Quote $quote)

@@ -1,0 +1,162 @@
+<?php
+
+namespace App\Staff;
+
+use App\Checkout\CheckoutPricer;
+use App\Models\AuditLog;
+use App\Models\Product;
+use App\Models\ProductWebPrice;
+use App\Models\Quote;
+use App\Models\QuoteItem;
+use App\Models\User;
+use App\Quotes\ItemPricer;
+use App\Quotes\QuoteCalculator;
+use App\Quotes\QuoteNumbers;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use RuntimeException;
+
+/**
+ * A quote for a client made by staff from the website's cart page (docs/website-staff.md).
+ * The cart (product, sizes and quantities, branding positions) is priced exactly as the
+ * checkout prices it, then written into the quote desk: one line for each style with its
+ * first branding position, one more line for each further position, sizes as SKU rows.
+ */
+class StaffQuotes
+{
+    public function __construct(
+        private readonly CheckoutPricer $pricer,
+        private readonly QuoteNumbers $numbers,
+        private readonly ItemPricer $items,
+        private readonly QuoteCalculator $calculator,
+    ) {}
+
+    /**
+     * @param  array<string, mixed>  $cart  product_id, lines[], positions[]
+     * @param  array<string, mixed>|null  $client  name, organisation, email, phone, address
+     * @param  array<int, UploadedFile>  $logos  by position index
+     * @return array{quote: Quote, added: int, issues: list<array>}
+     */
+    public function build(User $user, array $cart, ?array $client, ?Quote $into, array $logos, ?string $note): array
+    {
+        $result = $this->pricer->evaluate([
+            'product_id' => (int) $cart['product_id'],
+            'lines' => $cart['lines'],
+            'positions' => array_map(fn ($p) => $p + ['has_logo' => true], $cart['positions']),
+            'delivery' => ['country' => 'AU', 'postcode' => $client['address']['postcode'] ?? null],
+        ]);
+        if (! ($result['found'] ?? false)) {
+            throw new RuntimeException('That product cannot be quoted from the website.');
+        }
+        $blocking = array_values(array_filter($result['issues'], fn ($i) => in_array($i['code'], ['price', 'decoration', 'unrelated', 'qty'], true)));
+        if ($blocking) {
+            throw new RuntimeException(implode(' ', array_column($blocking, 'message')));
+        }
+        $other = array_values(array_filter($result['issues'], fn ($i) => ! in_array($i['code'], ['logo', 'review'], true)));
+
+        return DB::transaction(function () use ($user, $cart, $client, $into, $logos, $note, $result, $other) {
+            $quote = $into ?? Quote::query()->create([
+                'number' => $this->numbers->next(),
+                'status' => 'PHONE',
+                'source' => 'manual',
+                'title' => $result['product']['name'],
+                'client_name' => $client['name'] ?? null,
+                'client_company' => $client['organisation'] ?? null,
+                'client_email' => isset($client['email']) ? mb_strtolower($client['email']) : null,
+                'client_phone' => $client['phone'] ?? null,
+                'delivery_name' => $client['name'] ?? null,
+                'delivery_address1' => $client['address']['street'] ?? null,
+                'delivery_address2' => $client['address']['unit'] ?? null,
+                'delivery_city' => $client['address']['suburb'] ?? null,
+                'delivery_state' => $client['address']['state'] ?? null,
+                'delivery_postcode' => $client['address']['postcode'] ?? null,
+                'delivery_country' => $client['address']['country'] ?? 'AU',
+                'created_by' => $user->id,
+                'assigned_to' => $user->id,
+                'valid_until' => now()->addDays((int) config('quotes.valid_days'))->toDateString(),
+                'lead_time' => config('quotes.default_lead_time'),
+                'edited_at' => now(),
+            ]);
+
+            $products = Product::query()->with('supplier')->whereIn('id', array_column($result['styles'], 'product_id'))->get()->keyBy('id');
+            $positions = $result['positions'];
+            $first = $positions[0] ?? null;
+            $added = 0;
+            foreach ($result['styles'] as $si => $style) {
+                $p = $products[$style['product_id']];
+                $lines = array_values(array_filter($result['lines'], fn ($l) => $l['product_id'] === $style['product_id']));
+                $colours = array_values(array_unique(array_column($lines, 'colour')));
+                $item = new QuoteItem([
+                    'quote_id' => $quote->id,
+                    'position' => $quote->nextPosition(),
+                    'stage' => 'sku',
+                    'product_id' => $p->id,
+                    'supplier_id' => $p->supplier_id,
+                    'supplier_name' => $p->supplier?->name,
+                    'product_code' => $p->code,
+                    'name' => $p->name,
+                    'colour' => count($colours) === 1 ? $colours[0] : 'Mixed: '.implode(', ', $colours),
+                    'image_url' => $p->hero_image_url,
+                    'quantity' => $style['units'],
+                    'product_unit_price' => $style['unbranded_unit'],
+                    'product_setup_price' => $si === 0 ? (float) $result['setup']['product'] : 0,
+                    'decoration_option_id' => $first['decoration_option_id'] ?? null,
+                    'decoration_name' => $first ? $first['name'].': '.$first['decoration_name'] : null,
+                    'decoration_unit_price' => $first['unit'] ?? 0,
+                    'decoration_setup_price' => $si === 0 ? ($first['setup'] ?? 0) : 0,
+                    'sku_mode' => 'list',
+                    'notes' => $note ?: null,
+                ]);
+                $this->items->attachDefaults($item);
+                $this->items->fillCosts($item);
+                $item->save();
+                foreach ($lines as $i => $l) {
+                    $item->skus()->create(['position' => $i, 'colour' => $l['colour'], 'size' => $l['size'], 'quantity' => $l['qty'], 'supplier_sku' => $l['supplier_sku'] ?? null, 'stock_on_hand' => $l['stock'] ?? null, 'source' => 'list']);
+                }
+                $added++;
+            }
+            // Further branding positions: a branding-only line each, for the whole run.
+            foreach (array_slice($positions, 1) as $pos) {
+                $item = new QuoteItem([
+                    'quote_id' => $quote->id,
+                    'position' => $quote->nextPosition(),
+                    'product_id' => $result['product']['id'],
+                    'supplier_id' => $products[$result['product']['id']]->supplier_id ?? null,
+                    'supplier_name' => $products[$result['product']['id']]->supplier?->name ?? null,
+                    'product_code' => $products[$result['product']['id']]->code ?? null,
+                    'name' => $result['product']['name'].': '.$pos['name'].' branding',
+                    'quantity' => $result['units'],
+                    'product_unit_price' => 0,
+                    'decoration_option_id' => $pos['decoration_option_id'],
+                    'decoration_name' => $pos['name'].': '.$pos['decoration_name'],
+                    'decoration_unit_price' => $pos['unit'],
+                    'decoration_setup_price' => $pos['setup'],
+                ]);
+                $item->decoration_product_id = $products[$result['product']['id']] ? (ProductWebPrice::find($result['product']['id'])?->decoration_product_id) : null;
+                $this->items->fillCosts($item);
+                $item->save();
+                $added++;
+            }
+
+            // Logo files: kept privately with the quote.
+            $art = (array) ($quote->artwork ?? []);
+            foreach ($logos as $i => $file) {
+                $ext = strtolower($file->getClientOriginalExtension() ?: 'bin');
+                $path = 'quote-artwork/'.$quote->number.'/'.Str::slug($cart['positions'][$i]['name'] ?? 'logo').'-'.Str::random(8).'.'.$ext;
+                Storage::disk(config('website.orders.artwork_disk'))->putFileAs(dirname($path), $file, basename($path));
+                $art[] = ['position' => $cart['positions'][$i]['name'] ?? 'Logo', 'path' => $path, 'name' => mb_substr($file->getClientOriginalName(), 0, 160), 'size' => (int) $file->getSize()];
+            }
+            $notes = trim((string) $quote->internal_notes);
+            $line = 'From the website by '.$user->name.' '.now()->timezone(config('app.timezone'))->format('j M g:ia').': '.$result['product']['name'].', '.$result['units'].' units'
+                .($positions ? ', '.implode('; ', array_map(fn ($p) => $p['name'].' '.$p['method_name'], $positions)) : '')
+                .($other ? '. Check: '.implode(' ', array_column($other, 'message')) : '');
+            $quote->forceFill(['artwork' => $art ?: null, 'internal_notes' => trim($notes."\n".$line), 'edited_at' => $quote->edited_at ?? now()])->save();
+            $this->calculator->recalculate($quote);
+            AuditLog::record($into ? 'quote.website_items_added' : 'quote.created_from_website', $quote, ['product' => $result['product']['id'], 'units' => $result['units']]);
+
+            return ['quote' => $quote->fresh(), 'added' => $added, 'issues' => $other];
+        });
+    }
+}

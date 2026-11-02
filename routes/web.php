@@ -85,6 +85,9 @@ Route::prefix('crowdmerch/staff')->controller(WebsiteStaffController::class)->gr
     Route::post('signout', 'signout');
     Route::get('products/{product}/curation', 'curation')->whereNumber('product');
     Route::post('products/{product}/curation', 'requestCuration')->whereNumber('product');
+    Route::get('clients', 'clients');
+    Route::get('clients/quotes', 'clientQuotes');
+    Route::post('quotes', 'createQuote');
 });
 // Website project requests (docs/website-project-requests.md).
 Route::options('crowdmerch/projects', [WebsiteProjectController::class, 'preflight']);
@@ -115,6 +118,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
 
     Route::get('/quotes', [QuoteController::class, 'index'])->name('quotes.index');
     Route::get('/quotes/{quote}', [QuoteController::class, 'show'])->whereNumber('quote')->name('quotes.show');
+    Route::get('/quotes/{quote}/artwork/{n}', [QuoteController::class, 'artwork'])->whereNumber(['quote', 'n'])->name('quotes.artwork');
     Route::get('/quotes/{quote}/pdf', [PdfController::class, 'quote'])->name('quotes.pdf');
     Route::get('/quotes/{quote}/comparison.pdf', [PdfController::class, 'comparison'])->name('quotes.comparison');
     Route::get('/drafts', [DraftOrderController::class, 'index'])->name('drafts.index');

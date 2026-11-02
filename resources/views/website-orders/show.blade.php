@@ -5,7 +5,7 @@
 @php($o = $order)
 @php($canEdit = auth()->user()->canEdit())
 <div class="row between">
-  <div><div class="eyebrow">Website orders · {{ $o->created_at->timezone(config('app.timezone'))->format('j M Y, g:ia') }}</div>
+  <div><div class="eyebrow">Website orders · {{ $o->created_at->timezone(config('app.timezone'))->format('j M Y, g:ia') }}@if($o->placed_by) · placed by {{ \App\Models\User::find($o->placed_by)?->name ?? 'staff' }} for the client @endif</div>
     <h1>{{ $o->number }}@if($o->isSamples()) <span class="pill" style="vertical-align:middle">Samples</span>@endif <span class="pill {{ $o->stage === 6 ? 'ok' : 'accent' }}" style="vertical-align:middle">{{ $o->stageName() }}</span></h1></div>
   <a class="btn" href="{{ route('website-orders.invoice', $o) }}" target="_blank" rel="noopener">Invoice PDF</a>
 </div>

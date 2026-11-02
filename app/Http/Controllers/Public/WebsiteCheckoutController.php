@@ -8,6 +8,8 @@ use App\Checkout\OrderCreator;
 use App\Checkout\SamplesPricer;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Public\Concerns\GuardsWebsiteOrders;
+use App\Models\AuditLog;
+use App\Staff\StaffPasses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -106,6 +108,11 @@ class WebsiteCheckoutController extends Controller
 
         try {
             ['order' => $order, 'result' => $result] = $creator->create($data, $logos, $request->ip());
+            // Placed by staff for a client (cart page staff panel): who placed it, for the record.
+            if ($order && ($pass = app(StaffPasses::class)->resolve($request, 'assist'))) {
+                $order->forceFill(['placed_by' => $pass->user_id])->save();
+                AuditLog::record('website_order.placed_by_staff', $order, ['user' => $pass->user->name]);
+            }
         } catch (Throwable $e) {
             report($e);
 
