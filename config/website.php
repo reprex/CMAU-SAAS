@@ -75,6 +75,14 @@ return [
     | Checked in this order; the first match wins. A name no method matches cannot
     | be ordered directly (the team quotes it).
     */
+    /*
+    | Artwork each decoration method wants (Scott vetted, 2 Nov 2026). Methods listed
+    | here want solid colour vector artwork (AI, EPS, SVG, vector PDF); every other
+    | method is full colour CMYK (300 dpi at print size, transparent base).
+    | The theme keeps the same list in assets/cm-app.js (CM.VECTOR_METHODS).
+    */
+    'artwork_solid_methods' => ['embroidery', 'screen', 'pad', 'laser', 'deboss', 'foil', 'transfer_screen', 'enamel', 'woven'],
+
     'methods' => [
         'embroidery' => ['name' => 'Embroidery', 'review' => true, 'pricing' => 'flat', 'match' => '/embroider/i', 'max_colours' => 12],
         'screen' => ['name' => 'Screen print', 'review' => true, 'pricing' => 'grid', 'match' => '/screen/i', 'max_colours' => 4],
