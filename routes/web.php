@@ -17,11 +17,13 @@ use App\Http\Controllers\LogoAreaController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PositionRuleController;
 use App\Http\Controllers\ProductLookupController;
+use App\Http\Controllers\ProjectRequestController;
 use App\Http\Controllers\Public\AddressLookupController;
 use App\Http\Controllers\Public\ShopifyWebhookController;
 use App\Http\Controllers\Public\StockRelayController;
 use App\Http\Controllers\Public\WebsiteAccountController;
 use App\Http\Controllers\Public\WebsiteCheckoutController;
+use App\Http\Controllers\Public\WebsiteProjectController;
 use App\Http\Controllers\Public\WebsiteQuoteController;
 use App\Http\Controllers\Public\WebsiteSearchController;
 use App\Http\Controllers\QuoteController;
@@ -73,6 +75,9 @@ Route::prefix('crowdmerch/account')->controller(WebsiteAccountController::class)
     Route::post('change', 'change');
 });
 Route::match(['GET', 'OPTIONS'], 'crowdmerch/address', AddressLookupController::class);
+// Website project requests (docs/website-project-requests.md).
+Route::options('crowdmerch/projects', [WebsiteProjectController::class, 'preflight']);
+Route::post('crowdmerch/projects', [WebsiteProjectController::class, 'store']);
 
 // ---- Sign-in --------------------------------------------------------------
 
@@ -113,6 +118,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/range/{product}/stock/live', [RangeController::class, 'liveStock'])->whereNumber('product')->name('range.stock.live');
     Route::get('/logo-areas', [LogoAreaController::class, 'index'])->name('range.logo-areas');
     Route::get('/positions', [PositionRuleController::class, 'index'])->name('range.positions');
+    Route::get('/project-requests', [ProjectRequestController::class, 'index'])->name('project-requests.index');
+    Route::get('/project-requests/{projectRequest}', [ProjectRequestController::class, 'show'])->whereNumber('projectRequest')->name('project-requests.show');
+    Route::get('/project-requests/{projectRequest}/files/{n}', [ProjectRequestController::class, 'file'])->whereNumber(['projectRequest', 'n'])->name('project-requests.file');
     Route::get('/website-orders', [WebsiteOrderController::class, 'index'])->name('website-orders.index');
     Route::get('/website-orders/{order}', [WebsiteOrderController::class, 'show'])->whereNumber('order')->name('website-orders.show');
     Route::get('/website-orders/{order}/invoice.pdf', [WebsiteOrderController::class, 'invoice'])->whereNumber('order')->name('website-orders.invoice');
@@ -157,6 +165,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/range/{product}/related', [RelatedStyleController::class, 'store'])->whereNumber('product')->name('range.related.store');
         Route::delete('/range/{product}/related/{style}', [RelatedStyleController::class, 'destroy'])->whereNumber('product')->name('range.related.destroy');
 
+        Route::put('/project-requests/{projectRequest}', [ProjectRequestController::class, 'update'])->whereNumber('projectRequest')->name('project-requests.update');
         Route::put('/website-orders/{order}', [WebsiteOrderController::class, 'update'])->whereNumber('order')->name('website-orders.update');
         Route::post('/website-orders/{order}/emails/{email}/send', [WebsiteOrderController::class, 'sendEmail'])->whereNumber('order')->name('website-orders.send');
         Route::post('/website-orders/{order}/changes/{change}/handled', [WebsiteOrderController::class, 'handleChange'])->whereNumber('order')->name('website-orders.change-handled');
