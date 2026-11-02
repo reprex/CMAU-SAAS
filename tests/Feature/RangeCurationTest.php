@@ -6,6 +6,7 @@ use App\Catalogue\SyncRunner;
 use App\Models\AuditLog;
 use App\Models\DecTypeCode;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\SyncRun;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -190,5 +191,18 @@ class RangeCurationTest extends TestCase
         $product->refresh();
         $this->assertSame('Renamed by supplier', $product->name);
         $this->assertTrue($product->webPrice->computed_at->gt($computed));
+    }
+
+    public function test_the_range_page_works_from_a_real_cache_that_refuses_objects(): void
+    {
+        // Production uses a file/database cache with serializable_classes = false: cached
+        // models or collections come back unusable. Render twice so the second read is cached.
+        config(['cache.default' => 'file', 'cache.stores.file.path' => storage_path('framework/cache/test-'.uniqid())]);
+        Supplier::create(['id' => 3, 'name' => 'Test Supplier Pty Ltd']);
+        Product::create(['id' => 1001, 'supplier_id' => 3, 'name' => 'Cached tee', 'tier' => Product::TIER_LIVE, 'promodata_type_name' => 'T-Shirts']);
+        $this->staff('admin');
+
+        $this->get(route('range.index'))->assertOk()->assertSee('Test Supplier Pty Ltd');
+        $this->get(route('range.index', ['q' => '1001']))->assertOk()->assertSee('Test Supplier Pty Ltd')->assertSee('T-Shirts');
     }
 }
