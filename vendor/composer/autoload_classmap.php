@@ -56,6 +56,7 @@ return array(
     'App\\Console\\Commands\\PromodataSyncStepCommand' => $baseDir . '/app/Console/Commands/PromodataSyncStepCommand.php',
     'App\\Console\\Commands\\QuotesImportDraftsCommand' => $baseDir . '/app/Console/Commands/QuotesImportDraftsCommand.php',
     'App\\Console\\Commands\\ShopifyAutoPublishCommand' => $baseDir . '/app/Console/Commands/ShopifyAutoPublishCommand.php',
+    'App\\Console\\Commands\\ShopifyCollectionsCommand' => $baseDir . '/app/Console/Commands/ShopifyCollectionsCommand.php',
     'App\\Console\\Commands\\ShopifyMetafieldDefinitionsCommand' => $baseDir . '/app/Console/Commands/ShopifyMetafieldDefinitionsCommand.php',
     'App\\Console\\Commands\\ShopifyPublishCommand' => $baseDir . '/app/Console/Commands/ShopifyPublishCommand.php',
     'App\\Console\\Commands\\ShopifyPullDraftsCommand' => $baseDir . '/app/Console/Commands/ShopifyPullDraftsCommand.php',

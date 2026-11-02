@@ -599,6 +599,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Console\\Commands\\PromodataSyncStepCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PromodataSyncStepCommand.php',
         'App\\Console\\Commands\\QuotesImportDraftsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/QuotesImportDraftsCommand.php',
         'App\\Console\\Commands\\ShopifyAutoPublishCommand' => __DIR__ . '/../..' . '/app/Console/Commands/ShopifyAutoPublishCommand.php',
+        'App\\Console\\Commands\\ShopifyCollectionsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/ShopifyCollectionsCommand.php',
         'App\\Console\\Commands\\ShopifyMetafieldDefinitionsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/ShopifyMetafieldDefinitionsCommand.php',
         'App\\Console\\Commands\\ShopifyPublishCommand' => __DIR__ . '/../..' . '/app/Console/Commands/ShopifyPublishCommand.php',
         'App\\Console\\Commands\\ShopifyPullDraftsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/ShopifyPullDraftsCommand.php',
