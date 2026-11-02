@@ -18,6 +18,7 @@
 
 - **Only changes are sent.** A hash of the last payload is kept; unchanged products are skipped (`--force` sends anyway). Products are picked when `range_changed_at` is newer than `published_at` (curation, repricing, image tags, logo areas and SKU changes all set it), or when a published product left the range (archived).
 - **Images are merged, never re-uploaded.** Shopify media ids are stored per image URL (`shopify_media`); later publishes reference them by id. A first publish uploads the images, then links each colour variant to its image in a second call. Media already on the product are kept.
+- **On the Online Store channel.** `productSet` puts a product on no sales channel, so after each create or update the publisher calls `publishablePublish` for the Online Store publication. The app needs the scopes `read_publications` and `write_publications`; without them the publish still succeeds and the log says the channel step was skipped.
 - **Logged.** Every attempt goes in `shopify_publish_log` with Shopify's error text.
 
 ## Commands

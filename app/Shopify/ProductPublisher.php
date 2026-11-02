@@ -3,6 +3,7 @@
 namespace App\Shopify;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -73,13 +74,17 @@ class ProductPublisher
             // What an unchanged product will look like next time (images by id), so it is skipped.
             $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
             $hash = sha1(json_encode($this->payload->build($product, $media)['input']));
+            // productSet does not put a product on any sales channel: without this the
+            // storefront and its collections never show it.
+            $channel = $action === 'archive' ? null : $this->showOnOnlineStore($productGid);
+
             $product->forceFill([
                 'shopify_product_id' => $this->numericId($productGid),
                 'publish_hash' => $hash,
                 'published_at' => now(),
             ])->save();
 
-            return $this->log($product, $action, true, count($built['input']['variants']).' variants, '.count($built['files']).' images', $hash, $userId);
+            return $this->log($product, $action, true, count($built['input']['variants']).' variants, '.count($built['files']).' images'.($channel ? '; '.$channel : ''), $hash, $userId);
         } catch (Throwable $e) {
             return $this->log($product, $action, false, mb_substr($e->getMessage(), 0, 2000), $hash, $userId);
         }
@@ -111,6 +116,39 @@ class ProductPublisher
         }
 
         return $gid;
+    }
+
+    /**
+     * Puts the product on the Online Store sales channel. Needs the app scopes
+     * read_publications and write_publications; without them the publish still
+     * succeeds and the reply says what is missing.
+     */
+    private function showOnOnlineStore(string $productGid): ?string
+    {
+        try {
+            $publication = Cache::remember('shopify:online-store-publication:'.config('shopify.store'), 86400, function () {
+                $nodes = $this->shopify->graphql('query { publications(first: 25) { nodes { id name } } }')['publications']['nodes'] ?? [];
+                foreach ($nodes as $n) {
+                    if (strcasecmp((string) ($n['name'] ?? ''), 'Online Store') === 0) {
+                        return (string) $n['id'];
+                    }
+                }
+
+                return '';
+            });
+            if ($publication === '') {
+                return 'Online Store channel not found';
+            }
+            $data = $this->shopify->graphql(
+                'mutation publish($id: ID!, $input: [PublicationInput!]!) { publishablePublish(id: $id, input: $input) { userErrors { field message } } }',
+                ['id' => $productGid, 'input' => [['publicationId' => $publication]]],
+            );
+            $errors = $data['publishablePublish']['userErrors'] ?? [];
+
+            return $errors ? 'Online Store: '.collect($errors)->pluck('message')->implode('; ') : 'on Online Store';
+        } catch (Throwable $e) {
+            return 'not put on Online Store ('.mb_substr($e->getMessage(), 0, 200).'). Add the app scopes read_publications and write_publications.';
+        }
     }
 
     private function numericId(string $gid): int
