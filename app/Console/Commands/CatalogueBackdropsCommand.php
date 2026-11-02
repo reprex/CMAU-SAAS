@@ -53,8 +53,12 @@ class CatalogueBackdropsCommand extends Command
             }
             $cursor = $product->id;
             try {
+                $before = $tagger->hero($product->loadMissing(['images', 'colours', 'override']));
                 if ($backdrop->mark($product) > 0) {
                     $tagger->apply($product);
+                    if ($tagger->hero($product->fresh(['images', 'colours', 'override'])) !== $before) {
+                        $product->forceFill(['range_changed_at' => now()])->save(); // republish with the new hero
+                    }
                 }
                 $done++;
             } catch (Throwable $e) {
