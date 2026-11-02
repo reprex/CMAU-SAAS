@@ -44,6 +44,34 @@ return [
         'max_positions' => 8,
     ],
 
+    // Website project requests (the "Design something" survey; docs/website-project-requests.md).
+    // Same guard as website orders: allowed origins, honeypot, per-IP limit and Turnstile.
+    'projects' => [
+        'per_hour' => (int) env('WEBSITE_PROJECTS_PER_HOUR', 6),       // per IP
+        'number_prefix' => 'PR-',
+        'number_start' => 10001,
+        // Scott, 3 Nov 2026: the client's confirmation is sent straight away (an acknowledgement
+        // with their own request in it, like the instant quote email), with the reply-by date.
+        'send_confirmation' => (bool) env('WEBSITE_PROJECT_CONFIRMATION', true),
+        'reply_working_days' => 1,
+        'reply_state' => 'VIC',                                         // public holidays skipped
+        'staff_email' => env('WEBSITE_PROJECTS_STAFF_EMAIL', env('WEBSITE_ORDERS_STAFF_EMAIL', env('QUOTE_EMAIL', 'sales@replicat.com.au'))),
+        'max_files' => 6,
+        'file_max_kb' => (int) env('WEBSITE_PROJECT_FILE_MAX_KB', 20480),
+        'file_mimes' => ['png', 'jpg', 'jpeg', 'webp', 'gif', 'heic', 'svg', 'pdf', 'ai', 'eps', 'psd', 'doc', 'docx', 'xls', 'xlsx', 'zip'],
+        'disk' => 'artwork',
+        'kinds' => [
+            'garments' => 'Garments and uniforms',
+            'headwear' => 'Headwear',
+            'bags' => 'Bags',
+            'drinkware' => 'Drinkware',
+            'giftware' => 'Gifts and giftware',
+            'events' => 'Event merch (lanyards, wristbands, cards)',
+            'custom' => 'Something made from scratch',
+            'unsure' => 'Not sure yet',
+        ],
+    ],
+
     // Default payment terms; each supplier has its own (Admin › Suppliers), default "full".
     'payment_terms' => [
         'default' => 'full',
