@@ -69,6 +69,15 @@ Schedule::command('catalogue:read-templates')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+// Range › Changes to vet (docs/range.md): suppliers' new products to approve and discontinued
+// products to follow up, fetched and checked a few at a time; checks re-run nightly.
+Schedule::command('range:changes --limit=10')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10);
+Schedule::command('range:changes --recheck --limit=0')
+    ->dailyAt('04:45')
+    ->withoutOverlapping(60);
+
 // Branding positions: where they come from, for Range › Positions (read-only).
 Schedule::command('catalogue:positions-report')
     ->dailyAt('04:30')

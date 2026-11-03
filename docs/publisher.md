@@ -48,3 +48,9 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --limit=50
 - `--sort` (every 30 minutes while automatic publishing is on): sets each collection's manual order: staff sort order (`master_sort_order`), then the cheapest at the display quantity, then products with colour photos, then name.
 
 - **Order (3 Nov 2026):** products never published go first, so the range finishes before republishes of products already on the store.
+
+## Health check (Admin › Shopify publishing)
+
+Built 3 Nov 2026 so nobody needs the terminal to see how the upload is going (`PublishHealth`, from `shopify_publish_log`): status and headline, products on the store, new to upload, changes to send, to archive, the rate over the last 15 minutes and a finish estimate, a per-minute chart for the last hour, an hourly table for the last day, and failures not since fixed with Shopify's message. The page refreshes every minute and has the automatic publishing on/off switch (same as `shopify:auto-publish`).
+
+Problems it flags: the minute cron not running (no scheduler heartbeat for 3 minutes); publishing on, products waiting, and nothing uploaded for 10 minutes (stalled); most uploads in the last 15 minutes failing; paused by Shopify's daily new-variant limit. When on and there is a problem, admins see a red banner at the top of every SaaS screen (cached a minute).

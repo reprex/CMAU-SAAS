@@ -94,3 +94,12 @@ Scott: add all of JB's Wear (68) and Legend Life (57), perhaps others, for a str
 - Shopify publisher (module 6): preview and diff, publish changed products only, store Shopify IDs, history and rollback (matrixify-export-assessment PC09–PC14).
 - Tagging and collections (module 5), colour families, brand/label matching.
 - Supplier markups and rules screen (module 2); markups come from the TOD import until then.
+
+## Changes to vet (Scott, 3 Nov 2026)
+
+Range › Changes to vet is one list of range changes for staff to vet quickly:
+
+- **New products.** Admin › Add a whole supplier › "Suggest this supplier's new products for my approval" (optionally only some product types). Products the Promodata sync brings in after that are fetched, priced (kept tier, not live) and checked against similar products on the range (`ReadinessCheck`): priced with a branded price and MOQ; price each within ½–2× the usual for that supplier and type (else the type on the range, 3+ products); markup (price ÷ cost) within 30% of the usual; Promodata prices built the same way as products on the range with no price-check flags; branding positions from the supplier template, Promodata print areas or a staff rule (not only the type default); a hero picture and a picture per colour; a store collection for its subcategory. "Ready to approve" passed every check: "Approve all ready" adds them in one go. "Needs a look" says which checks failed. Nothing goes on the range or to Shopify until an admin approves it; declined products are never suggested again. Checks re-run nightly at 04:45.
+- **Discontinued products.** Products the supplier discontinued that are on the range (or were published), or in a quote from the last 2 months not yet ordered (NEW, wish list, phone, quote sent). Quoted ones come first with the quote, client and quantity, and the three closest substitutes, so staff can offer the client a substitute. The publisher still archives range products on Shopify automatically so nobody orders them.
+
+`range:changes` runs every 5 minutes (10 products fetched and checked a run).
