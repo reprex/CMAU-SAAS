@@ -25,7 +25,29 @@
     <tbody>
     @forelse($codes as $c)
       <tr>
-        <td><b>{{ $c->full_description ?: $c->code }}</b><br><span class="mono small muted">{{ $c->code }}</span>@if($c->promodata_decoration)<br><span class="small muted">Promodata: {{ $c->promodata_decoration }}</span>@endif</td>
+        <td><b>{{ $c->full_description ?: $c->code }}</b><br><span class="mono small muted">{{ $c->code }}</span>@if($c->promodata_decoration)<br><span class="small muted">Promodata: {{ $c->promodata_decoration }}</span>@endif
+          @php($ex = $examples[$c->code] ?? collect())
+          @if($ex->isNotEmpty())
+            <div class="small" style="margin-top:8px;display:flex;flex-direction:column;gap:3px">
+              @foreach($ex as $e)
+                <span><a href="{{ route('range.show', $e->product_id) }}" target="_blank" rel="noopener">{{ $e->name }}</a>
+                  <span class="muted">{{ collect([$e->product_code, $e->promodata_type_name, $e->tier === 'live' ? 'on the range' : null])->filter()->implode(' · ') }}</span>
+                  @if($e->price_string)<span class="mono muted" title="Qty:price for this line">· {{ \Illuminate\Support\Str::limit($e->price_string, 60) }}@if((float) $e->setup_price > 0) + ${{ number_format($e->setup_price, 2) }} setup @endif</span>@endif</span>
+              @endforeach
+              @if(($siblings[$c->code] ?? collect())->isNotEmpty())
+                <details><summary class="muted">Other price lines on {{ $ex->first()->name }}</summary>
+                  <ul style="margin:4px 0 0 16px;padding:0">
+                  @foreach($siblings[$c->code] as $sib)
+                    <li>{{ \Illuminate\Support\Str::limit($sib->description, 90) }} <span class="muted">· {{ $sib->type_code ? $types[$sib->type_code] ?? $sib->type_code : 'not classified' }}@if($sib->price_string) · <span class="mono">{{ \Illuminate\Support\Str::limit($sib->price_string, 40) }}</span>@endif</span></li>
+                  @endforeach
+                  </ul>
+                </details>
+              @endif
+            </div>
+          @else
+            <div class="small muted" style="margin-top:6px">No stored product uses it now.</div>
+          @endif
+        </td>
         <td class="small">{{ $c->first_supplier_name }}</td>
         <td class="num">{{ $usage[$c->code] ?? 0 }}</td>
         <td>
