@@ -18,6 +18,7 @@
 
 - **Only changes are sent.** A hash of the last payload is kept; unchanged products are skipped (`--force` sends anyway). Products are picked when `range_changed_at` is newer than `published_at` (curation, repricing, image tags, logo areas and SKU changes all set it), or when a published product left the range (archived).
 - **Images are merged, never re-uploaded.** Shopify media ids are stored per image URL (`shopify_media`); later publishes reference them by id. A first publish uploads the images, then links each colour variant to its image in a second call. Media already on the product are kept.
+- **Plain updates go five at a time.** An update that uploads no new picture is sent with the other plain updates in the run, `--parallel` (5) at once, and without asking for the picture list back: `media(first: 250)` makes Shopify reserve ~260 points per call, and the Basic plan allows 100 points a second. A plain update costs ~10–20 points. Calls Shopify throttles are sent again after a pause. New products and new pictures still go one by one (upload, then link). An unchanged product flagged as changed (e.g. after a TOD import) is marked in sync without a call.
 - **On the Online Store channel.** `productSet` puts a product on no sales channel, so after each create or update the publisher calls `publishablePublish` for the Online Store publication. The app needs the scopes `read_publications` and `write_publications`; without them the publish still succeeds and the log says the channel step was skipped.
 - **Logged.** Every attempt goes in `shopify_publish_log` with Shopify's error text.
 
@@ -37,7 +38,7 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --limit=50
 ## Publishing the whole range (3 Nov 2026)
 
 - `shopify:range-report`: the web range, how much is priced and fully detailed, on the store, waiting, failed in the last day, photos still to check for white backgrounds, and the variants the range needs (one per colour) against Shopify's limit: stores over 50,000 variants can only create 1,000 new variants a day (except Shopify Plus).
-- `shopify:auto-publish on|off`: when on, the minute cron runs `shopify:publish --limit=60 --seconds=45 --retry-after=60`: up to 60 new or changed products a minute, failed ones retried after an hour (they don't block the queue). Shopify's daily new-variant limit pauses it for 6 hours. Once the range is up it keeps the store in step with range changes (curation, new heroes, price changes).
+- `shopify:auto-publish on|off`: when on, the minute cron runs `shopify:publish --limit=250 --seconds=45 --retry-after=60 --parallel=5`: new or changed products for 45 seconds a minute, failed ones retried after an hour (they don't block the queue). Shopify's daily new-variant limit pauses it for 6 hours. Once the range is up it keeps the store in step with range changes (curation, new heroes, price changes).
 - A new white-background hero marks the product to publish again (`catalogue:backdrops`).
 
 ## Range collections (3 Nov 2026)

@@ -42,7 +42,7 @@ Schedule::command('catalogue:check-images')
 
 // Range publishing to Shopify (docs/publisher.md): on with shopify:auto-publish on. Up to 60
 // changed products a minute, failed ones retried after an hour, paused by Shopify's variant limit.
-Schedule::command('shopify:publish --limit=60 --seconds=45 --retry-after=60')
+Schedule::command('shopify:publish --limit=250 --seconds=45 --retry-after=60 --parallel=5')
     ->everyMinute()
     ->withoutOverlapping(10)
     ->when(fn () => (bool) cache()->get('shopify:auto_publish') && ! cache()->get('shopify:publish_paused_until'));

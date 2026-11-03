@@ -31,31 +31,28 @@ class ProductPublisher
     }
     GQL;
 
+    /** The same call without the picture list: for updates that upload no new pictures. Asking for
+     * media(first: 250) makes Shopify reserve ~260 points of the API allowance per call (refunded
+     * afterwards), which would throttle several calls at once on the Basic plan's 100 points a second. */
+    private const MUTATION_LITE = <<<'GQL'
+    mutation productSet($input: ProductSetInput!, $identifier: ProductSetIdentifiers) {
+      productSet(input: $input, identifier: $identifier, synchronous: true) {
+        product { id }
+        userErrors { field message code }
+      }
+    }
+    GQL;
+
     public function __construct(private readonly ShopifyAdmin $shopify, private readonly ProductPayload $payload) {}
 
     /** @return array{action: string, ok: bool, message: ?string, payload?: array} */
     public function publish(Product $product, bool $preview = false, bool $force = false, ?int $userId = null, bool $retried = false): array
     {
-        $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
-        $built = $this->payload->build($product, $media);
-        $hash = sha1(json_encode($built['input']));
-        $action = $product->shopify_product_id ? ($built['input']['status'] === 'ARCHIVED' ? 'archive' : 'update') : 'create';
-
-        if ($preview) {
-            return ['action' => 'preview', 'ok' => true, 'message' => $action.' (not sent)', 'payload' => $built['input']];
+        $p = $this->prepare($product, $preview, $force, $userId);
+        if (isset($p['result'])) {
+            return $p['result'];
         }
-        if (! $force && $product->publish_hash === $hash) {
-            // Flagged as changed, but nothing Shopify sees differs: mark it in sync so the
-            // queue moves on instead of picking the same products every minute.
-            if ($product->exists && $product->shopify_product_id) {
-                DB::table('products')->where('id', $product->id)->update(['published_at' => now()]);
-            }
-
-            return ['action' => 'skip', 'ok' => true, 'message' => 'unchanged'];
-        }
-        if ($action === 'create' && $built['input']['status'] === 'ARCHIVED') {
-            return $this->log($product, 'skip', true, 'not on the range: nothing to create', $hash, $userId);
-        }
+        ['built' => $built, 'hash' => $hash, 'action' => $action] = $p;
 
         try {
             $this->shopify->assertWritable();
@@ -69,7 +66,7 @@ class ProductPublisher
                 }
             }
             unset($v);
-            $productGid = $this->send($first, $product->shopify_product_id, $built['files'], $product);
+            $productGid = $this->send($first, $product->shopify_product_id, $this->uploads($built) ? $built['files'] : null, $product);
 
             // Pass 2: new images now have ids, so link them to their colour variants.
             if ($pending) {
@@ -77,20 +74,11 @@ class ProductPublisher
                 $this->send($this->payload->build($product, $media)['input'], $this->numericId($productGid), null, $product);
             }
 
-            // What an unchanged product will look like next time (images by id), so it is skipped.
-            $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
-            $hash = sha1(json_encode($this->payload->build($product, $media)['input']));
             // productSet does not put a product on any sales channel: without this the
             // storefront and its collections never show it.
             $channel = $action === 'archive' ? null : $this->showOnOnlineStore($productGid);
 
-            $product->forceFill([
-                'shopify_product_id' => $this->numericId($productGid),
-                'publish_hash' => $hash,
-                'published_at' => now(),
-            ])->save();
-
-            return $this->log($product, $action, true, count($built['input']['variants']).' variants, '.count($built['files']).' images'.($channel ? '; '.$channel : ''), $hash, $userId);
+            return $this->done($product, $action, $built, $productGid, $channel, $userId);
         } catch (Throwable $e) {
             // A picture Shopify couldn't fetch earlier stays in the FAILED state and can't be reused:
             // forget it, keep that picture off the website (staff see it on Range › product), and try once more.
@@ -113,11 +101,143 @@ class ProductPublisher
         }
     }
 
+    /**
+     * Publish several products, sending the plain updates (no new pictures, already on Shopify) to
+     * Shopify $parallel at a time. New products and products with new pictures take the usual
+     * one-by-one path (upload, then link pictures to colours).
+     *
+     * @param  iterable<Product>  $products
+     * @param  callable(Product, array): void|null  $each  called with each result as it is known
+     * @return array<int, array{action: string, ok: bool, message: ?string, payload?: array}> by product id
+     */
+    public function publishMany(iterable $products, int $parallel = 5, bool $preview = false, bool $force = false, ?int $userId = null, ?callable $each = null): array
+    {
+        $results = [];
+        $report = function (Product $product, array $r) use (&$results, $each) {
+            $results[$product->id] = $r;
+            if ($each) {
+                $each($product, $r);
+            }
+        };
+        $batch = [];
+        foreach ($products as $product) {
+            $p = $this->prepare($product, $preview, $force, $userId);
+            if (isset($p['result'])) {
+                $report($product, $p['result']);
+            } elseif ($p['action'] === 'create' || $this->uploads($p['built'])) {
+                $report($product, $this->publish($product, false, $force, $userId));
+            } else {
+                $batch[$product->id] = [$product, $p];
+            }
+        }
+        if ($batch === []) {
+            return $results;
+        }
+        try {
+            $this->shopify->assertWritable();
+        } catch (Throwable $e) {
+            foreach ($batch as [$product, $p]) {
+                $report($product, $this->log($product, $p['action'], false, mb_substr($e->getMessage(), 0, 2000), $p['hash'], $userId));
+            }
+
+            return $results;
+        }
+        foreach (array_chunk($batch, max(1, $parallel), true) as $chunk) {
+            $vars = array_map(fn ($item) => ['input' => $item[1]['built']['input'], 'identifier' => ['id' => 'gid://shopify/Product/'.$item[0]->shopify_product_id]], $chunk);
+            foreach ($this->shopify->graphqlMany(self::MUTATION_LITE, $vars) as $id => $data) {
+                [$product, $p] = $chunk[$id];
+                try {
+                    if ($data instanceof Throwable) {
+                        throw $data;
+                    }
+                    $report($product, $this->done($product, $p['action'], $p['built'], $this->result($data, null, $product), null, $userId));
+                } catch (Throwable $e) {
+                    // A picture Shopify couldn't load: the one-by-one path forgets it and tries again.
+                    $report($product, preg_match('/is in the FAILED state/i', $e->getMessage())
+                        ? $this->publish($product, false, true, $userId)
+                        : $this->log($product, $p['action'], false, mb_substr($e->getMessage(), 0, 2000), $p['hash'], $userId));
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * What publishing this product needs: the payload, its hash and the action, or the final
+     * result when nothing is sent (preview, unchanged, off the range and never created).
+     *
+     * @return array{result?: array, built?: array, hash?: string, action?: string}
+     */
+    private function prepare(Product $product, bool $preview, bool $force, ?int $userId): array
+    {
+        $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
+        $built = $this->payload->build($product, $media);
+        $hash = sha1(json_encode($built['input']));
+        $action = $product->shopify_product_id ? ($built['input']['status'] === 'ARCHIVED' ? 'archive' : 'update') : 'create';
+
+        if ($preview) {
+            return ['result' => ['action' => 'preview', 'ok' => true, 'message' => $action.' (not sent)', 'payload' => $built['input']]];
+        }
+        if (! $force && $product->publish_hash === $hash) {
+            // Flagged as changed, but nothing Shopify sees differs: mark it in sync so the
+            // queue moves on instead of picking the same products every minute.
+            if ($product->exists && $product->shopify_product_id) {
+                DB::table('products')->where('id', $product->id)->update(['published_at' => now()]);
+            }
+
+            return ['result' => ['action' => 'skip', 'ok' => true, 'message' => 'unchanged']];
+        }
+        if ($action === 'create' && $built['input']['status'] === 'ARCHIVED') {
+            return ['result' => $this->log($product, 'skip', true, 'not on the range: nothing to create', $hash, $userId)];
+        }
+
+        return ['built' => $built, 'hash' => $hash, 'action' => $action];
+    }
+
+    /** Does this payload upload any picture Shopify doesn't have yet? */
+    private function uploads(array $built): bool
+    {
+        foreach ($built['input']['files'] ?? [] as $f) {
+            if (isset($f['originalSource'])) {
+                return true;
+            }
+        }
+        foreach ($built['input']['variants'] ?? [] as $v) {
+            if (isset($v['file']['originalSource'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function done(Product $product, string $action, array $built, string $productGid, ?string $channel, ?int $userId): array
+    {
+        // What an unchanged product will look like next time (images by id), so it is skipped.
+        $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
+        $hash = sha1(json_encode($this->payload->build($product, $media)['input']));
+        $product->forceFill([
+            'shopify_product_id' => $this->numericId($productGid),
+            'publish_hash' => $hash,
+            'published_at' => now(),
+        ])->save();
+
+        return $this->log($product, $action, true, count($built['input']['variants']).' variants, '.count($built['files']).' images'.($channel ? '; '.$channel : ''), $hash, $userId);
+    }
+
     /** @param list<string>|null $files urls in the order sent, to record the media ids Shopify returns */
     private function send(array $input, ?int $shopifyId, ?array $files, Product $product): string
     {
         $identifier = $shopifyId ? ['id' => 'gid://shopify/Product/'.$shopifyId] : ['handle' => (string) $product->id];
-        $data = $this->shopify->graphql(self::MUTATION, ['input' => $input, 'identifier' => $identifier]);
+        $data = $this->shopify->graphql($files !== null ? self::MUTATION : self::MUTATION_LITE, ['input' => $input, 'identifier' => $identifier]);
+
+        return $this->result($data, $files, $product);
+    }
+
+    /** @param list<string>|null $files */
+    private function result(array $data, ?array $files, Product $product): string
+    {
         $result = $data['productSet'] ?? [];
         if (! empty($result['userErrors'])) {
             throw new \RuntimeException(collect($result['userErrors'])->map(fn ($e) => implode('.', (array) ($e['field'] ?? [])).': '.($e['message'] ?? ''))->implode('; '));
