@@ -94,6 +94,7 @@ return [
         'stock_default' => (int) env('LEAD_STOCK_DAYS', 2),       // stock from the supplier (per supplier in Admin › Suppliers)
         'decoration' => [                                         // the slowest method in the order counts
             'dtf' => 5,
+            'supacolour' => 5, 'supaflex' => 5, 'supaetch' => 5, 'supasub' => 5, // Legend Life: 5+ business days
             'dtf_oversize' => 6,
             'pad' => 7,
             'screen' => 8,
@@ -119,11 +120,16 @@ return [
     'artwork_solid_methods' => ['embroidery', 'screen', 'pad', 'laser', 'deboss', 'foil', 'transfer_screen', 'enamel', 'woven'],
 
     'methods' => [
+        // Supplier transfer brands (Legend Life), priced by size: the line for the size the logo fits.
+        'supacolour' => ['name' => 'Full colour transfer', 'review' => false, 'pricing' => 'flat', 'match' => '/supacolou?r/i'],
+        'supaflex' => ['name' => 'Flex transfer', 'review' => false, 'pricing' => 'flat', 'match' => '/supaflex/i'],
+        'supaetch' => ['name' => 'Etched look transfer', 'review' => false, 'pricing' => 'flat', 'match' => '/supaetch/i'],
+        'supasub' => ['name' => 'Sublimated transfer', 'review' => false, 'pricing' => 'flat', 'match' => '/supasub/i'],
         'embroidery' => ['name' => 'Embroidery', 'review' => true, 'pricing' => 'flat', 'match' => '/embroider/i', 'max_colours' => 12],
         'screen' => ['name' => 'Screen print', 'review' => true, 'pricing' => 'grid', 'match' => '/screen/i', 'max_colours' => 4],
         'pad' => ['name' => 'Pad print', 'review' => true, 'pricing' => 'per_colour', 'match' => '/\bpad\b/i', 'max_colours' => 4],
         'dtf_oversize' => ['name' => 'Oversize DTF', 'review' => false, 'pricing' => 'flat', 'match' => '/(over\s*-?\s*size|oversized|jumbo).*(dtf|transfer)|(dtf|transfer).*(over\s*-?\s*size|oversized|jumbo)/i'],
-        'dtf' => ['name' => 'DTF', 'review' => false, 'pricing' => 'flat', 'match' => '/\bdtf\b|direct to film|digital transfer|full colou?r transfer/i'],
+        'dtf' => ['name' => 'DTF', 'review' => false, 'pricing' => 'flat', 'match' => '/\bdtf\b|supadtf|direct to film|digital transfer|full colou?r transfer/i'],
     ],
 
     /*

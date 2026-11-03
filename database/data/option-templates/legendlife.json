@@ -1,0 +1,12 @@
+{
+  "key": "legendlife",
+  "supplier_id": 57,
+  "source": "Legend Life distributor product pages (legendlife.com.au: Decoration tab and the Quoting Tool's decoration price list for each style), all 936 Legend Life products read 3 Nov 2026. Promodata's lines match Legend Life's prices, breaks and $40 setups wherever both have a line; decoration is from 20 units (Promodata's leading zero break). Each method is one choice on the product page, priced from the size tier the logo fits (Supacolour 60x60 to 420x300 mm, SupaDTF, Supaflex finish, embroidery by stitch count). Promodata lists some methods Legend Life does not offer for a product; 'offered' takes those out, from Legend Life's own list per style. Prices stay Promodata's (SaaS pricing).",
+  "offered": {
+    "file": "supplier-pages/legendlife-offered.json",
+    "methods": ["Supacolour Hatbands", "Embroidery Hatbands", "Supacolour", "SupaDTF", "Embroidery", "Supaetch", "Supaflex", "Supasub", "Sublimation"]
+  },
+  "groups": {},
+  "lines": [],
+  "notes": {}
+}
