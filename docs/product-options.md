@@ -25,6 +25,12 @@ Read from the Logo Line distributor site (Price tab: Options and Add-Ons, where 
 
 Logo Line's undecorated prices on its own pages matched Promodata for 669 of 681 products; the 12 that differ are recorded as "differs" in Price check.
 
+### Dex Collection (supplier 19)
+
+Read from the Dex distributor site (Price (AUD) tab: Local Pricing with Same Day, 24 Hours, 3, 7 and 12 Working Days tabs, each with its own decoration costs and a min/max quantity per service) for all 838 Dex range products on 3 Nov 2026. Promodata repeats every branding method once per production time ("Same Day Print Per Col/Pos" … "12 Days Print Per Col/Pos"), all type 10, so the product page offered each time as a separate method. The blank price is the same for every local time.
+
+`dex.json` has a `speed` block instead: the customer picks a **production time** and each position is priced from that time's line. `ProductOptions::speedFor()` sends `custom.options.speed`: per time its name, working days, the line ids and Dex's min/max quantity per line (`database/data/supplier-pages/dex-ranges.json`, from Dex's pages). The theme merges the per-time copies of a method into one, starts on the time of the default decoration (so the page agrees with the card price; TOD's defaults are kept), disables a time outside Dex's range for the chosen branding, and keeps the time in the cart. Checkout refuses a time outside the range or two times on one order, and the delivery estimate uses the time's working days for stock and branding together. The 28-day and longer offshore lines (hidden, with their own CE blank price) aren't offered. Dex's same-day dispatch charge ($50 + GST per order) isn't in Promodata: the Same day option says it will be confirmed. Dex's add-on items (bottle tubes, cup boxes, NFC, gloss) aren't in Promodata either, so they aren't offered.
+
 ## What the SaaS sends
 
 `custom.options` (JSON, product metafield): `{v, source, groups: [{key, label, pick, optional, with_method, note, max, unit_label, base_stitches, options: [{id, name, included, fixed, breaks, setup, per, count, per_stitches, excludes, note}]}], notes}`. `breaks` is the line's sell price per unit by quantity and `setup` its sell setup, both SaaS pricing. Products with no matching lines get no metafield and the product page is unchanged.

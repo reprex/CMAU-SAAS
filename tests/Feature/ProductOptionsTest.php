@@ -117,6 +117,29 @@ class ProductOptionsTest extends TestCase
         $this->assertSame(['7566-add1pospadprintpercolour', '7566-add1posdigitalprint'], app(BrandingPricer::class)->options(7566)->keys()->all());
     }
 
+    public function test_dex_branding_lines_become_a_production_time_choice(): void
+    {
+        $this->supplier(19, 'Dex');
+        $p = Product::create(['id' => 8385, 'supplier_id' => 19, 'name' => 'Apron', 'code' => 'AP001', 'tier' => 'live']);
+        foreach ([
+            ['Local Blank Stock', 12, '50:7.54', 0], ['Same Day Print Per Col/Pos', 10, '50:0.98', 60], ['24 Hrs. Print Per Col/Pos', 10, '50:0.98', 60],
+            ['3 Days Print Per Col/Pos', 10, '50:0.83', 60], ['7 Days Print Per Col/Pos', 10, '50:0.68', 60], ['12 Days Print Per Col/Pos', 10, '50:0.6', 60],
+            ['28 Days Print Per Col/Pos', 23, '50:0.37', 60], ['7 Days Data Upload', 11, null, 60],
+        ] as $i => [$desc, $type, $breaks, $setup]) {
+            PriceOption::create(['product_id' => 8385, 'option_id' => '8385-'.strtolower(preg_replace('/[^a-z0-9]/i', '', $desc)), 'code' => strtolower(preg_replace('/[^a-z0-9]/i', '', $desc)),
+                'kind' => 'PDADEC', 'type_code' => $type, 'description' => $desc, 'price_string' => $breaks, 'setup_price' => $setup, 'position' => $i]);
+        }
+        $o = app(ProductOptions::class)->forProduct($p->load('priceOptions'));
+
+        $speed = collect($o['speed']['options'])->keyBy('key');
+        $this->assertSame(['sameday', '24hrs', '3days', '7days', '12days'], $speed->keys()->all()); // the hidden 28-day line isn't offered
+        $this->assertSame('12days', $o['speed']['default']);
+        $this->assertSame(['8385-samedayprintpercolpos'], $speed['sameday']['ids']);
+        $this->assertSame([50, 100], $speed['sameday']['ranges']['8385-samedayprintpercolpos']); // Dex's page: from 50 to 100
+        $this->assertSame([50, 2500], $speed['12days']['ranges']['8385-12daysprintpercolpos']);
+        $this->assertSame('7days', $o['groups'][0]['options'][0]['speed']); // data upload priced for 7 days shows with 7 days only
+    }
+
     public function test_other_suppliers_get_nothing(): void
     {
         $this->supplier(88, 'AS Colour');

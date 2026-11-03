@@ -91,6 +91,25 @@ class WebsiteCheckoutTest extends TestCase
             ->assertJsonFragment(['code' => 'option']);
     }
 
+    public function test_a_production_time_is_held_to_the_suppliers_quantity_range_and_sets_the_lead_time(): void
+    {
+        // The main product as a Dex product (AP001: Same Day print 50 to 100, 12 Days 50 to 2500 on Dex's page).
+        Supplier::query()->firstOrCreate(['id' => 19], ['name' => 'Dex']);
+        Product::query()->find(self::MENS)->forceFill(['supplier_id' => 19, 'code' => 'AP001'])->save();
+        foreach (['Same Day Print Per Col/Pos', '12 Days Print Per Col/Pos'] as $i => $d) {
+            PriceOption::create(['product_id' => self::MENS, 'option_id' => self::MENS.'-'.strtolower(preg_replace('/[^a-z0-9]/i', '', $d)), 'code' => strtolower(preg_replace('/[^a-z0-9]/i', '', $d)),
+                'kind' => 'PDADEC', 'type_code' => 10, 'description' => $d, 'price_string' => '50:0.98', 'cost_string' => '50:0.65', 'setup_price' => 60, 'position' => 60 + $i]);
+        }
+        $mens = ['lines' => [['product_id' => self::MENS, 'colour' => 'Black', 'size' => 'M', 'qty' => 60], ['product_id' => self::MENS, 'colour' => 'Black', 'size' => 'L', 'qty' => 50]]];
+        $at = fn (string $speed) => $this->cart($mens + ['positions' => [['name' => 'Front', 'decID' => self::MENS.'-'.$speed.'printpercolpos', 'colours' => 1, 'has_logo' => true]]]);
+
+        $this->price($at('sameday'))->assertOk()->assertJson(['can_order' => false])->assertJsonFragment(['code' => 'speed']); // 110 > 100
+        $r = $this->price($at('12days'))->assertOk()->assertJsonMissing(['code' => 'speed']);
+        $stages = collect($r->json('delivery_estimate.stages'))->keyBy('key');
+        $this->assertSame([0, 12], [$stages['stock']['days'], $stages['decoration']['days']]); // Dex's 12 working days cover stock and branding
+        $this->assertSame('Production (12 working days)', $stages['decoration']['name']);
+    }
+
     public function test_setup_is_charged_once_per_position_and_methods_price_by_their_own_rules(): void
     {
         $r = $this->price($this->cart(['positions' => [

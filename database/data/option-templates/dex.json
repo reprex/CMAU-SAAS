@@ -1,0 +1,25 @@
+{
+  "key": "dex",
+  "supplier_id": 19,
+  "source": "Dex Collection distributor product pages (dexcollection.com.au, Price (AUD) tab: Local Pricing with Same Day, 24 Hours, 3, 7 and 12 Working Days tabs, each with its own Additional Decoration Costs and min/max quantity per service), all 838 Dex range products read 3 Nov 2026. Promodata repeats every branding method once per production time ('Same Day Print Per Col/Pos', '24 Hrs. Print Per Col/Pos', … '12 Days Print Per Col/Pos'); the blank price is the same for every local production time. So the customer picks a production time, and each branding method is priced from that time's line. Prices stay Promodata's (SaaS pricing). The 28-day and longer offshore lines (hidden by TOD's rule, with their own CE blank price) are not offered.",
+  "speed": {
+    "label": "Production time",
+    "note": "Working days from artwork approval to dispatch from the factory, plus freight.",
+    "ranges": "supplier-pages/dex-ranges.json",
+    "default": "12days",
+    "options": [
+      { "key": "sameday", "match": "^Same Day\\b", "name": "Same day", "days": 0, "note": "Dispatched the same day. A same-day dispatch charge applies, and we'll confirm it before production." },
+      { "key": "24hrs", "match": "^24 Hrs\\.?", "name": "24 hours", "days": 1 },
+      { "key": "3days", "match": "^3 Days\\b", "name": "3 working days", "days": 3 },
+      { "key": "7days", "match": "^7 Days\\b", "name": "7 working days", "days": 7 },
+      { "key": "12days", "match": "^12 Days\\b", "name": "12 working days", "days": 12 }
+    ]
+  },
+  "groups": {
+    "personalise": { "label": "Personalise each item", "pick": "many", "order": 30, "note": "A different name on each item. Send the list with your artwork." }
+  },
+  "lines": [
+    { "match": "^(7days|12days|3days|24hrs|sameday)?dataupload", "group": "personalise", "name": "Names from a list (data upload)" }
+  ],
+  "notes": {}
+}
