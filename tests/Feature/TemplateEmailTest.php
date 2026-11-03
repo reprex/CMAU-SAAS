@@ -60,6 +60,23 @@ class TemplateEmailTest extends TestCase
         $this->assertStringNotContainsString('AP001 Jackys', json_encode($mf->all())); // no file name or address on the page
     }
 
+    public function test_a_zip_as_uploaded_is_read_without_extracting(): void
+    {
+        Product::create(['id' => 8386, 'supplier_id' => 19, 'name' => 'Junior Apron', 'code' => 'AP002', 'tier' => 'live']);
+        $dir = sys_get_temp_dir().'/tpl-zip-'.uniqid();
+        mkdir($dir.'/19', 0777, true);
+        $zip = new \ZipArchive;
+        $zip->open($dir.'/19/Dex branding templates 1 of 6.zip', \ZipArchive::CREATE);
+        $zip->addFromString('AP002 Junior Cotton Apron – Age 4-7.pdf', '%PDF-1.4 '.str_repeat('y', 500));
+        $zip->addFromString('__MACOSX/._AP002 Junior Cotton Apron – Age 4-7.pdf', 'junk');
+        $zip->close();
+
+        $this->artisan('catalogue:import-templates', ['path' => $dir.'/19', '--supplier' => 19])->expectsOutputToContain('Imported 1 templates')->assertSuccessful();
+        $t = BrandingTemplate::query()->where('product_id', 8386)->sole();
+        $this->assertSame('AP002 Junior Cotton Apron – Age 4-7.pdf', $t->filename);
+        $this->assertStringStartsWith('%PDF', Storage::disk('templates')->get($t->file_path));
+    }
+
     public function test_staff_draft_the_quote_email_and_it_goes_with_the_template(): void
     {
         app(TemplateFiles::class)->import($this->inbox);

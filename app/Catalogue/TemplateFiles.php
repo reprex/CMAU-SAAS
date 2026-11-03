@@ -24,7 +24,7 @@ class TemplateFiles
     public const DISK = 'templates';
 
     /**
-     * Import a folder of reviewed templates: each file is named "<supplier code> <anything>.pdf"
+     * Import a folder of reviewed templates, as files or the zips they were uploaded in: each file is named "<supplier code> <anything>.pdf"
      * (e.g. "AP001 Jackys Cotton Apron.pdf", "100109_Branding Template_1.pdf", "LL0007 Monza Car Charger.pdf").
      *
      * @param  callable(string): void|null  $say
@@ -33,42 +33,76 @@ class TemplateFiles
     public function import(string $dir, ?int $supplierId = null, ?callable $say = null): array
     {
         $out = ['imported' => 0, 'same' => 0, 'unmatched' => []];
-        $files = collect(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)))
-            ->filter(fn (\SplFileInfo $f) => $f->isFile() && preg_match('/\.(pdf|png|jpe?g|ai|eps)$/i', $f->getFilename()))
-            ->sortBy(fn (\SplFileInfo $f) => $f->getFilename())->values();
-        foreach ($files as $f) {
-            $name = $f->getFilename();
-            $product = $this->productFor($name, $supplierId);
-            if (! $product) {
-                $out['unmatched'][] = $name;
+        $all = collect(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)))
+            ->filter(fn (\SplFileInfo $f) => $f->isFile())->sortBy(fn (\SplFileInfo $f) => $f->getPathname())->values();
+        foreach ($all as $f) {
+            if (preg_match(self::FILES, $f->getFilename())) {
+                $this->importOne($f->getFilename(), (int) $f->getSize(), fn () => fopen($f->getPathname(), 'rb'), $supplierId, $out, $say);
+            } elseif (preg_match('/\.zip$/i', $f->getFilename())) {
+                // A zip as uploaded (cPanel File Manager): read straight from it, no need to extract.
+                if (! class_exists(\ZipArchive::class)) {
+                    $out['unmatched'][] = $f->getFilename().' (this server cannot open zips: extract it first)';
 
-                continue;
-            }
-            $path = $product->supplier_id.'/'.$this->safe($name);
-            $bytes = (int) $f->getSize();
-            $row = BrandingTemplate::query()->where('product_id', $product->id)->where('filename', $name)->first();
-            if ($row && (int) $row->bytes === $bytes && Storage::disk(self::DISK)->exists($path)) {
-                $out['same']++;
+                    continue;
+                }
+                $zip = new \ZipArchive;
+                if ($zip->open($f->getPathname()) !== true) {
+                    $out['unmatched'][] = $f->getFilename().' (not a readable zip)';
 
-                continue;
+                    continue;
+                }
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $st = $zip->statIndex($i);
+                    $name = basename((string) $st['name']);
+                    if (str_ends_with((string) $st['name'], '/') || str_starts_with($name, '._') || ! preg_match(self::FILES, $name)) {
+                        continue;
+                    }
+                    $this->importOne($name, (int) $st['size'], fn () => $zip->getStream((string) $st['name']), $supplierId, $out, $say);
+                }
+                $zip->close();
             }
-            $stream = fopen($f->getPathname(), 'rb');
-            Storage::disk(self::DISK)->writeStream($path, $stream);
-            is_resource($stream) && fclose($stream);
-            $first = ! $this->has($product);
-            BrandingTemplate::query()->updateOrCreate(['product_id' => $product->id, 'filename' => $name], [
-                'url' => 'file:'.$path, 'file_path' => $path, 'bytes' => $bytes, 'source' => 'file',
-                // Read for positions too (catalogue:read-templates), unless the product's template was already read.
-                'status' => BrandingTemplate::query()->where('product_id', $product->id)->where('status', 'read')->exists() ? 'stored' : 'new',
-            ]);
-            if ($first && $product->tier === Product::TIER_LIVE) {
-                $product->forceFill(['range_changed_at' => now()])->save(); // custom.hasbrandingtemplate goes to Shopify
-            }
-            $out['imported']++;
-            $say && $out['imported'] % 100 === 0 && $say("{$out['imported']} imported…");
         }
 
         return $out;
+    }
+
+    private const FILES = '/\.(pdf|png|jpe?g|ai|eps)$/i';
+
+    /** @param  callable(): (resource|false)  $open */
+    private function importOne(string $name, int $bytes, callable $open, ?int $supplierId, array &$out, ?callable $say): void
+    {
+        $product = $this->productFor($name, $supplierId);
+        if (! $product) {
+            $out['unmatched'][] = $name;
+
+            return;
+        }
+        $path = $product->supplier_id.'/'.$this->safe($name);
+        $row = BrandingTemplate::query()->where('product_id', $product->id)->where('filename', $name)->first();
+        if ($row && (int) $row->bytes === $bytes && Storage::disk(self::DISK)->exists($path)) {
+            $out['same']++;
+
+            return;
+        }
+        $stream = $open();
+        if (! is_resource($stream)) {
+            $out['unmatched'][] = $name.' (could not be read)';
+
+            return;
+        }
+        Storage::disk(self::DISK)->writeStream($path, $stream);
+        fclose($stream);
+        $first = ! $this->has($product);
+        BrandingTemplate::query()->updateOrCreate(['product_id' => $product->id, 'filename' => $name], [
+            'url' => 'file:'.$path, 'file_path' => $path, 'bytes' => $bytes, 'source' => 'file',
+            // Read for positions too (catalogue:read-templates), unless the product's template was already read.
+            'status' => BrandingTemplate::query()->where('product_id', $product->id)->where('status', 'read')->exists() ? 'stored' : 'new',
+        ]);
+        if ($first && $product->tier === Product::TIER_LIVE) {
+            $product->forceFill(['range_changed_at' => now()])->save(); // custom.hasbrandingtemplate goes to Shopify
+        }
+        $out['imported']++;
+        $say && $out['imported'] % 100 === 0 && $say("{$out['imported']} imported…");
     }
 
     /** The product a file belongs to: the code before the first space or underscore. */
