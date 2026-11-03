@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Catalogue\ProductOptions;
+use App\Checkout\BrandingPricer;
 use App\Models\PriceOption;
 use App\Models\Product;
+use App\Pricing\WebPriceCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\QuoteFixtures;
 use Tests\TestCase;
@@ -85,6 +87,34 @@ class ProductOptionsTest extends TestCase
         $this->assertSame('count', $g['personalise']['pick']);
         $this->assertSame('per line', $g['personalise']['options'][0]['note']);
         $this->assertSame(['Mystery Widget'], $opts->unmatched($p));
+    }
+
+    public function test_logo_line_packaging_leaves_branding_and_becomes_options(): void
+    {
+        $this->supplier(2, 'Logo Line');
+        $p = Product::create(['id' => 7566, 'supplier_id' => 2, 'name' => 'Pen', 'code' => 'LL0326', 'tier' => 'live']);
+        foreach ([
+            ['Undecorated', 12, '250:0.53', 0], ['ADD 1 Pos Pad Print Per Colour', 10, '250:0.18', 60], ['ADD 1 Pos Digital Print', 10, '250:0.38', 60],
+            ['ADD Variable Data - Digital Print', 11, '250:2.18', 0], ['ADD LL0512 Cardboard Sleeve with Pen Inserted', 10, '250:0.29', 0],
+            ['ADD 1 Col Print on Pen Sleeve', 10, '250:0.18', 60], ['ADD LL0501 Black Cardboard Pen Box with Pen Inserted', 10, '250:0.92', 0],
+            ['1 Pos Pad Print Per Colour', 23, '250:0.72', 60],
+        ] as $i => [$desc, $type, $breaks, $setup]) {
+            PriceOption::create(['product_id' => 7566, 'option_id' => '7566-'.strtolower(preg_replace('/[^a-z0-9]/i', '', $desc)), 'code' => strtolower(preg_replace('/[^a-z0-9]/i', '', $desc)),
+                'kind' => 'PDADEC', 'type_code' => $type, 'description' => $desc, 'price_string' => $breaks, 'cost_string' => $breaks, 'setup_price' => $setup, 'position' => $i]);
+        }
+        $opts = app(ProductOptions::class);
+        $g = collect($opts->forProduct($p->load('priceOptions'))['groups'])->keyBy('key');
+
+        $this->assertSame(['personalise', 'packaging', 'packprint'], $g->keys()->all());
+        $this->assertSame(['Cardboard sleeve, pen inserted', 'Black pen box, pen inserted'], array_column($g['packaging']['options'], 'name'));
+        $this->assertSame(['7566-addll0512cardboardsleevewithpeninserted'], $g['packprint']['options'][0]['needs']); // print the sleeve needs the sleeve
+        $this->assertSame(['7566-addll0512cardboardsleevewithpeninserted', '7566-add1colprintonpensleeve', '7566-addll0501blackcardboardpenboxwithpeninserted'], $opts->claimed(2, $p->priceOptions));
+
+        // The packaging is no longer offered as a print method.
+        $wp = app(WebPriceCalculator::class)->calculate($p->fresh());
+        $decs = array_column(json_decode($wp->decoration_json, true)['Decorations'], 'DecName');
+        $this->assertSame(['ADD 1 Pos Pad Print Per Colour', 'ADD 1 Pos Digital Print'], $decs);
+        $this->assertSame(['7566-add1pospadprintpercolour', '7566-add1posdigitalprint'], app(BrandingPricer::class)->options(7566)->keys()->all());
     }
 
     public function test_other_suppliers_get_nothing(): void

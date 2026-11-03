@@ -34,11 +34,15 @@ class ProductOptions
         $codes = array_keys($this->lines($product));
         foreach ($this->lines($product) as $code => $line) {
             $rule = $this->ruleFor($file, $code);
-            if (! $rule || in_array((int) $line->type_code, [10, 23], true)) {
-                continue; // no rule, branding (DecorationJSON has it) or hidden
+            $type = (int) $line->type_code;
+            if (! $rule || $type === 23 || ($type === 10 && ! ($rule['branding_line'] ?? false))) {
+                continue; // no rule, hidden, or real branding (DecorationJSON has it)
             }
             if (($rule['requires'] ?? []) && ! $this->hasAll($codes, $rule['requires'])) {
                 continue;
+            }
+            if (isset($rule['requires_any']) && $this->idsContaining($product, $rule['requires_any'], $code) === []) {
+                continue; // e.g. print on the sleeve, but the product has no sleeve option
             }
             $g = $rule['group'];
             $groups[$g][] = array_filter([
@@ -52,6 +56,8 @@ class ProductOptions
                 'count' => $rule['count'] ?? null,                       // {max, label}: a quantity per item / order
                 'per_stitches' => $rule['per_stitches'] ?? null,
                 'excludes' => isset($rule['excludes']) ? $this->idsFor($product, $rule['excludes']) : null,
+                'needs' => isset($rule['requires_any']) ? $this->idsContaining($product, $rule['requires_any'], $code) : null, // shown once one of these is chosen
+                'with_method' => $rule['with_method'] ?? null,
                 'note' => $this->note($line),
             ], fn ($v) => $v !== null && $v !== []);
         }
@@ -87,6 +93,33 @@ class ProductOptions
         }
 
         return array_filter(['v' => 1, 'source' => $file['key'], 'groups' => $out, 'notes' => $notes ?: null], fn ($v) => $v !== null);
+    }
+
+    /**
+     * Branding (type 10) lines an options rule takes over (Logo Line packaging): they are options,
+     * not branding methods, so DecorationJSON, branding positions and checkout leave them out.
+     *
+     * @param  iterable<PriceOption>  $lines
+     * @return list<string> option ids
+     */
+    public function claimed(int $supplierId, iterable $lines): array
+    {
+        $file = $this->templateFor($supplierId);
+        if (! $file) {
+            return [];
+        }
+        $out = [];
+        foreach ($lines as $line) {
+            if ((int) $line->type_code !== 10) {
+                continue;
+            }
+            $rule = $this->ruleFor($file, preg_replace('/^\d+-/', '', (string) $line->option_id));
+            if ($rule && ($rule['branding_line'] ?? false)) {
+                $out[] = (string) $line->option_id;
+            }
+        }
+
+        return $out;
     }
 
     /** Lines of a product no rule covers and that aren't branding: for the review report. @return list<string> */
@@ -156,6 +189,13 @@ class ProductOptions
     private function idsFor(Product $product, array $prefixes): array
     {
         return collect($this->lines($product))->filter(fn ($l, $c) => collect($prefixes)->contains(fn ($p) => str_starts_with($c, $p)))
+            ->map(fn ($l) => $l->option_id)->values()->all();
+    }
+
+    /** @return list<string> ids of the product's other lines whose code contains one of these words */
+    private function idsContaining(Product $product, array $words, string $self): array
+    {
+        return collect($this->lines($product))->filter(fn ($l, $c) => $c !== $self && collect($words)->contains(fn ($w) => str_contains($c, $w)))
             ->map(fn ($l) => $l->option_id)->values()->all();
     }
 

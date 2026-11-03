@@ -1,0 +1,58 @@
+{
+  "key": "logoline",
+  "supplier_id": 2,
+  "source": "Logo Line distributor product pages (logoline.com.au, Price tab: Options and Add-Ons with each option's group type, max, prerequisites and incompatibles), all 695 Logo Line range products read 3 Nov 2026. Prices stay Promodata's (SaaS pricing). Promodata gives Logo Line's branded totals as plain lines (hidden) and the add-on amounts as 'ADD …' lines; the packaging 'ADD' lines are type 10 by TOD's rule, so the rules below claim them: they come out of the branding choices and become options, with their price and markup unchanged.",
+  "groups": {
+    "packaging": { "label": "Packaging", "pick": "one", "optional": true, "order": 40, "note": "Logo Line lets you choose one packaging option." },
+    "packprint": { "label": "Print the packaging", "pick": "many", "order": 41 },
+    "personalise": { "label": "Personalise each item", "pick": "count", "order": 30, "max": 4, "unit_label": "position", "note": "A different name on each item (variable data), with an ID label to match each one. Send the list with your artwork.", "with_method": ["laser", "digital", "label", "dtf", "sublimation", "doming"] },
+    "extras": { "label": "Extras", "pick": "many", "order": 50 }
+  },
+  "lines": [
+    { "match": "^add(va)?variabledat[ae]|^adddigital(label|transfer)?variabledata|^adddigitalsleevewithvariabledata", "group": "personalise", "name": "Variable data (a name per item)" },
+
+    { "match": "^addll\\d*blackvelvetpouchwithpeninserted|^addll\\d*pouchwithpeninserted", "group": "packaging", "name": "Velvet pouch, pen inserted", "branding_line": true },
+    { "match": "^addll\\d*blackvelvetpouchsuppliedinbulk|^addll\\d*pouchbulk", "group": "packaging", "name": "Velvet pouch, supplied loose", "branding_line": true },
+    { "match": "^addl*\\d*cardboardsleevewithpeninserted", "group": "packaging", "name": "Cardboard sleeve, pen inserted", "branding_line": true },
+    { "match": "^addl*\\d*cardboardsleevesuppliedinbulk", "group": "packaging", "name": "Cardboard sleeve, supplied loose", "branding_line": true },
+    { "match": "^addl*\\d*blackcardboardpenboxwithpeninserted", "group": "packaging", "name": "Black pen box, pen inserted", "branding_line": true },
+    { "match": "^addnaturalgiftboxdigitalsleeve", "group": "packaging", "name": "Natural gift box with printed sleeve", "branding_line": true },
+    { "match": "^addnaturalgiftbox$", "group": "packaging", "name": "Natural gift box", "branding_line": true },
+    { "match": "^addblackslidegiftbox", "group": "packaging", "name": "Black slide gift box", "branding_line": true },
+    { "match": "^addzipperedpouch", "group": "packaging", "name": "Zippered pouch", "branding_line": true },
+    { "match": "^addblackcardboardpouchwithlensclothinserted", "group": "packaging", "name": "Black cardboard pouch", "branding_line": true },
+    { "match": "^add(ll\\d+)?(small|medium)?eva(zipper)?case\\d*col\\d*pos", "group": "packaging", "name": "EVA case, printed 1 colour", "branding_line": true },
+    { "match": "^add(ll\\d+)?(small|medium)?eva(zipper)?case\\d*posdigital", "group": "packaging", "name": "EVA case, full colour print", "branding_line": true },
+    { "match": "^add(ll\\d+)?(small|medium)?eva(zipper)?case$", "group": "packaging", "name": "EVA case", "branding_line": true },
+    { "match": "^addll\\d*pvcglowcablepouch(digital(print)?backingcard)", "group": "packaging", "name": "Glow pouch with printed backing card", "branding_line": true },
+    { "match": "^addll\\d*pvcglowcablepouch\\d*colprint", "group": "packaging", "name": "Glow pouch, printed 1 colour", "branding_line": true },
+    { "match": "^addll\\d*pvcglowcablepouch$", "group": "packaging", "name": "Glow cable pouch", "branding_line": true },
+    { "match": "^add\\d*posdigitalprintonbackingcard", "group": "packaging", "name": "Printed backing card", "branding_line": true },
+    { "match": "^addll\\d*sparkletoothbrushcasewithtoothbrushinserted", "group": "packaging", "name": "Toothbrush case, inserted", "branding_line": true },
+    { "match": "^addll\\d*sparkletoothbrushcasebulksupplied", "group": "packaging", "name": "Toothbrush case, supplied loose", "branding_line": true },
+    { "match": "^addll\\d*bambootoothbrushinsertedintocase", "group": "packaging", "name": "Bamboo toothbrush in the case", "branding_line": true },
+    { "match": "^addll\\d*bambootoothbrushbulksupplied", "group": "packaging", "name": "Bamboo toothbrush, supplied loose", "branding_line": true },
+    { "match": "^addll\\d*bamboolid(digitalprint)$", "group": "packaging", "name": "Bamboo lid, full colour print", "branding_line": true },
+    { "match": "^addll\\d*bamboolid(laserengraved)$", "group": "packaging", "name": "Bamboo lid, laser engraved", "branding_line": true },
+    { "match": "^add(ll\\d+)?bamboolid$", "group": "packaging", "name": "Bamboo lid", "branding_line": true },
+    { "match": "^add(ll\\d+)?\\d+in\\d+combo(usb)?cable", "group": "extras", "name": "3 in 1 combo cable", "branding_line": true },
+
+    { "match": "^add1colprintonpensleeve|^add1col1posprintonl*\\d*cardboardsleeve", "group": "packprint", "name": "Print the sleeve (1 colour)", "branding_line": true, "requires_any": ["cardboardsleeve"] },
+    { "match": "^add1pos(pad|digital)printonll\\d*sparkletoothbrushcase", "group": "packprint", "name": "Print the toothbrush case", "branding_line": true, "requires_any": ["sparkletoothbrushcase"] },
+    { "match": "^add1poslaserengrav(e|ed)ontoothbrush", "group": "packprint", "name": "Engrave the toothbrush", "branding_line": true, "requires_any": ["bambootoothbrush"] },
+    { "match": "^add1poslabelonzipperedpouch", "group": "packprint", "name": "Label on the pouch", "branding_line": true, "requires_any": ["zipperedpouch"] },
+    { "match": "^add1col1pospadprintonblackcardboardpouch", "group": "packprint", "name": "Print the cardboard pouch", "branding_line": true, "requires_any": ["blackcardboardpouch"] },
+    { "match": "^addlabelonblackgiftbox|^add1poslabelonblackslidegiftbox", "group": "packprint", "name": "Label on the gift box", "branding_line": true, "requires_any": ["blackslidegiftbox"] },
+    { "match": "^adddigitalsleeveon|^add1posdigitalsleeve(onbox)?$", "group": "packprint", "name": "Full colour sleeve on the box", "branding_line": true },
+    { "match": "^add(1pos)?(standard|deluxe)?(digital)?labelon(box|tuckbox)$|^addlabelontuckbox", "group": "packprint", "name": "Label on the box", "branding_line": true },
+    { "match": "^add1col(1pos)?(pad|screen)?printon(black|natural)?giftbox|^add1poscolourfusionongiftbox|^add1colscreenprintonbox", "group": "packprint", "name": "Print the gift box", "branding_line": true },
+    { "match": "^adddigitalprint(outside|inside)ofgiftbox", "group": "packprint", "name": "Print the gift box (full colour)", "branding_line": true },
+    { "match": "^adddigitalprintcustominsertofgiftbox", "group": "packprint", "name": "Printed insert in the gift box", "branding_line": true },
+
+    { "match": "^addextracolourprintperside", "group": "extras", "name": "Extra print colour per side", "branding_line": true, "count": { "max": 3, "label": "colours" }, "with_method": ["screen", "pad"] },
+    { "match": "^adddarkbagsadditionalwhiteprint", "group": "extras", "name": "White underbase (dark bags)", "branding_line": true, "with_method": ["screen", "pad"] },
+    { "match": "^addblackmugwhiteunderlay", "group": "extras", "name": "White underlay (black mugs)", "branding_line": true },
+    { "match": "^addinsertitemsintocase", "group": "extras", "name": "Insert items into the case" }
+  ],
+  "notes": {}
+}

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Catalogue\ProductOptions;
+use App\Catalogue\RangeManager;
 use App\Models\Product;
 use Illuminate\Console\Command;
 
@@ -12,7 +13,7 @@ use Illuminate\Console\Command;
  */
 class CatalogueOptionsReportCommand extends Command
 {
-    protected $signature = 'catalogue:options-report {--supplier= : Promodata supplier id} {--product= : One product: print its custom.options} {--mark : Mark range products that get options to publish again}';
+    protected $signature = 'catalogue:options-report {--supplier= : Promodata supplier id} {--product= : One product: print its custom.options} {--mark : Mark range products that get options to publish again} {--reprice : Reprice them first (when a template claims branding lines, e.g. Logo Line packaging)}';
 
     protected $description = 'Report which range products get product options, and lines no template rule covers';
 
@@ -37,6 +38,9 @@ class CatalogueOptionsReportCommand extends Command
                         continue;
                     }
                     $n++;
+                    if ($this->option('reprice') && $options->claimed((int) $p->supplier_id, $p->priceOptions) !== []) {
+                        app(RangeManager::class)->reprice($p); // DecorationJSON without the claimed packaging
+                    }
                     $o = $options->forProduct($p);
                     if ($o) {
                         $with++;

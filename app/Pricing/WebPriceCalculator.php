@@ -2,6 +2,7 @@
 
 namespace App\Pricing;
 
+use App\Catalogue\ProductOptions;
 use App\Models\DecTypeCode;
 use App\Models\PriceOption;
 use App\Models\PriceOptionSetting;
@@ -45,7 +46,9 @@ class WebPriceCalculator
             ? $own
             : PriceOption::query()->where('product_id', $decorationProductId)->orderBy('position')->get();
 
-        $decorations = $decorationOptions->where('type_code', DecTypeCode::DECORATION)->values();
+        // Lines an options template takes over (Logo Line packaging) aren't branding methods (docs/product-options.md).
+        $claimed = app(ProductOptions::class)->claimed((int) ($decorationProductId === $product->id ? $product->supplier_id : Product::query()->whereKey($decorationProductId)->value('supplier_id')), $decorationOptions);
+        $decorations = $decorationOptions->where('type_code', DecTypeCode::DECORATION)->reject(fn ($o) => in_array($o->option_id, $claimed, true))->values();
         $accessories = $decorationOptions->where('type_code', DecTypeCode::ACCESSORY)->values();
         $undecorated = $own->firstWhere('type_code', DecTypeCode::UNDECORATED);
 

@@ -365,7 +365,10 @@ class PositionResolver
     {
         $id = (int) ($product->webPrice?->decoration_product_id ?: $product->id);
 
-        return PriceOption::query()->where('product_id', $id)->where('type_code', DecTypeCode::DECORATION)->orderBy('position')->get();
+        $lines = PriceOption::query()->where('product_id', $id)->where('type_code', DecTypeCode::DECORATION)->orderBy('position')->get();
+        $claimed = app(ProductOptions::class)->claimed((int) (Product::query()->whereKey($id)->value('supplier_id')), $lines);
+
+        return $lines->reject(fn ($o) => in_array($o->option_id, $claimed, true))->values(); // packaging taken over by product options
     }
 
     private function staffArea(Product $product): ?PrintArea
