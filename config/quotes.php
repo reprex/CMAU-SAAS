@@ -24,6 +24,12 @@ return [
 
     // PDFs. The signature image is optional and kept out of Git: upload it
     // to storage/app/branding/signature.png through cPanel File Manager.
+    // Branding templates attached to quote and invoice emails (docs/branding-templates.md): never linked
+    // from the product page. Beyond this total the rest are listed in the email instead.
+    'templates' => [
+        'max_attach_mb' => (float) env('QUOTES_TEMPLATES_MAX_ATTACH_MB', 15),
+    ],
+
     'pdf' => [
         'logo' => public_path('img/crowdmerch-logo.png'),
         'signature' => storage_path('app/branding/signature.png'),

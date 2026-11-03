@@ -77,7 +77,10 @@ class BrandingTemplateTest extends TestCase
         $positions = json_decode($mf['brandingpositions']['value'], true);
         $this->assertSame(['Front centre', 'Left chest', 'Back', 'Right sleeve'], array_column($positions, 'name'));
         $this->assertSame([280, 350], $positions[0]['max_mm']);
-        $this->assertSame('https://cdn.example/5001-template.pdf', $mf['brandingtemplate']['value']);
+        // Only whether a template is available goes to Shopify, never its address (Scott, 3 Nov 2026).
+        $this->assertSame(['boolean', 'true'], [$mf['hasbrandingtemplate']['type'], $mf['hasbrandingtemplate']['value']]);
+        $this->assertArrayNotHasKey('brandingtemplate', $mf->all());
+        $this->assertStringNotContainsString('5001-template.pdf', json_encode(app(ProductPayload::class)->build($p->fresh())));
     }
 
     public function test_sample_learning_leaves_template_areas_alone(): void

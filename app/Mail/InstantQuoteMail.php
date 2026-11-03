@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\AttachesTemplates;
 use App\Models\Quote;
 use App\Pdf\QuotePdf;
 use Illuminate\Mail\Attachment;
@@ -11,6 +12,8 @@ use Illuminate\Mail\Mailables\Envelope;
 
 class InstantQuoteMail extends Mailable
 {
+    use AttachesTemplates;
+
     public function __construct(public Quote $quote) {}
 
     public function envelope(): Envelope
@@ -20,13 +23,18 @@ class InstantQuoteMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'mail.instant-quote');
+        return new Content(text: 'mail.instant-quote', with: ['templates' => $this->templates()]);
     }
 
     public function attachments(): array
     {
         $quote = $this->quote;
 
-        return [Attachment::fromData(fn () => app(QuotePdf::class)->quote($quote), $quote->number.'.pdf')->withMime('application/pdf')];
+        return [Attachment::fromData(fn () => app(QuotePdf::class)->quote($quote), $quote->number.'.pdf')->withMime('application/pdf'), ...$this->templateAttachments()];
+    }
+
+    protected function templateProductIds(): array
+    {
+        return $this->quote->items()->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
     }
 }

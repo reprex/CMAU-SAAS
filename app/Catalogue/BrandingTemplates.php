@@ -9,6 +9,7 @@ use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -69,11 +70,23 @@ class BrandingTemplates
         }
         $front = $this->pictureFor($product, 'front');
         $back = $this->pictureFor($product, 'back');
-        $isPdf = (bool) preg_match('/\.pdf(\?|$)/i', $template->url);
+        $isPdf = (bool) preg_match('/\.pdf(\?|$)/i', (string) ($template->file_path ?: $template->url));
+        // An imported template (a private file, docs/branding-templates.md) goes to Claude as the file itself.
+        $disk = Storage::disk(TemplateFiles::DISK);
+        if ($template->file_path && $disk->exists($template->file_path)) {
+            if ((int) $disk->size($template->file_path) > 20 * 1048576 || ! $isPdf) {
+                $template->update(['status' => 'stored', 'message' => 'Kept for emails; too large or not a PDF to read for positions']);
+
+                return 0;
+            }
+            $doc = ['type' => 'document', 'source' => ['type' => 'base64', 'media_type' => 'application/pdf', 'data' => base64_encode($disk->get($template->file_path))]];
+        } else {
+            $doc = $isPdf ? ['type' => 'document', 'source' => ['type' => 'url', 'url' => $template->url]] : ['type' => 'image', 'source' => ['type' => 'url', 'url' => $template->url]];
+        }
 
         $content = [
             ['type' => 'text', 'text' => "Supplier branding template for {$product->name} ({$product->supplier?->name} {$product->code}):"],
-            $isPdf ? ['type' => 'document', 'source' => ['type' => 'url', 'url' => $template->url]] : ['type' => 'image', 'source' => ['type' => 'url', 'url' => $template->url]],
+            $doc,
         ];
         if ($front) {
             $content[] = ['type' => 'text', 'text' => 'FRONT picture of our product:'];
@@ -167,6 +180,11 @@ class BrandingTemplates
             ], fn ($v) => $v !== null))->values()->all();
     }
 
+    /**
+     * Not sent to Shopify any more (Scott, 3 Nov 2026): no template links on our product pages, so a bot
+     * can't collect them. ProductPayload sends custom.hasbrandingtemplate instead; the template goes out
+     * attached to the quote or invoice email (TemplateFiles).
+     */
     public function templateUrl(Product $product): ?string
     {
         return BrandingTemplate::query()->where('product_id', $product->id)->where('status', 'read')->latest('read_at')->value('url');
