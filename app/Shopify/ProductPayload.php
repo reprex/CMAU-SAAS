@@ -8,6 +8,7 @@ use App\Catalogue\ImageTagger;
 use App\Catalogue\OurCodes;
 use App\Catalogue\PositionResolver;
 use App\Catalogue\PrintAreas;
+use App\Catalogue\SizeGuide;
 use App\Catalogue\SupplierCodes;
 use App\Models\Product;
 use Illuminate\Support\Str;
@@ -129,6 +130,8 @@ class ProductPayload
             ($tpl = $this->templates->templateUrl($product)) ? $this->mf('custom', 'brandingtemplate', 'url', $tpl) : null,
             // The size chart's chest width for the mockup, e.g. "L:56" (docs/logo-preview.md); none means the theme uses a typical width.
             ($garment = GarmentSizes::metafield($product)) ? $this->mf('custom', 'mockupgarment', 'single_line_text_field', $garment) : null,
+            // Fit, measurements and the supplier's size chart for the product page's Size guide.
+            ($guide = SizeGuide::forProduct($product)) ? $this->mf('custom', 'sizeguide', 'json', json_encode($guide, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : null,
         ]));
 
         $input = [
@@ -206,7 +209,27 @@ class ProductPayload
     {
         $d = $product->detail;
         $html = (string) ($product->overrideValue('description') ?: $d?->description);
-        $html = nl2br(e(strip_tags(str_ireplace(['<p>', '</p>'], ["\n", ''], $html))), false);
+        $plain = strip_tags(str_ireplace(['<p>', '</p>', '<br>', '<br/>', '<br />'], ["\n", '', "\n", "\n", "\n"], $html));
+        // A size table in the description moves to the Size guide (custom.sizeguide).
+        $lines = preg_split('/\R/', $plain) ?: [];
+        $keep = [];
+        $header = null;
+        $dropped = false;
+        foreach ($lines as $i => $line) {
+            $sizeHeader = preg_match('/^\s*sizes?\s*[|:]/i', $line) && SizeGuide::table($line."\n".($lines[$i + 1] ?? ''));
+            // A measurement line reads on its own ("Chest: S 52, M 55") or under the size header above it.
+            $measurement = trim($line) !== '' && (SizeGuide::table($line) || (preg_match('/^\s*sizes?\s*[|:]/i', $lines[$i - 1] ?? '') || ! empty($dropped)) && SizeGuide::table(($header ?? '')."\n".$line));
+            if ($sizeHeader) {
+                $header = $line;
+                $dropped = true;
+            } elseif ($measurement) {
+                $dropped = true;
+            } else {
+                $keep[] = $line;
+                $dropped = false;
+            }
+        }
+        $html = nl2br(e(trim(implode("\n", $keep))), false);
         $details = collect((array) ($d?->details ?? []))->filter(fn ($x) => is_array($x) && filled($x['detail'] ?? null));
         $find = fn (string $re) => $details->first(fn ($x) => preg_match($re, (string) ($x['name'] ?? '')));
         if ($s = $find('/size/i')) {
@@ -218,9 +241,11 @@ class ProductPayload
         if (filled($product->webPrice?->accessory_list)) {
             $html .= '<details><summary>Additional options available for custom quote</summary>'.nl2br(e($product->webPrice->accessory_list), false).'</details>';
         }
-        if ($details->isNotEmpty()) {
+        // Fit and measurements show in the Size guide instead (custom.sizeguide).
+        $specs = $details->reject(fn ($x) => SizeGuide::usesDetail((string) ($x['name'] ?? ''), (string) $x['detail']));
+        if ($specs->isNotEmpty()) {
             $html .= '<details><summary>Product Specifications</summary><ul>'
-                .$details->map(fn ($x) => '<li><b>'.e($x['name'] ?? '').':</b> '.e($x['detail']).'</li>')->implode('').'</ul></details>';
+                .$specs->map(fn ($x) => '<li><b>'.e($x['name'] ?? '').':</b> '.e($x['detail']).'</li>')->implode('').'</ul></details>';
         }
 
         return $html;
