@@ -18,7 +18,9 @@
     <a href="{{ route('project-requests.index') }}" class="{{ request()->routeIs('project-requests.*') ? 'on' : '' }}">Project requests</a>
     <a href="{{ route('curation-requests.index') }}" class="{{ request()->routeIs('curation-requests.*') ? 'on' : '' }}">Curation requests</a>
     <a href="{{ route('drafts.index') }}" class="{{ request()->routeIs('drafts.*') ? 'on' : '' }}">Wish lists &amp; intake</a>
-    <a href="{{ route('range.index') }}" class="{{ request()->routeIs('range.*') && ! request()->routeIs('range.logo-areas*') && ! request()->routeIs('range.positions*') ? 'on' : '' }}">Range</a>
+    <a href="{{ route('range.index') }}" class="{{ request()->routeIs('range.*') && ! request()->routeIs('range.logo-areas*') && ! request()->routeIs('range.positions*') && ! request()->routeIs('range.changes*') ? 'on' : '' }}">Range</a>
+    @php($vetCount = \App\Models\RangeSuggestion::query()->where('status', 'pending')->count())
+    <a href="{{ route('range.changes') }}" class="{{ request()->routeIs('range.changes*') ? 'on' : '' }}">Changes to vet @if($vetCount)<span class="pill warn small">{{ $vetCount }}</span>@endif</a>
     <a href="{{ route('range.positions') }}" class="{{ request()->routeIs('range.positions*') ? 'on' : '' }}">Positions</a>
     <a href="{{ route('range.logo-areas') }}" class="{{ request()->routeIs('range.logo-areas*') ? 'on' : '' }}">Logo areas</a>
     @if(auth()->user()->isAdmin())

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Catalogue\RangeChanges;
 use App\Http\Controllers\Controller;
 use App\Jobs\RangeBulkAction;
 use App\Models\AuditLog;
@@ -86,5 +87,23 @@ class RangeSupplierController extends Controller
                 number_format(count($ids)), $supplier->name, $minutes, $minutes === 1 ? 'minute' : 'minutes');
 
         return redirect()->route('admin.range-supplier.index', ['supplier' => $supplier->id])->with('status', $message);
+    }
+
+    /** Suggest this supplier's new products on Range › Changes to vet (docs/range.md). */
+    public function watch(Request $request)
+    {
+        $data = $request->validate([
+            'supplier_id' => 'required|integer|exists:suppliers,id',
+            'suggest_new' => 'boolean',
+            'types' => 'array', 'types.*' => 'string|max:255',
+        ]);
+        $supplier = Supplier::query()->findOrFail($data['supplier_id']);
+        $on = (bool) ($data['suggest_new'] ?? false);
+        RangeChanges::watch($supplier, $on, array_values(array_filter($data['types'] ?? [], 'strlen')) ?: null);
+        AuditLog::record('range.supplier_watch', $supplier, ['on' => $on, 'types' => $supplier->suggest_types]);
+
+        return redirect()->route('admin.range-supplier.index', ['supplier' => $supplier->id])->with('status', $on
+            ? "{$supplier->name}'s new products will be suggested on Range › Changes to vet for you to approve. Nothing is added without approval."
+            : "{$supplier->name}'s new products are no longer suggested.");
     }
 }

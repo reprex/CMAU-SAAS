@@ -31,6 +31,7 @@ use App\Http\Controllers\Public\WebsiteStaffController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteExtraController;
 use App\Http\Controllers\QuoteItemController;
+use App\Http\Controllers\RangeChangesController;
 use App\Http\Controllers\RangeController;
 use App\Http\Controllers\RelatedStyleController;
 use App\Http\Controllers\StaffConnectController;
@@ -126,6 +127,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/products/{product}/options', [ProductLookupController::class, 'options'])->name('products.options');
     Route::get('/items/{item}/skus', [QuoteItemController::class, 'skuList'])->name('items.skus');
     Route::get('/range', [RangeController::class, 'index'])->name('range.index');
+    Route::get('/range/changes', [RangeChangesController::class, 'index'])->name('range.changes');
     Route::get('/range/{product}', [RangeController::class, 'show'])->whereNumber('product')->name('range.show');
     Route::get('/substitutes', [SubstituteController::class, 'lookup'])->name('substitutes.lookup');
     Route::get('/range/{product}/substitutes', [SubstituteController::class, 'show'])->whereNumber('product')->name('range.substitutes');
@@ -170,6 +172,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/drafts/{draft}/convert', [DraftOrderController::class, 'convert'])->name('drafts.convert');
 
         Route::post('/range/bulk', [RangeController::class, 'bulk'])->name('range.bulk');
+        Route::post('/range/changes', [RangeChangesController::class, 'decide'])->name('range.changes.decide')->middleware('role:admin');
+        Route::post('/range/changes/{suggestion}/recheck', [RangeChangesController::class, 'recheck'])->whereNumber('suggestion')->name('range.changes.recheck');
         Route::post('/positions', [PositionRuleController::class, 'save'])->name('range.positions.save');
         Route::post('/logo-areas/{product}', [LogoAreaController::class, 'store'])->whereNumber('product')->name('range.logo-areas.store');
         Route::post('/range/{product}/templates', [BrandingTemplateController::class, 'store'])->whereNumber('product')->name('range.templates.store');
@@ -203,6 +207,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
 
         Route::get('/range-supplier', [RangeSupplierController::class, 'index'])->name('range-supplier.index');
         Route::post('/range-supplier', [RangeSupplierController::class, 'store'])->name('range-supplier.store');
+        Route::post('/range-supplier/watch', [RangeSupplierController::class, 'watch'])->name('range-supplier.watch');
 
         Route::get('/price-check', [PriceCheckController::class, 'index'])->name('price-check.index');
         Route::post('/price-check', [PriceCheckController::class, 'store'])->name('price-check.store');

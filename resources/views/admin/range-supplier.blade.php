@@ -43,6 +43,27 @@
   @endunless
 </div>
 
+<div class="card">
+  <h2 style="margin-top:0">New products from {{ $supplier->name }}</h2>
+  <form method="post" action="{{ route('admin.range-supplier.watch') }}" class="small" style="display:flex;flex-direction:column;gap:8px">@csrf
+    <input type="hidden" name="supplier_id" value="{{ $supplier->id }}">
+    <label class="row" style="gap:8px"><input type="hidden" name="suggest_new" value="0"><input type="checkbox" name="suggest_new" value="1" @checked($supplier->suggest_new)>
+      <b>Suggest this supplier's new products for my approval</b></label>
+    <span class="muted">When the Promodata sync brings in a new product from {{ $supplier->name }}, the SaaS fetches it, prices it, checks it against similar products on the range and lists it on <a href="{{ route('range.changes') }}">Range › Changes to vet</a>. Nothing goes on the range or to Shopify until you approve it.
+      @if($supplier->suggest_new) On since {{ $supplier->suggest_since?->format('j M Y') }}{{ $supplier->suggest_types ? ', for '.count($supplier->suggest_types).' product types' : ', for every product type' }}.@endif</span>
+    @if($types->isNotEmpty())
+    <details><summary>Only these product types (leave all unticked for every type)</summary>
+      <div style="columns:2;margin-top:6px">
+      @foreach($types as $t)
+        @if($t->type_name !== '')<label style="display:block"><input type="checkbox" name="types[]" value="{{ $t->type_name }}" @checked(in_array($t->type_name, (array) $supplier->suggest_types, true))> {{ $t->type_name }}</label>@endif
+      @endforeach
+      </div>
+    </details>
+    @endif
+    <div><button class="btn small">Save</button></div>
+  </form>
+</div>
+
 @if($types->isEmpty())
   <div class="card"><p class="muted" style="margin:0">No current products stored for {{ $supplier->name }}. Run the supplier sync above first.</p></div>
 @else

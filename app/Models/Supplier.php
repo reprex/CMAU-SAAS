@@ -17,6 +17,9 @@ class Supplier extends Model
     {
         return [
             'web_flag' => 'boolean',
+            'suggest_new' => 'boolean',
+            'suggest_types' => 'array',
+            'suggest_since' => 'datetime',
             'sample_available' => 'boolean',
             'markup_undecorated' => 'decimal:4',
             'markup_decoration' => 'decimal:4',
