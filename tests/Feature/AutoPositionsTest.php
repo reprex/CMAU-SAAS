@@ -112,6 +112,7 @@ class AutoPositionsTest extends TestCase
         // The "Print Area" detail names a back of 280 × 350 without a method: it applies to the methods the product offers.
         $back = collect($positions['Back']['method_areas'])->keyBy('method');
         $this->assertSame([280, 350], $back['screen']['max_mm']);
+        $this->assertSame([80, 100], $back['embroidery']['max_mm']); // a print area isn't an embroidery size: capped at 100 × 100
         $this->assertSame('https://res.cloudinary.com/promodata/as-colour/5001_back.jpg', $positions['Back']['image']);
         // Methods with no size (screen print here has none of its own on the front) are still offered.
         $this->assertContains('Embroidery', $positions['Front']['methods']);
