@@ -134,6 +134,32 @@ class KeywordSearch
         return $hits->merge($this->rank($extra, $brief, [])->reject(fn ($r) => $hits->contains('id', $r['id'])))->take($max)->values();
     }
 
+    /**
+     * The subcategories in these results, in order, for the website's "pick one or more" buttons: tag, name,
+     * the reason it suits them, how many products it has, a photo and the lowest price among the results.
+     *
+     * @return list<array{tag: string, name: string, why: ?string, count: int, image: ?string, from: ?float}>
+     */
+    public function groups(Collection|array $results): array
+    {
+        $out = [];
+        foreach ($results as $r) {
+            $tag = $r['tag'] ?? null;
+            if (! $tag) {
+                continue;
+            }
+            if (! isset($out[$tag])) {
+                $types = Synonyms::typesFor([$tag]);
+                $out[$tag] = ['tag' => $tag, 'name' => (string) ($r['group'] ?? $tag), 'why' => $r['reason'] ?? null,
+                    'count' => $types ? $this->live()->whereIn('promodata_type_name', $types)->count() : 0, 'image' => $r['image'] ?? null, 'from' => $r['price'] ?? null];
+            } elseif (($r['price'] ?? null) !== null && ($out[$tag]['from'] === null || $r['price'] < $out[$tag]['from'])) {
+                $out[$tag]['from'] = $r['price'];
+            }
+        }
+
+        return array_values($out);
+    }
+
     private function live(): Builder
     {
         return Product::query()->where('tier', Product::TIER_LIVE)->where('discontinued', false)
@@ -177,7 +203,7 @@ class KeywordSearch
             }
 
             return [
-                'id' => $p->id, 'name' => $p->name, 'type' => $p->promodata_type_name, 'group' => $p->promodata_type_name ? RangeCollections::subcategory($p->promodata_type_name) : null, 'material' => $p->material,
+                'id' => $p->id, 'name' => $p->name, 'type' => $p->promodata_type_name, 'group' => $p->promodata_type_name ? RangeCollections::subcategory($p->promodata_type_name) : null, 'tag' => app(RangeCollections::class)->tagFor($p->promodata_type_name), 'material' => $p->material,
                 'image' => $p->hero_image_url, 'qty' => max($at, $moq), 'price' => $price !== null ? round($price, 2) : null,
                 'moq' => $moq, 'lead_days' => $p->lead_time_days, 'score' => $score,
             ];

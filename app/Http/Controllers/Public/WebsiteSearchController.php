@@ -93,6 +93,8 @@ class WebsiteSearchController extends Controller
             'understood' => array_merge(['qty' => $brief['qty'], 'budget' => $brief['budget'], 'under' => $brief['under'], 'eco' => $brief['eco'], 'colours' => $brief['colours'], 'types' => $brief['types'],
                 'heading' => Occasions::heading($brief['occasions'])], $extra['understood'] ?? []),
             'results' => array_values(is_array($rows) ? $rows : $rows->all()),
+            // The subcategories, for "pick one or more" on the website (Scott, 3 Nov 2026).
+            'groups' => $keyword->groups(is_array($rows) ? $rows : $rows->all()),
         ]);
 
         // 3. Decide whether Claude is worth calling, and whether this visitor may use it.

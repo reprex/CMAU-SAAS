@@ -129,6 +129,10 @@ class WebsiteSearchTest extends TestCase
         $this->assertSame('Reusable bags guests keep using.', $res->json('results.0.reason'));
         $this->assertSame('Easy to wear on the day', $res->json('results.1.reason'));    // markup stripped
         $this->assertSame('Conference picks', $res->json('understood.heading'));
+        $this->assertSame(['totebags', 'caps'], array_column($res->json('groups'), 'tag'));
+        $this->assertSame('Reusable bags guests keep using.', $res->json('groups.0.why'));
+        $this->assertSame(2, $res->json('groups.0.count'));
+        $this->assertNotNull($res->json('groups.0.from'));
         $this->assertNotNull($res->json('results.0.price'));                              // price from SaaS pricing
         $this->assertSame(900, (int) SearchLog::query()->where('mode', 'ai')->value('tokens_in'));
 
