@@ -13,7 +13,8 @@
 <div class="row">
   <form method="get" class="row" role="search"><input type="hidden" name="show" value="{{ $show }}"><input type="search" name="q" value="{{ $q }}" placeholder="Description" aria-label="Search descriptions" style="width:260px"></form>
   <div class="seg">
-    <a href="{{ route('admin.dectypes.index', ['show' => 'todo']) }}" class="{{ $show === 'todo' ? 'on' : '' }}">To classify ({{ $todo }})</a>
+    <a href="{{ route('admin.dectypes.index', ['show' => 'live']) }}" class="{{ $show === 'live' ? 'on' : '' }}" title="Not classified and used by a product on the web range, most used first">To classify · on the range ({{ $todoLive }})</a>
+    <a href="{{ route('admin.dectypes.index', ['show' => 'todo']) }}" class="{{ $show === 'todo' ? 'on' : '' }}">To classify · all ({{ $todo }})</a>
     <a href="{{ route('admin.dectypes.index', ['show' => 'all']) }}" class="{{ $show === 'all' ? 'on' : '' }}">All</a>
   </div>
 </div>
@@ -36,7 +37,7 @@
         </td>
       </tr>
     @empty
-      <tr><td colspan="4" class="muted" style="padding:24px 8px">{{ $show === 'todo' ? 'Nothing to classify.' : 'No descriptions match.' }}</td></tr>
+      <tr><td colspan="4" class="muted" style="padding:24px 8px">{{ $show === 'live' ? 'Nothing on the range is waiting to be classified.' : ($show === 'todo' ? 'Nothing to classify.' : 'No descriptions match.') }}</td></tr>
     @endforelse
     </tbody>
   </table>

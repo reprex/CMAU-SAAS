@@ -164,6 +164,12 @@ class RangeCurationTest extends TestCase
         $todo = DecTypeCode::query()->whereNull('type_code')->first();
         $this->assertNotNull($todo, 'Fixture descriptions arrive unclassified.');
         $this->get(route('admin.dectypes.index'))->assertOk()->assertSee($todo->code);
+        // "On the range": only descriptions a live product uses.
+        $this->assertSame(Product::TIER_LIVE, $product->refresh()->tier);
+        $this->get(route('admin.dectypes.index', ['show' => 'live']))->assertOk()->assertSee('To classify · on the range')->assertSee($todo->code);
+        $product->forceFill(['tier' => Product::TIER_ACTIVE])->save();
+        $this->get(route('admin.dectypes.index', ['show' => 'live']))->assertOk()->assertDontSee('mono small muted">'.$todo->code, false);
+        $product->forceFill(['tier' => Product::TIER_LIVE])->save();
 
         $this->put(route('admin.dectypes.update', $todo), ['type_code' => 10, 'overwrite_description' => 'Embroidery'])->assertSessionHas('status');
 
