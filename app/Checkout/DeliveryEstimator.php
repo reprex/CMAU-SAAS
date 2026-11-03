@@ -18,15 +18,16 @@ class DeliveryEstimator
      * @param  array{id: string, name: string, days: array{0: int, 1: int}}  $service
      * @return array<string, mixed>
      */
-    public function estimate(string $state, string $supplierName, int $stockDays, string $method, array $service, ?CarbonImmutable $start = null): array
+    /** $productionDays: a production time the customer chose (Dex), which covers stock and branding together. */
+    public function estimate(string $state, string $supplierName, int $stockDays, string $method, array $service, ?CarbonImmutable $start = null, ?int $productionDays = null): array
     {
         $start = ($start ?? CarbonImmutable::now(config('app.timezone')))->startOfDay();
         $methods = config('website.methods');
-        $make = (int) (config('website.lead_times.decoration.'.$method) ?? max(config('website.lead_times.decoration')));
+        $make = $productionDays ?? (int) (config('website.lead_times.decoration.'.$method) ?? max(config('website.lead_times.decoration')));
         $stages = [
             ['key' => 'order_check', 'name' => 'Order check and invoice', 'days' => (int) config('website.lead_times.order_check')],
             ['key' => 'stock', 'name' => 'Stock from '.($supplierName ?: 'the supplier'), 'days' => $stockDays],
-            ['key' => 'decoration', 'name' => ($methods[$method]['name'] ?? 'Branding').' decoration', 'method' => $method, 'days' => $make],
+            ['key' => 'decoration', 'name' => $productionDays !== null ? 'Production ('.($productionDays ?: 'same day').($productionDays ? ' working '.($productionDays === 1 ? 'day' : 'days') : '').')' : ($methods[$method]['name'] ?? 'Branding').' decoration', 'method' => $method, 'days' => $make],
             ['key' => 'freight', 'name' => $service['name'], 'service' => $service['id'], 'days' => (int) max($service['days'])],
         ];
 

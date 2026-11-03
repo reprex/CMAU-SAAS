@@ -133,6 +133,7 @@ class CheckoutPricer
             }
             $positions[] = $priced;
         }
+        $speedDays = $this->checkSpeed($main, array_column($in['positions'], 'decID'), max(1, $units), $issue);
         // ---- Product options (custom.options, docs/product-options.md): priced here from the SaaS's own lines, never the client's.
         $opts = $this->options($main, $in['options'] ?? [], max(1, $units), $positions, $issue);
         $brandUnit = array_sum(array_column($positions, 'unit')) + $opts['unit'];
@@ -204,7 +205,7 @@ class CheckoutPricer
         $estimates = [];
         foreach ($freight['options'] ?? [] as $o) {
             // No supplier name: the estimate is shown to the client ("Stock from the supplier").
-            $estimates[$o['id']] = $this->estimator->estimate($state, '', $stockDays, $slowest, $o, $today);
+            $estimates[$o['id']] = $this->estimator->estimate($state, '', $speedDays !== null ? 0 : $stockDays, $slowest, $o, $today, $speedDays);
         }
         foreach ($freight['options'] ?? [] as $k => $o) {
             $freight['options'][$k]['delivery_date'] = $estimates[$o['id']]['delivery_date'];
@@ -291,6 +292,39 @@ class CheckoutPricer
      *
      * @return array{items: list<array<string, mixed>>, unit: float, once: float}
      */
+    /**
+     * Production time (Dex, docs/product-options.md): every position must use the same production time,
+     * within the supplier's quantity range for that line. Returns that time's working days (the
+     * supplier's stock and branding together) for the delivery estimate.
+     *
+     * @param  list<string>  $decIds
+     */
+    private function checkSpeed(Product $main, array $decIds, int $units, callable $issue): ?int
+    {
+        $main->loadMissing('priceOptions');
+        $speed = app(ProductOptions::class)->speedFor($main);
+        if (! $speed) {
+            return null;
+        }
+        $used = [];
+        foreach ($decIds as $id) {
+            foreach ($speed['options'] as $o) {
+                if (in_array((string) $id, $o['ids'], true)) {
+                    $used[$o['key']] = $o;
+                    $r = $o['ranges'][(string) $id] ?? null;
+                    if ($r && ($units < $r[0] || $units > $r[1])) {
+                        $issue('speed', "{$o['name']} production is available for {$r[0]} to {$r[1]} units of {$main->name}. Choose a longer production time.", ['speed' => $o['key']]);
+                    }
+                }
+            }
+        }
+        if (count($used) > 1) {
+            $issue('speed', 'Choose one production time for all branding positions.', ['speed' => array_keys($used)]);
+        }
+
+        return $used ? max(array_map(fn ($o) => (int) ($o['days'] ?? 0), $used)) : null;
+    }
+
     private function options(Product $main, array $chosen, int $units, array $positions, callable $issue): array
     {
         $out = ['items' => [], 'unit' => 0.0, 'once' => 0.0];

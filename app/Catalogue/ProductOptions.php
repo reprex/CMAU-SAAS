@@ -32,6 +32,7 @@ class ProductOptions
         }
         $groups = [];
         $codes = array_keys($this->lines($product));
+        $speed = $this->speedFor($product, $file);
         foreach ($this->lines($product) as $code => $line) {
             $rule = $this->ruleFor($file, $code);
             $type = (int) $line->type_code;
@@ -58,10 +59,11 @@ class ProductOptions
                 'excludes' => isset($rule['excludes']) ? $this->idsFor($product, $rule['excludes']) : null,
                 'needs' => isset($rule['requires_any']) ? $this->idsContaining($product, $rule['requires_any'], $code) : null, // shown once one of these is chosen
                 'with_method' => $rule['with_method'] ?? null,
+                'speed' => $this->speedKey($file, (string) $line->description), // shown only with that production time
                 'note' => $this->note($line),
             ], fn ($v) => $v !== null && $v !== []);
         }
-        if ($groups === []) {
+        if ($groups === [] && ! $speed) {
             return null;
         }
         $defs = $file['groups'];
@@ -92,7 +94,79 @@ class ProductOptions
             $notes[] = $n;
         }
 
-        return array_filter(['v' => 1, 'source' => $file['key'], 'groups' => $out, 'notes' => $notes ?: null], fn ($v) => $v !== null);
+        return array_filter(['v' => 1, 'source' => $file['key'], 'speed' => $speed, 'groups' => $out, 'notes' => $notes ?: null], fn ($v) => $v !== null);
+    }
+
+    /**
+     * Production time (Dex): Promodata repeats each branding method once per production time. The
+     * customer picks one and each position is priced from that time's line. Per option: the branding
+     * line ids it uses and the supplier's min/max quantity per line (database/data/<speed.ranges>).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function speedFor(Product $product, ?array $file = null): ?array
+    {
+        $file ??= $this->templateFor((int) $product->supplier_id);
+        $def = $file['speed'] ?? null;
+        if (! $def) {
+            return null;
+        }
+        $claimed = $this->claimed((int) $product->supplier_id, $product->priceOptions);
+        $ranges = $this->ranges($def['ranges'] ?? null)[(string) $product->code] ?? [];
+        $options = [];
+        foreach ($def['options'] as $o) {
+            $ids = [];
+            $limits = [];
+            foreach ($this->lines($product) as $code => $line) {
+                if ((int) $line->type_code !== 10 || in_array($line->option_id, $claimed, true) || ! preg_match('/'.$o['match'].'/i', (string) $line->description)) {
+                    continue;
+                }
+                $ids[] = (string) $line->option_id;
+                if (isset($ranges[$code])) {
+                    $limits[(string) $line->option_id] = array_map('intval', $ranges[$code]);
+                }
+            }
+            if ($ids) {
+                $options[] = array_filter(['key' => $o['key'], 'name' => $o['name'], 'days' => $o['days'] ?? null, 'note' => $o['note'] ?? null, 'ids' => $ids, 'ranges' => $limits ?: null], fn ($v) => $v !== null);
+            }
+        }
+        if (count($options) < 2) {
+            return null; // nothing to choose
+        }
+        $keys = array_column($options, 'key');
+
+        return array_filter([
+            'label' => $def['label'] ?? 'Production time',
+            'note' => $def['note'] ?? null,
+            'default' => in_array($def['default'] ?? null, $keys, true) ? $def['default'] : end($keys),
+            'options' => $options,
+        ], fn ($v) => $v !== null);
+    }
+
+    /** The production-time key a line's description belongs to, if the template has production times. */
+    public function speedKey(array $file, string $description): ?string
+    {
+        foreach ($file['speed']['options'] ?? [] as $o) {
+            if (preg_match('/'.$o['match'].'/i', $description)) {
+                return $o['key'];
+            }
+        }
+
+        return null;
+    }
+
+    /** @return array<string, array<string, array{0: int, 1: int}>> product code => line code => [min, max] */
+    private function ranges(?string $path): array
+    {
+        if (! $path) {
+            return [];
+        }
+
+        return Cache::remember('option-templates:ranges:'.md5($path).':v1', 600, function () use ($path) {
+            $data = json_decode((string) @file_get_contents(database_path('data/'.$path)), true);
+
+            return is_array($data) ? $data : [];
+        });
     }
 
     /**
