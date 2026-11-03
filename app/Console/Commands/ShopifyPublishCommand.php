@@ -23,7 +23,8 @@ class ShopifyPublishCommand extends Command
         {--preview : Write the payloads to storage/app/publish-preview, send nothing}
         {--force : Send even if nothing changed}
         {--seconds=0 : Stop after this many seconds (0: no limit); the minute cron uses 45}
-        {--retry-after=0 : Skip products whose last publish failed within this many minutes}';
+        {--retry-after=0 : Skip products whose last publish failed within this many minutes}
+        {--parallel=5 : Send this many plain updates to Shopify at once}';
 
     protected $description = 'Publish changed range products to Shopify (development store unless SHOPIFY_ALLOW_LIVE)';
 
@@ -42,23 +43,26 @@ class ShopifyPublishCommand extends Command
         $started = microtime(true);
         $budget = (int) $this->option('seconds');
         $done = ['create' => 0, 'update' => 0, 'archive' => 0, 'skip' => 0, 'preview' => 0, 'failed' => 0];
-        foreach ($q->get() as $product) {
-            if ($budget > 0 && microtime(true) - $started > $budget) {
+        $parallel = max(1, (int) $this->option('parallel'));
+        $stop = false;
+        foreach ($q->get()->chunk($parallel * 2) as $group) {
+            if ($stop || ($budget > 0 && microtime(true) - $started > $budget)) {
                 break;
             }
-            $r = $publisher->publish($product, (bool) $this->option('preview'), (bool) $this->option('force'));
-            if (isset($r['payload'])) {
-                Storage::put("publish-preview/{$product->id}.json", json_encode($r['payload'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-            }
-            $r['ok'] ? $done[$r['action']]++ : $done['failed']++;
-            $this->line(sprintf('%-9d %-8s %s %s', $product->id, $r['action'], $r['ok'] ? 'ok' : 'FAILED', $r['message'] ?? ''));
-            // Shopify's daily limit on new variants (stores over 50,000 variants): stop and pause
-            // the automatic publishing for a few hours rather than fail product after product.
-            if (! $r['ok'] && preg_match('/VARIANT_THROTTLE|variant creation/i', (string) ($r['message'] ?? ''))) {
-                Cache::put('shopify:publish_paused_until', now()->addHours(6)->toIso8601String(), now()->addHours(6));
-                $this->warn('Shopify\'s daily new-variant limit reached: automatic publishing paused for 6 hours.');
-                break;
-            }
+            $publisher->publishMany($group, $parallel, (bool) $this->option('preview'), (bool) $this->option('force'), null, function (Product $product, array $r) use (&$done, &$stop) {
+                if (isset($r['payload'])) {
+                    Storage::put("publish-preview/{$product->id}.json", json_encode($r['payload'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+                }
+                $r['ok'] ? $done[$r['action']]++ : $done['failed']++;
+                $this->line(sprintf('%-9d %-8s %s %s', $product->id, $r['action'], $r['ok'] ? 'ok' : 'FAILED', $r['message'] ?? ''));
+                // Shopify's daily limit on new variants (stores over 50,000 variants): stop and pause
+                // the automatic publishing for a few hours rather than fail product after product.
+                if (! $stop && ! $r['ok'] && preg_match('/VARIANT_THROTTLE|variant creation/i', (string) ($r['message'] ?? ''))) {
+                    Cache::put('shopify:publish_paused_until', now()->addHours(6)->toIso8601String(), now()->addHours(6));
+                    $this->warn('Shopify\'s daily new-variant limit reached: automatic publishing paused for 6 hours.');
+                    $stop = true;
+                }
+            });
         }
         $this->info(collect($done)->filter()->map(fn ($n, $k) => "{$n} {$k}")->implode(', ') ?: 'Nothing to publish.');
 

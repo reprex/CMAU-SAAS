@@ -43,11 +43,19 @@ class ShopifyPublishTest extends TestCase
         return $p->fresh();
     }
 
+    /** Throttle the next N productSet calls (THROTTLED), to test the wait-and-resend. */
+    private int $throttle = 0;
+
     private function fakeShopify(): void
     {
         $n = 0;
         Http::fake(['cmau-dev.myshopify.com/*' => function ($request) use (&$n) {
             $q = (string) ($request->data()['query'] ?? '');
+            if (str_contains($q, 'productSet') && $this->throttle > 0) {
+                $this->throttle--;
+
+                return Http::response(['errors' => [['message' => 'Throttled', 'extensions' => ['code' => 'THROTTLED']]]]);
+            }
             if (str_contains($q, 'publications(')) {
                 return Http::response(['data' => ['publications' => ['nodes' => [['id' => 'gid://shopify/Publication/9', 'name' => 'Online Store']]]]]);
             }
@@ -121,6 +129,30 @@ class ShopifyPublishTest extends TestCase
         $sets = collect(Http::recorded())->map(fn ($r) => json_decode($r[0]->body(), true))->filter(fn ($b) => str_contains($b['query'], 'productSet'))->values();
         $this->assertCount(3, $sets); // images already known: one productSet call
         $this->assertSame('Staple Tee Black Label [88-5001]', $sets[2]['variables']['input']['title']);
+    }
+
+    public function test_plain_updates_go_in_parallel_without_the_picture_list_and_wait_out_throttling(): void
+    {
+        $p = $this->tee();
+        $this->fakeShopify();
+        $this->artisan('shopify:publish')->expectsOutputToContain('1 create')->assertSuccessful();
+        $sets = fn () => collect(Http::recorded())->map(fn ($r) => json_decode($r[0]->body(), true))->filter(fn ($b) => str_contains($b['query'] ?? '', 'productSet'))->values();
+        $this->assertStringContainsString('media(first: 250)', $sets()[0]['query']); // a first publish records the picture ids
+
+        $this->throttle = 1; // Shopify says "throttled" once, then takes it.
+        $before = $sets()->count();
+        ProductOverride::query()->create(['product_id' => $p->id, 'data' => ['title' => 'Staple Tee Black Label']]);
+        $p->forceFill(['range_changed_at' => now()->addSecond()])->save();
+        $this->travel(2)->seconds();
+        $this->artisan('shopify:publish')->expectsOutputToContain('1 update')->assertSuccessful();
+
+        $last = $sets()->last();
+        $this->assertStringNotContainsString('media(', $last['query']); // no picture list: light on the API allowance
+        $this->assertSame('Staple Tee Black Label [88-5001]', $last['variables']['input']['title']);
+        $this->assertSame(0, $this->throttle);
+        $this->assertSame($before + 2, $sets()->count()); // throttled, then sent again
+        $this->assertSame(1, DB::table('shopify_publish_log')->where('action', 'update')->where('ok', true)->count());
+        $this->artisan('shopify:publish')->expectsOutputToContain('Nothing to publish')->assertSuccessful();
     }
 
     public function test_preview_sends_nothing_and_live_store_is_blocked(): void

@@ -173,6 +173,55 @@ class ShopifyAdmin
         return $json['data'] ?? [];
     }
 
+    /**
+     * Run the same GraphQL mutation for several inputs at once (Http::pool), so the publisher isn't
+     * waiting on Shopify one product at a time. Calls Shopify throttles (THROTTLED, 429, 5xx) are sent
+     * again after a pause, up to three rounds. Returns each key's `data`, or the error for that key.
+     *
+     * @param  array<string|int, array<string, mixed>>  $variablesByKey
+     * @return array<string|int, array<string, mixed>|\Throwable>
+     */
+    public function graphqlMany(string $query, array $variablesByKey): array
+    {
+        $this->assertWritable();
+        $url = 'https://'.config('shopify.store').'/admin/api/'.config('shopify.api_version').'/graphql.json';
+        $headers = ['X-Shopify-Access-Token' => $this->accessToken()];
+        $out = [];
+        $todo = $variablesByKey;
+        for ($round = 0; $todo !== [] && $round < 4; $round++) {
+            if ($round > 0) {
+                sleep($round); // let the API allowance refill
+            }
+            $responses = Http::pool(fn ($pool) => collect($todo)->map(fn ($vars, $key) => $pool->as((string) $key)
+                ->withHeaders($headers)->acceptJson()->asJson()->timeout(90)
+                ->post($url, ['query' => $query, 'variables' => (object) $vars]))->values()->all());
+            $again = [];
+            foreach ($todo as $key => $vars) {
+                $r = $responses[(string) $key] ?? null;
+                if (! $r instanceof Response) {
+                    $out[$key] = $r instanceof \Throwable ? $r : new RuntimeException('Shopify gave no reply');
+
+                    continue;
+                }
+                $json = $r->json() ?? [];
+                $throttled = in_array($r->status(), [429, 500, 502, 503], true)
+                    || collect($json['errors'] ?? [])->contains(fn ($e) => ($e['extensions']['code'] ?? '') === 'THROTTLED');
+                if ($throttled && $round < 3) {
+                    $again[$key] = $vars;
+                } elseif (! $r->successful()) {
+                    $out[$key] = new RuntimeException('Shopify HTTP '.$r->status().': '.mb_substr($r->body(), 0, 300));
+                } elseif (! empty($json['errors'])) {
+                    $out[$key] = new RuntimeException('Shopify GraphQL error: '.mb_substr(json_encode($json['errors']), 0, 500));
+                } else {
+                    $out[$key] = $json['data'] ?? [];
+                }
+            }
+            $todo = $again;
+        }
+
+        return $out;
+    }
+
     /** @return array<string, mixed>|null {id, sku, product_id, title, price} */
     public function variant(int $id): ?array
     {
