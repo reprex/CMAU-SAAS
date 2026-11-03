@@ -40,3 +40,6 @@ exports/
 # Local dev on the PHP 8.3 sandbox only (production/CI use composer.json on PHP 8.4)
 composer-local.json
 composer-local.lock
+
+# The website filter-menu synonym sheet (not a TOD export): app/Search/Synonyms.php
+!database/data/search-synonyms.csv
