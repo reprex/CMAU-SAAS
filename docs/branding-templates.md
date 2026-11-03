@@ -43,7 +43,7 @@ Templates are private files on the `templates` disk (`storage/app/private/brandi
   - **Quote email** from Quotes › quote › **Email quote**: a draft with the quote PDF and the templates; staff check it and press **Send** (REPSTACK principle 6). Sending marks the quote sent.
   - **Website invoice** (Website orders): the invoice PDF and the templates of the branded products (not samples).
   - **Instant quote** from the website: the quote PDF and the templates.
-- Attachment names are ours ("Branding template 19-AP001 Jackys Cotton Apron.pdf"), never the supplier's name. The PDF itself is the supplier's and may show their logo.
+- Attachment names are ours ("Branding template 19-AP001 Jackys Cotton Apron.pdf"), never the supplier's name. The Dex, Trends and Logo Line templates are unbranded and go as they are (Scott, 3 Nov 2026); check a new supplier's before importing.
 
 ## Branding suite and pricing (Scott, 1 Nov)
 
