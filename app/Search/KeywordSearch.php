@@ -4,6 +4,7 @@ namespace App\Search;
 
 use App\Models\Product;
 use App\Quotes\WebsiteLinePricer;
+use App\Shopify\RangeCollections;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -17,8 +18,84 @@ class KeywordSearch
 {
     public function __construct(private readonly WebsiteLinePricer $pricer) {}
 
-    /** @param array<string, mixed> $brief from BriefParser */
-    public function search(array $brief, int $limit = 12): Collection
+    /**
+     * The visitor's results (Scott, 3 Nov 2026): subcategories named through CrowdMerch's synonym list first
+     * ("water bottles", "keep cups", "pens"); else an occasion's spread of subcategories ("gifts under $30",
+     * "merch stand essentials"), a few of the best from each; else words in product names and types.
+     *
+     * @param  array<string, mixed>  $brief  from BriefParser
+     */
+    public function search(array $brief, int $limit = 24): Collection
+    {
+        if ($types = Synonyms::typesFor($brief['tags'] ?? [])) {
+            return $this->spread($types, $brief, $limit, count($types) === 1 ? $limit : max(4, intdiv($limit, count($types))));
+        }
+        if (! empty($brief['occasions'])) {
+            $types = Synonyms::typesFor(Occasions::tags($brief['occasions']));
+            if ($types) {
+                return $this->spread(array_slice($types, 0, 12), $brief, $limit, 3);
+            }
+        }
+
+        return $this->words($brief, $limit);
+    }
+
+    /**
+     * A few of the best products from each product type, taken in turn so every type gets a showing.
+     *
+     * @param  list<string>  $types  best first
+     */
+    /**
+     * The top-ranked products of these subcategories (tags), a few of each in turn.
+     *
+     * @param  list<string>  $tags  best first
+     */
+    public function forTags(array $tags, array $brief, int $limit = 24, int $perType = 3): Collection
+    {
+        return $this->spread(Synonyms::typesFor($tags), $brief, $limit, $perType);
+    }
+
+    private function spread(array $types, array $brief, int $limit, int $perType): Collection
+    {
+        $words = array_values(array_unique(array_merge($brief['rest'] ?? [], $brief['colours'] ?? [])));
+        $lists = [];
+        foreach ($types as $type) {
+            $q = $this->live()->with('override')->withCount('colours')->where('promodata_type_name', $type);
+            if (! empty($brief['budget'])) {
+                // Roughly within budget at the minimum order; the exact price at their quantity is checked below.
+                $q->whereHas('webPrice', fn ($w) => $w->whereNull('collection_variant_price')->orWhere('collection_variant_price', '<=', $brief['budget'] * 1.6));
+            }
+            // The collection page's order (staff sort, then price, then products with colour photos), visitor's words first.
+            $rows = $q->limit(60)->get()->sortBy(fn (Product $p) => [-$this->wordScore($p, $words), (int) ($p->overrideValue('master_sort_order') ?: 99999),
+                (float) ($p->webPrice?->collection_variant_price ?? 9999), $p->colours_count > 0 ? 0 : 1])->values();
+            $lists[] = $this->rank($rows->take($perType * 3), $brief, $words, false)->take($perType)->values()->all();
+        }
+
+        $out = [];
+        for ($i = 0; count($out) < $limit && $i < $perType; $i++) {
+            foreach ($lists as $list) {
+                if (isset($list[$i]) && count($out) < $limit) {
+                    $out[] = $list[$i];
+                }
+            }
+        }
+
+        return collect($out);
+    }
+
+    private function wordScore(Product $p, array $words): int
+    {
+        $hay = mb_strtolower($p->name.' '.$p->material);
+        $score = 0;
+        foreach ($words as $w) {
+            $score += str_contains($hay, Synonyms::singular($w)) ? 2 : 0;
+        }
+
+        return $score;
+    }
+
+    /** Words in product names, types and materials (the old keyword search), for anything the lists don't name. */
+    private function words(array $brief, int $limit): Collection
     {
         $words = array_merge($brief['types'], $brief['terms']);
         if ($words === []) {
@@ -38,11 +115,10 @@ class KeywordSearch
     }
 
     /**
-     * A shortlist for Claude to choose from: keyword hits, then the best-priced
-     * products of each product type mentioned, then (for vague briefs) a spread
-     * across the most-stocked product types. Never more than $max.
+     * A shortlist for Claude to choose from: the same spread as the visitor's results, wider (more types and
+     * more of each), then the best-priced products of the most-stocked types for vague briefs. Never more than $max.
      */
-    public function candidates(array $brief, int $max = 40): Collection
+    public function candidates(array $brief, int $max = 48): Collection
     {
         $hits = $this->search($brief, $max);
         if ($hits->count() >= $max) {
@@ -58,6 +134,32 @@ class KeywordSearch
         return $hits->merge($this->rank($extra, $brief, [])->reject(fn ($r) => $hits->contains('id', $r['id'])))->take($max)->values();
     }
 
+    /**
+     * The subcategories in these results, in order, for the website's "pick one or more" buttons: tag, name,
+     * the reason it suits them, how many products it has, a photo and the lowest price among the results.
+     *
+     * @return list<array{tag: string, name: string, why: ?string, count: int, image: ?string, from: ?float}>
+     */
+    public function groups(Collection|array $results): array
+    {
+        $out = [];
+        foreach ($results as $r) {
+            $tag = $r['tag'] ?? null;
+            if (! $tag) {
+                continue;
+            }
+            if (! isset($out[$tag])) {
+                $types = Synonyms::typesFor([$tag]);
+                $out[$tag] = ['tag' => $tag, 'name' => (string) ($r['group'] ?? $tag), 'why' => $r['reason'] ?? null,
+                    'count' => $types ? $this->live()->whereIn('promodata_type_name', $types)->count() : 0, 'image' => $r['image'] ?? null, 'from' => $r['price'] ?? null];
+            } elseif (($r['price'] ?? null) !== null && ($out[$tag]['from'] === null || $r['price'] < $out[$tag]['from'])) {
+                $out[$tag]['from'] = $r['price'];
+            }
+        }
+
+        return array_values($out);
+    }
+
     private function live(): Builder
     {
         return Product::query()->where('tier', Product::TIER_LIVE)->where('discontinued', false)
@@ -65,7 +167,7 @@ class KeywordSearch
     }
 
     /** @return Collection<int, array<string, mixed>> */
-    private function rank(Collection $rows, array $brief, array $words): Collection
+    private function rank(Collection $rows, array $brief, array $words, bool $sort = true): Collection
     {
         $qty = $brief['qty'];
 
@@ -83,7 +185,10 @@ class KeywordSearch
             $at = $qty ?? (int) ($p->webPrice?->collection_moq ?: $moq);
             $priced = $this->pricer->price($p->id, max($at, $moq), $p->webPrice?->default_decoration_option_id);
             $price = $priced['price'] ?? ($p->webPrice?->collection_variant_price !== null ? (float) $p->webPrice->collection_variant_price : null);
-            if ($brief['budget'] && $price !== null && $price > $brief['budget'] * ($brief['under'] ? 1.0 : 1.25)) {
+            if ($brief['budget'] && $price !== null && $price > $brief['budget'] * ($brief['under'] ? 1.0 : 1.15)) {
+                return null;
+            }
+            if (! empty($brief['budget_min']) && $price !== null && $price < $brief['budget_min'] * 0.85) {
                 return null;
             }
             $score = 0;
@@ -98,10 +203,10 @@ class KeywordSearch
             }
 
             return [
-                'id' => $p->id, 'name' => $p->name, 'type' => $p->promodata_type_name, 'material' => $p->material,
+                'id' => $p->id, 'name' => $p->name, 'type' => $p->promodata_type_name, 'group' => $p->promodata_type_name ? RangeCollections::subcategory($p->promodata_type_name) : null, 'tag' => app(RangeCollections::class)->tagFor($p->promodata_type_name), 'material' => $p->material,
                 'image' => $p->hero_image_url, 'qty' => max($at, $moq), 'price' => $price !== null ? round($price, 2) : null,
                 'moq' => $moq, 'lead_days' => $p->lead_time_days, 'score' => $score,
             ];
-        })->filter()->sortBy([['score', 'desc'], ['price', 'asc']])->values();
+        })->filter()->when($sort, fn ($c) => $c->sortBy([['score', 'desc'], ['price', 'asc']]))->values();
     }
 }

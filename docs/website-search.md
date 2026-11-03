@@ -14,13 +14,19 @@ Response: `mode` (`keyword` or `ai`), `understood` (qty, budget, colours, types�
 3. Per-visitor rate limit (`WEBSITE_SEARCH_PER_MINUTE`, default 10).
 4. Text sanity: 3 to 400 characters, no links or markup, no repeated characters, must contain words.
 5. Signed page token: must be ours, at least 2 seconds and at most 60 minutes old.
-6. Keyword search (free) always runs and is the answer unless all of these hold:
-   - the text reads like a brief (event, staff, gift, "not …", a long description) or keyword search found fewer than 3 products;
-   - the request is not from a verified bot or signed agent (`X-Verified-Bot: 1`, set by Cloudflare, see below). Those get keyword results, never Claude and never blocked;
+6. The free search always runs (`KeywordSearch::search`):
+   - **Synonyms first** (Scott, 3 Nov 2026): CrowdMerch's filter-menu synonym sheet (`database/data/search-synonyms.csv`, from "Filter Menu - subcat" in Web Updates › Website update 2024 › Final CrowdMerch PreOrder Store) turns words into exact subcategories: "water bottles" → Drink Bottles, "keep cups" → Reusable Coffee Cups. Longest phrase first; category words ("bags") and broad words ("pens", "cups", "towels") cover several subcategories (`Synonyms::BROAD`). Products come in the collection pages' order.
+   - **Else an occasion** (`Occasions`): gifts, merch stand, conference, staff packs, sport, summer, winter, eco, kids, each a list of subcategories; a few of the best from each, in turn. This is the fallback when Claude isn't used.
+   - **Else words** in product names, types and materials.
+   - Price per item is read in many forms ("under $20", "around 15 dollars", "$10–20 each", "under 30 for 50 staff") and checked at the visitor's quantity with default branding.
+7. Claude is used when the request is broader than one kind of product (an occasion, a brief, "not …", or nothing matched) and all of these hold:
+   - not a verified bot or signed agent (`X-Verified-Bot: 1`, set by Cloudflare, see below). Those get the free results, never Claude and never blocked;
    - Cloudflare Turnstile passed, for one of the `TURNSTILE_HOSTNAMES`;
    - the visitor is under `WEBSITE_SEARCH_AI_PER_HOUR` (default 5) and the site under `WEBSITE_SEARCH_AI_PER_DAY` (default 300).
-7. A repeated brief (same normalised text) is answered from a 24-hour cache.
-8. Claude (`ANTHROPIC_SEARCH_MODEL`, default claude-haiku-5-5) chooses up to 6 products from a SaaS-built shortlist of at most 40. Ids not on the shortlist are dropped. Any error falls back to keyword results.
+8. A repeated request (same normalised text) is answered from a 24-hour cache.
+9. Claude (`ANTHROPIC_SEARCH_MODEL`, default claude-haiku-5-5; `ClaudePlanner`) predicts what the visitor is after: which subcategories of the menu suit it (one for a single product, a varied 4 to 8 for an occasion), with a short reason each, plus the quantity, price per item and occasion it understood. Tags not on the menu are dropped; the menu is cached by the API. The SaaS then shows each subcategory's top-ranked products (collection order), priced by SaaS pricing; the reply also lists the subcategories (`groups`: tag, name, why, count, photo, from price); the website shows them as tick buttons ("Pick one or more") and Show products opens the picks together on the `search.cm` template (`/search?view=cm&q=tag:a OR tag:b`). Any error falls back to the free results.
+
+Try it from the terminal: `search:try "gifts under $30 for 50 clients"` (free path) or `search:try --ai "…"` (one Claude call, shows its subcategories and reasons).
 
 Every request is logged in `search_logs` (hashed visitor, text, mode, reason, results, tokens, ms). Admin > Search log shows counts by mode and reason and the latest 200 searches.
 
