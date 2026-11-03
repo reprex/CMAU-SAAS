@@ -79,7 +79,7 @@ class TemplateFiles
         }
         $path = $product->supplier_id.'/'.$this->safe($name);
         $row = BrandingTemplate::query()->where('product_id', $product->id)->where('filename', $name)->first();
-        if ($row && (int) $row->bytes === $bytes && Storage::disk(self::DISK)->exists($path)) {
+        if ($row && (int) $row->bytes === $bytes && Storage::disk(self::DISK)->exists($path) && (int) Storage::disk(self::DISK)->size($path) === $bytes) {
             $out['same']++;
 
             return;
@@ -90,8 +90,15 @@ class TemplateFiles
 
             return;
         }
-        Storage::disk(self::DISK)->writeStream($path, $stream);
+        $ok = Storage::disk(self::DISK)->writeStream($path, $stream);
         fclose($stream);
+        // A full disk (cPanel quota) leaves a short file: never count it as imported.
+        if (! $ok || (int) Storage::disk(self::DISK)->size($path) !== $bytes) {
+            Storage::disk(self::DISK)->delete($path);
+            $out['unmatched'][] = $name.' (could not be written: is the disk full?)';
+
+            return;
+        }
         $first = ! $this->has($product);
         BrandingTemplate::query()->updateOrCreate(['product_id' => $product->id, 'filename' => $name], [
             'url' => 'file:'.$path, 'file_path' => $path, 'bytes' => $bytes, 'source' => 'file',
