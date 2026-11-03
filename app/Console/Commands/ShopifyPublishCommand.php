@@ -31,7 +31,7 @@ class ShopifyPublishCommand extends Command
     public function handle(ProductPublisher $publisher): int
     {
         $ids = array_map('intval', (array) $this->option('product'));
-        $q = Product::query()->with(['supplier', 'detail', 'webPrice', 'override', 'images', 'colours'])
+        $q = Product::query()->with(['supplier', 'detail', 'webPrice', 'override', 'images', 'colours', 'priceOptions'])
             ->when($ids !== [], fn ($w) => $w->whereIn('id', $ids), fn ($w) => $w->where(fn ($w) => $w
                 ->where(fn ($w) => $w->where('tier', Product::TIER_LIVE)->where(fn ($w) => $w->where(fn ($w) => $w->whereNull('published_at')->whereNull('shopify_product_id')->where('discontinued', false))->orWhereColumn('range_changed_at', '>', 'published_at')))
                 ->orWhere(fn ($w) => $w->whereNotNull('shopify_product_id')->where(fn ($w) => $w->where('tier', '!=', Product::TIER_LIVE)->orWhere('discontinued', true))->whereColumn('updated_at', '>', 'published_at'))))

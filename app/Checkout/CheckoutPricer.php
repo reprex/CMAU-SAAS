@@ -3,6 +3,7 @@
 namespace App\Checkout;
 
 use App\Catalogue\OurCodes;
+use App\Catalogue\ProductOptions;
 use App\Freight\Consignment;
 use App\Freight\FreightDriver;
 use App\Freight\PackData;
@@ -11,6 +12,7 @@ use App\Models\Product;
 use App\Models\ProductWebPrice;
 use App\Models\RelatedStyle;
 use App\Pricing\Money;
+use App\Pricing\PriceString;
 use App\Stock\PromodataStock;
 use Carbon\CarbonImmutable;
 
@@ -131,8 +133,10 @@ class CheckoutPricer
             }
             $positions[] = $priced;
         }
-        $brandUnit = array_sum(array_column($positions, 'unit'));
-        $brandSetup = array_sum(array_column($positions, 'setup'));
+        // ---- Product options (custom.options, docs/product-options.md): priced here from the SaaS's own lines, never the client's.
+        $opts = $this->options($main, $in['options'] ?? [], max(1, $units), $positions, $issue);
+        $brandUnit = array_sum(array_column($positions, 'unit')) + $opts['unit'];
+        $brandSetup = array_sum(array_column($positions, 'setup')) + $opts['once'];
         $productSetup = $undec[$main->id] ? Money::roundToCent((float) $undec[$main->id]->setup_price) : 0.0;
 
         // ---- Lines priced, with stock.
@@ -242,8 +246,10 @@ class CheckoutPricer
             'styles' => array_values($styles),
             'lines' => $lines,
             'positions' => $positions,
+            'options' => $opts['items'],
             'setup' => [
                 'positions' => array_map(fn ($p) => ['name' => $p['name'], 'amount' => $p['setup']], $positions),
+                'options' => $opts['once'],
                 'product' => $productSetup,
                 'total' => $setup,
             ],
@@ -280,6 +286,71 @@ class CheckoutPricer
     }
 
     /** @param list<array{colour: ?string, size: ?string, qty: ?int, sku: ?string}> $rows */
+    /**
+     * Price the chosen product options: [{id, n}] against the product's custom.options.
+     *
+     * @return array{items: list<array<string, mixed>>, unit: float, once: float}
+     */
+    private function options(Product $main, array $chosen, int $units, array $positions, callable $issue): array
+    {
+        $out = ['items' => [], 'unit' => 0.0, 'once' => 0.0];
+        if ($chosen === []) {
+            return $out;
+        }
+        $main->loadMissing('priceOptions');
+        $groups = app(ProductOptions::class)->forProduct($main)['groups'] ?? [];
+        $byId = [];
+        foreach ($groups as $g) {
+            foreach ($g['options'] as $o) {
+                $byId[$o['id']] = [$g, $o];
+            }
+        }
+        $methods = array_filter(array_column($positions, 'method'));
+        $ns = [];
+        foreach ($chosen as $c) {
+            $ns[(string) ($c['id'] ?? '')] = max(1, min(20, (int) ($c['n'] ?? 1)));
+        }
+        $oneTaken = [];
+        foreach ($ns as $id => $n) {
+            [$g, $o] = $byId[$id] ?? [null, null];
+            if (! $o) {
+                $issue('option', "That option isn't available for {$main->name} any more.", ['option' => $id]);
+
+                continue;
+            }
+            if (($g['with_method'] ?? null) && ! array_intersect($g['with_method'], $methods)) {
+                continue; // e.g. embroidery extras without embroidery
+            }
+            if ($g['pick'] === 'one' && isset($oneTaken[$g['key']])) {
+                continue;
+            }
+            $oneTaken[$g['key']] = true;
+            $n = $g['pick'] === 'count' ? min($n, (int) ($g['max'] ?? 3)) : (isset($o['count']) ? min($n, (int) ($o['count']['max'] ?? 9)) : 1);
+            $each = isset($o['breaks']) ? PriceString::parse($o['breaks'])->priceAt($units) : 0.0;
+            $unit = 0.0;
+            $once = (float) ($o['setup'] ?? 0) * (($o['per'] ?? null) === 'order' ? $n : 1);
+            if (isset($o['per'])) {
+                $once += $each * ($o['per'] === 'order' ? $n : 1);
+            } elseif (isset($o['per_stitches'])) {
+                $extra = collect($ns)->filter(fn ($k, $i) => isset($byId[$i]) && $byId[$i][0]['key'] === $g['key'] && isset($byId[$i][1]['count']))->sum();
+                $unit = $each * ((int) ($g['base_stitches'] ?? 10000) + 5000 * $extra) / (int) $o['per_stitches'];
+            } else {
+                $unit = $each * $n;
+            }
+            if (($o['per'] ?? null) === 'artwork') {
+                $once *= max(1, count($positions));
+            }
+            $item = ['group' => $g['label'], 'id' => $id, 'name' => $o['name'], 'n' => $n, 'unit' => Money::roundToCent($unit), 'once' => Money::roundToCent($once), 'included' => (bool) ($o['included'] ?? false)];
+            $out['items'][] = $item;
+            $out['unit'] += $item['unit'];
+            $out['once'] += $item['once'];
+        }
+        $out['unit'] = Money::roundToCent($out['unit']);
+        $out['once'] = Money::roundToCent($out['once']);
+
+        return $out;
+    }
+
     private function stockRow(array $rows, string $colour, string $size): ?array
     {
         $norm = fn (?string $s) => preg_replace('/\s+/', ' ', mb_strtolower(trim((string) $s)));

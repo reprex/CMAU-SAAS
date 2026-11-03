@@ -274,6 +274,9 @@ class WebsiteCheckoutController extends Controller
             'positions.*.preflight_notes' => 'nullable|array|max:8',
             'positions.*.preflight_notes.*' => 'string|max:200',
             'freight_service' => 'nullable|string|max:32',
+            'options' => 'nullable|array|max:20',
+            'options.*.id' => 'required|string|max:190',
+            'options.*.n' => 'nullable|integer|min:1|max:20',
         ];
     }
 
@@ -290,6 +293,7 @@ class WebsiteCheckoutController extends Controller
                 'colours' => isset($p['colours']) ? (int) $p['colours'] : null, 'width_mm' => isset($p['width_mm']) ? (int) $p['width_mm'] : null,
                 'has_logo' => $hasLogo($p),
             ])->values()->all(),
+            'options' => collect($data['options'] ?? [])->map(fn ($o) => ['id' => (string) $o['id'], 'n' => (int) ($o['n'] ?? 1)])->values()->all(),
             'freight_service' => $data['freight_service'] ?? null,
             'need_by' => $data['need_by'] ?? null,
         ];
