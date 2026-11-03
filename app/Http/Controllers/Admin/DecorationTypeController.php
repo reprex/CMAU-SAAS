@@ -25,10 +25,16 @@ class DecorationTypeController extends Controller
         $show = $request->query('show', 'todo');
         $q = trim((string) $request->query('q'));
 
-        $codes = DecTypeCode::query()
+        // Live-range use per description, for the "on the range" filter (most used first).
+        $live = fn () => PriceOption::query()->whereIn('product_id', Product::query()->where('tier', Product::TIER_LIVE)->where('discontinued', false)->select('id'))
+            ->selectRaw('code, count(distinct product_id) as live_n')->groupBy('code');
+
+        $codes = DecTypeCode::query()->select('dec_type_codes.*')
             ->when($show === 'todo', fn ($w) => $w->whereNull('type_code'))
-            ->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('code', 'like', "%{$q}%")->orWhere('full_description', 'like', "%{$q}%")))
-            ->orderBy('code')
+            ->when($show === 'live', fn ($w) => $w->whereNull('type_code')
+                ->joinSub($live(), 'lu', 'lu.code', '=', 'dec_type_codes.code')->orderByDesc('lu.live_n'))
+            ->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('dec_type_codes.code', 'like', "%{$q}%")->orWhere('full_description', 'like', "%{$q}%")))
+            ->orderBy('dec_type_codes.code')
             ->paginate(50)->withQueryString();
 
         $usage = PriceOption::query()->whereIn('code', $codes->pluck('code'))
@@ -38,6 +44,7 @@ class DecorationTypeController extends Controller
         return view('admin.decoration-types.index', [
             'codes' => $codes, 'show' => $show, 'q' => $q, 'usage' => $usage,
             'todo' => DecTypeCode::query()->whereNull('type_code')->count(),
+            'todoLive' => DecTypeCode::query()->whereNull('type_code')->joinSub($live(), 'lu', 'lu.code', '=', 'dec_type_codes.code')->count(),
         ]);
     }
 
