@@ -3,6 +3,7 @@
 namespace App\Shopify;
 
 use App\Catalogue\BrandingTemplates;
+use App\Catalogue\GarmentSizes;
 use App\Catalogue\ImageTagger;
 use App\Catalogue\OurCodes;
 use App\Catalogue\PositionResolver;
@@ -126,6 +127,8 @@ class ProductPayload
             // Template, else Promodata's decoration print areas, else the type default (docs/logo-preview.md).
             ($positions = $this->positions->forShopify($product)) ? $this->mf('custom', 'brandingpositions', 'json', json_encode($positions)) : null,
             ($tpl = $this->templates->templateUrl($product)) ? $this->mf('custom', 'brandingtemplate', 'url', $tpl) : null,
+            // The size chart's chest width for the mockup, e.g. "L:56" (docs/logo-preview.md); none means the theme uses a typical width.
+            ($garment = GarmentSizes::metafield($product)) ? $this->mf('custom', 'mockupgarment', 'single_line_text_field', $garment) : null,
         ]));
 
         $input = [

@@ -63,3 +63,13 @@ Each hero image can have a stored area (`print_areas`, keyed by image URL so Pro
 Staff can set the positions for a product type, or for one product (its Range page). A curated rule beats everything automatic, the supplier template included: product rule, then type rule, then template, Promodata print areas, garment extras (back, sleeves, back neck) and the type default. Each curated position keeps the decoration methods the product offers, capped at the size set, and the box of the automatic position of the same name (else the type default box). Saving marks the covered live products to publish again; clearing every name removes the rule.
 
 `catalogue:positions-report` (nightly 04:30, read-only) counts where the live range's positions come from and lists the product types relying on the type-default guess; Range › Positions shows those counts.
+
+## Garments: mockups to scale (Scott, 3 Nov 2026)
+
+Garment mockups draw each logo to scale against one stated size: **L** (womens **14**, kids **10**).
+
+- **Chest width:** the supplier's size chart wherever the product data has one (`App\Catalogue\GarmentSizes` reads the Promodata details and description: "Chest (1/2): S 52, M 55, L 58", "Half chest: S-52cm…", a "Size | S | M | L" table, inches, mm, or full chest figures, which are halved). It is published as `custom.mockupgarment`, e.g. `L:58`. Without a chart the theme uses a typical width for the garment type (`CM.GARMENT_CM`: tees 56, polos 56, hoodies 60, jackets 62, singlets 52; womens and kids their own).
+- **The photo:** the theme measures the garment body in the colour photo just under the arms (`CM.garmentSpan`); a pale colour on white is measured from a darker colour of the same product.
+- **The logo:** its width in mm ÷ the chest width × the body's width in the photo, on the position's centre.
+- **The note** under the mockup images: "Mockup to scale for size L, 56 cm wide across the chest (supplier size chart). Your print will look larger on smaller sizes."
+- **Check coverage:** `catalogue:garment-sizes` (read-only) counts garments with and without a chart and shows size text it couldn't read; `--product=ID` shows one product.
