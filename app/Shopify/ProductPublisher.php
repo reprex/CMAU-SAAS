@@ -34,7 +34,7 @@ class ProductPublisher
     public function __construct(private readonly ShopifyAdmin $shopify, private readonly ProductPayload $payload) {}
 
     /** @return array{action: string, ok: bool, message: ?string, payload?: array} */
-    public function publish(Product $product, bool $preview = false, bool $force = false, ?int $userId = null): array
+    public function publish(Product $product, bool $preview = false, bool $force = false, ?int $userId = null, bool $retried = false): array
     {
         $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
         $built = $this->payload->build($product, $media);
@@ -86,6 +86,23 @@ class ProductPublisher
 
             return $this->log($product, $action, true, count($built['input']['variants']).' variants, '.count($built['files']).' images'.($channel ? '; '.$channel : ''), $hash, $userId);
         } catch (Throwable $e) {
+            // A picture Shopify couldn't fetch earlier stays in the FAILED state and can't be reused:
+            // forget it, keep that picture off the website (staff see it on Range › product), and try once more.
+            if (! $retried && preg_match_all('/File with id (\d+) is in the FAILED state/i', $e->getMessage(), $m)) {
+                $bad = DB::table('shopify_media')->where('product_id', $product->id)
+                    ->where(fn ($w) => collect($m[1])->each(fn ($id) => $w->orWhere('media_gid', 'like', '%/'.$id)))->get();
+                if ($bad->isNotEmpty()) {
+                    DB::table('shopify_media')->whereIn('id', $bad->pluck('id'))->delete();
+                    $product->images()->whereIn('url', $bad->pluck('url'))->update(['hide_web' => true]);
+                    $result = $this->publish($product->fresh(), false, true, $userId, true);
+                    if ($result['ok']) {
+                        $result['message'] = trim(($result['message'] ?? '').'; left out '.$bad->count().' '.($bad->count() === 1 ? 'picture' : 'pictures').' Shopify could not load');
+                    }
+
+                    return $result;
+                }
+            }
+
             return $this->log($product, $action, false, mb_substr($e->getMessage(), 0, 2000), $hash, $userId);
         }
     }
