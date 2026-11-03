@@ -242,7 +242,8 @@ class ProductPayload
             $html .= '<details><summary>Additional options available for custom quote</summary>'.nl2br(e($product->webPrice->accessory_list), false).'</details>';
         }
         // Fit and measurements show in the Size guide instead (custom.sizeguide).
-        $specs = $details->reject(fn ($x) => SizeGuide::usesDetail((string) ($x['name'] ?? ''), (string) $x['detail']));
+        $hasGuide = SizeGuide::forProduct($product) !== null;
+        $specs = $hasGuide ? $details->reject(fn ($x) => SizeGuide::usesDetail((string) ($x['name'] ?? ''), (string) $x['detail'])) : $details;
         if ($specs->isNotEmpty()) {
             $html .= '<details><summary>Product Specifications</summary><ul>'
                 .$specs->map(fn ($x) => '<li><b>'.e($x['name'] ?? '').':</b> '.e($x['detail']).'</li>')->implode('').'</ul></details>';

@@ -36,7 +36,8 @@ class ShopifyPublishCommand extends Command
                 ->orWhere(fn ($w) => $w->whereNotNull('shopify_product_id')->where(fn ($w) => $w->where('tier', '!=', Product::TIER_LIVE)->orWhere('discontinued', true))->whereColumn('updated_at', '>', 'published_at'))))
             ->when($ids === [] && (int) $this->option('retry-after') > 0, fn ($w) => $w->whereNotIn('id', DB::table('shopify_publish_log')
                 ->where('ok', false)->where('created_at', '>', now()->subMinutes((int) $this->option('retry-after')))->select('product_id')))
-            ->orderBy('id')->limit((int) $this->option('limit'));
+            // New products first (finish the range), then republishes of products already on the store.
+            ->orderByRaw('case when published_at is null then 0 else 1 end')->orderBy('id')->limit((int) $this->option('limit'));
 
         $started = microtime(true);
         $budget = (int) $this->option('seconds');

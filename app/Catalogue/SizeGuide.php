@@ -91,7 +91,8 @@ class SizeGuide
             }
         }
 
-        return ($guide['fit'] || $guide['rows'] || $guide['image'] || $guide['link']) ? array_filter($guide, fn ($v) => $v !== null && $v !== []) : null;
+        // Only with real measurements (Scott): a table from the data, or the supplier's size chart picture. A fit or a link alone isn't enough.
+        return ($guide['rows'] || $guide['image']) ? array_filter($guide, fn ($v) => $v !== null && $v !== []) : null;
     }
 
     /** Which details the guide shows, so Product specifications can leave them out. */
