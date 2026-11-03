@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Catalogue\TemplateFiles;
+use App\Checkout\OutboundEmails;
 use App\Models\AuditLog;
+use App\Models\PendingEmail;
 use App\Models\Quote;
 use App\Models\ShopifyDraftOrder;
 use App\Quotes\LineTransfer;
@@ -89,7 +92,29 @@ class QuoteController extends Controller
             'quote' => $quote,
             'targets' => app(LineTransfer::class)->targetsFor($quote),
             'statuses' => Quote::STATUSES,
+            'emails' => PendingEmail::query()->where('quote_id', $quote->id)->latest('id')->limit(10)->get(),
+            'templates' => app(TemplateFiles::class)->forProducts($quote->items->pluck('product_id')),
         ]);
+    }
+
+    /** Email quote: a draft with the quote PDF and the products' branding templates, for staff to check and send. */
+    public function draftEmail(Quote $quote, OutboundEmails $emails)
+    {
+        if (! filled($quote->client_email)) {
+            return back()->with('status', 'Add the client\'s email address first.');
+        }
+        $email = PendingEmail::query()->where('quote_id', $quote->id)->where('status', 'draft')->latest('id')->first() ?? $emails->prepareQuote($quote);
+        $email->update(['recipient' => $quote->client_email]);
+
+        return back()->with('status', 'Quote email ready to check and send to '.$quote->client_email.'.');
+    }
+
+    public function sendEmail(Request $request, Quote $quote, PendingEmail $email, OutboundEmails $emails)
+    {
+        abort_unless($email->quote_id === $quote->id, 404);
+        $ok = $emails->send($email, $request->user());
+
+        return back()->with('status', $ok ? "Sent to {$email->recipient}." : 'Sending failed: '.$email->fresh()->error);
     }
 
     /** A logo file staff added with the quote from the website (private disk; downloads logged). */

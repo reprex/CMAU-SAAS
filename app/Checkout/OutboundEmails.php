@@ -3,10 +3,12 @@
 namespace App\Checkout;
 
 use App\Jobs\SendPendingEmail;
+use App\Mail\QuoteMail;
 use App\Mail\WebsiteChangeRequestMail;
 use App\Mail\WebsiteInvoiceMail;
 use App\Models\AuditLog;
 use App\Models\PendingEmail;
+use App\Models\Quote;
 use App\Models\User;
 use App\Models\WebsiteOrder;
 use App\Models\WebsiteOrderChange;
@@ -35,6 +37,21 @@ class OutboundEmails
         ]));
     }
 
+    /**
+     * A quote email from Quotes › quote (docs/branding-templates.md): the quote PDF and the products'
+     * branding templates. Always a draft that staff check and send (REPSTACK principle 6).
+     */
+    public function prepareQuote(Quote $quote): PendingEmail
+    {
+        return PendingEmail::query()->create([
+            'kind' => PendingEmail::KIND_QUOTE,
+            'quote_id' => $quote->id,
+            'recipient' => (string) $quote->client_email,
+            'subject' => QuoteMail::subjectFor($quote),
+            'status' => 'draft',
+        ]);
+    }
+
     public function prepareChangeNotice(WebsiteOrderChange $change): PendingEmail
     {
         return $this->prepare(PendingEmail::query()->create([
@@ -58,9 +75,10 @@ class OutboundEmails
             $mail = match ($email->kind) {
                 PendingEmail::KIND_INVOICE => new WebsiteInvoiceMail($order),
                 PendingEmail::KIND_CHANGE => new WebsiteChangeRequestMail($email->change),
+                PendingEmail::KIND_QUOTE => new QuoteMail($email->quote),
             };
             $pending = Mail::to($email->recipient);
-            if ($email->kind === PendingEmail::KIND_INVOICE && config('mail.from.address')) {
+            if (in_array($email->kind, [PendingEmail::KIND_INVOICE, PendingEmail::KIND_QUOTE], true) && config('mail.from.address')) {
                 $pending->bcc(config('mail.from.address'));
             }
             $pending->send($mail);
@@ -75,6 +93,12 @@ class OutboundEmails
         if ($email->kind === PendingEmail::KIND_INVOICE && $order) {
             $order->forceFill(['invoice_sent_at' => now()] + ($order->stage < WebsiteOrder::STAGE_INVOICE_SENT
                 ? ['stage' => WebsiteOrder::STAGE_INVOICE_SENT, 'stage_changed_at' => now()] : []))->save();
+        }
+        if ($email->kind === PendingEmail::KIND_QUOTE && ($quote = $email->quote)) {
+            $quote->update(['sent_at' => now(), 'status' => $quote->status === 'NEW' ? 'QUOTE' : $quote->status]);
+            AuditLog::record('quote.emailed', $quote, ['to' => $email->recipient]);
+
+            return true;
         }
         AuditLog::record('website_order.email_sent', $order, ['kind' => $email->kind, 'to' => $email->recipient]);
 

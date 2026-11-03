@@ -173,9 +173,9 @@
       <h2>Branding template</h2>
       @forelse($templates as $t)
         <div class="small" style="display:flex;flex-direction:column;gap:6px;padding:6px 0;border-top:1px solid var(--line, #E5E3DE)">
-          <div class="row between"><a href="{{ $t->url }}" target="_blank" rel="noopener" class="mono" style="word-break:break-all">{{ \Illuminate\Support\Str::limit(basename(parse_url($t->url, PHP_URL_PATH) ?: $t->url), 48) }}</a>
-            <span class="pill {{ ['read' => 'ok', 'failed' => 'warn', 'none' => 'warn'][$t->status] ?? '' }}">{{ ['new' => 'To read', 'read' => 'Read', 'none' => 'No positions found', 'failed' => 'Failed'][$t->status] ?? $t->status }}</span></div>
-          <span class="muted">{{ ['promodata' => 'From Promodata', 'supplier' => "From the supplier's site", 'staff' => 'Added by staff'][$t->source] ?? $t->source }}@if($t->message) · {{ $t->message }}@endif</span>
+          <div class="row between"><a href="{{ route('range.templates.download', [$product, $t]) }}" class="mono" style="word-break:break-all">{{ \Illuminate\Support\Str::limit($t->filename ?: basename(parse_url($t->url, PHP_URL_PATH) ?: $t->url), 48) }}</a>
+            <span class="pill {{ ['read' => 'ok', 'failed' => 'warn', 'none' => 'warn'][$t->status] ?? '' }}">{{ ['new' => 'To read', 'read' => 'Read', 'none' => 'No positions found', 'failed' => 'Failed', 'stored' => 'Kept for emails'][$t->status] ?? $t->status }}</span></div>
+          <span class="muted">{{ ['promodata' => 'From Promodata', 'supplier' => "From the supplier's site", 'staff' => 'Added by staff', 'file' => 'Reviewed file'][$t->source] ?? $t->source }} @if($t->bytes) · {{ number_format($t->bytes / 1048576, 1) }} MB @endif @if($t->message) · {{ $t->message }}@endif</span>
           @if($t->positions->isNotEmpty())
             <table class="list small"><thead><tr><th>Position</th><th>View</th><th class="num">Max size</th><th>Methods</th></tr></thead><tbody>
             @foreach($t->positions as $p)<tr><td>{{ $p->name }}</td><td>{{ $p->view }}</td><td class="num">{{ $p->max_width_mm ? $p->max_width_mm.' × '.($p->max_height_mm ?: '?').' mm' : '–' }}</td><td>{{ implode(', ', $p->methods ?? []) }}</td></tr>@endforeach
@@ -191,6 +191,8 @@
       @endforelse
       @if($canEdit)
         <form method="post" action="{{ route('range.templates.store', $product) }}" class="row" style="gap:6px;margin-top:6px">@csrf<input name="url" type="url" placeholder="https://… supplier template PDF" required style="flex:1 1 200px"><button class="btn small">Add</button></form>
+        <form method="post" action="{{ route('range.templates.store', $product) }}" enctype="multipart/form-data" class="row" style="gap:6px;margin-top:6px">@csrf<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.ai,.eps" required style="flex:1 1 200px" aria-label="Template file"><button class="btn small">Upload</button></form>
+        <p class="small muted" style="margin:4px 0 0">Templates are never linked from the product page. They are attached to quote and invoice emails for this product.</p>
       @endif
     </div>
 

@@ -30,7 +30,20 @@ Suppliers publish a branding template (PDF or line drawing) for most products: e
     "method_areas":[{"method":"sublimation","name":"Sublimation","max_mm":[209,108],"decIDs":["2119-sub"]}],"source":"decoration"}]
   ```
   `name`, `view`, `image`, `left`, `top`, `width`, `max_mm` and `methods` are as before. New, additive: `method_areas` (each allowed method with its own max size where the data gives one, e.g. DTF 297 × 420 and Oversize DTF 380 × 480 on the same front; `decIDs` = the DecorationJSON options for that method, for decoration and default positions) and `source` (`template`, `decoration` or `default`). `image`/`left`/`top`/`width` are left out when there is no picture for the view.
-- `custom.brandingtemplate` (url): the template, for a "View the supplier's branding template" link.
+- `custom.hasbrandingtemplate` (boolean): a template is available. **Never the template itself** (Scott, 3 Nov 2026): no template links on our pages, so a bot can't collect them from our site. The product page says one is available near the mockup and Quick quote buttons, and that it comes with the quote or invoice email. (`custom.brandingtemplate`, the old link, is deleted from the store by `shopify:metafield-definitions`, with every product's value.)
+
+## Template files and the emails (Scott, 3 Nov 2026)
+
+Templates are private files on the `templates` disk (`storage/app/private/branding-templates`, not served), like customer artwork.
+
+- **Reviewed files:** upload the extracted folder with cPanel File Manager (e.g. `~/saas-app/storage/app/template-inbox/Dex`) and run `catalogue:import-templates <folder>` (`--supplier=19` when codes could belong to two suppliers). Each file is named `<supplier code> <anything>` ("AP001 Jackys Cotton Apron.pdf", "100109_Branding Template_1.pdf", "LL0007 Monza Car Charger.pdf") and matched to the product by that code. A file imported again with the same size is skipped. New files are also read for branding positions (as files, by the minute cron, within the daily cap).
+- **Range › product › Branding template:** upload a file, download any template (staff only), remove.
+- **Addresses** (Promodata line art, the supplier pattern, a URL staff added) are fetched once, the first time an email needs them, and kept as the template's file.
+- **Emails** attach the templates of the products on them (`TemplateFiles::attachments`), up to `quotes.templates.max_attach_mb` (15 MB) in all; the rest are named in the email with an offer to send them separately:
+  - **Quote email** from Quotes › quote › **Email quote**: a draft with the quote PDF and the templates; staff check it and press **Send** (REPSTACK principle 6). Sending marks the quote sent.
+  - **Website invoice** (Website orders): the invoice PDF and the templates of the branded products (not samples).
+  - **Instant quote** from the website: the quote PDF and the templates.
+- Attachment names are ours ("Branding template 19-AP001 Jackys Cotton Apron.pdf"), never the supplier's name. The PDF itself is the supplier's and may show their logo.
 
 ## Branding suite and pricing (Scott, 1 Nov)
 

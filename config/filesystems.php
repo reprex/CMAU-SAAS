@@ -50,6 +50,18 @@ return [
             'report' => false,
         ],
 
+        // Supplier branding templates (docs/branding-templates.md). Private like the artwork: never on
+        // the product page (Scott, 3 Nov 2026: no links a bot could scrape); they go out attached to the
+        // quote or invoice email, and staff download them from Range › product.
+        'templates' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/branding-templates'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

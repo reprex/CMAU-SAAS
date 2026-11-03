@@ -19,6 +19,7 @@ Please note: {{ $alert['message'] }}
 @endforeach
 
 Pay by card or bank transfer from the invoice. Once you've paid, we will provide a digital proof for your approval before proceeding with production.
+@include('mail.partials.templates')
 @endif
 
 To change anything, reply to this email or use My Orders on crowdmerch.com.au before your order is dispatched.

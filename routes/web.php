@@ -133,6 +133,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/substitutes', [SubstituteController::class, 'lookup'])->name('substitutes.lookup');
     Route::get('/range/{product}/substitutes', [SubstituteController::class, 'show'])->whereNumber('product')->name('range.substitutes');
     Route::get('/range/{product}/stock', [SubstituteController::class, 'stock'])->whereNumber('product')->name('range.stock');
+    Route::get('/range/{product}/templates/{template}/download', [BrandingTemplateController::class, 'download'])->whereNumber(['product', 'template'])->name('range.templates.download');
     Route::get('/range/{product}/stock/live', [RangeController::class, 'liveStock'])->whereNumber('product')->name('range.stock.live');
     Route::get('/logo-areas', [LogoAreaController::class, 'index'])->name('range.logo-areas');
     Route::get('/positions', [PositionRuleController::class, 'index'])->name('range.positions');
@@ -153,6 +154,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/quotes/{quote}/status', [QuoteController::class, 'status'])->name('quotes.status');
         Route::post('/quotes/{quote}/recalculate', [QuoteController::class, 'recalculate'])->name('quotes.recalculate');
         Route::post('/quotes/{quote}/revise', [QuoteController::class, 'revise'])->name('quotes.revise');
+        Route::post('/quotes/{quote}/email', [QuoteController::class, 'draftEmail'])->name('quotes.email');
+        Route::post('/quotes/{quote}/emails/{email}/send', [QuoteController::class, 'sendEmail'])->whereNumber('email')->name('quotes.email.send');
         Route::delete('/quotes/{quote}', [QuoteController::class, 'destroy'])->name('quotes.destroy');
 
         Route::post('/quotes/{quote}/items', [QuoteItemController::class, 'store'])->name('items.store');
