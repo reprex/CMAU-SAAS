@@ -25,7 +25,7 @@ class GarmentSizes
         $d = $product->detail;
         $texts = [];
         foreach ((array) ($d?->details ?? []) as $x) {
-            if (is_array($x) && filled($x['detail'] ?? null)) {
+            if (is_array($x) && is_scalar($x['detail'] ?? null) && filled($x['detail']) && is_scalar($x['name'] ?? '')) {
                 $texts[] = trim(($x['name'] ?? '').': '.$x['detail']);
             }
         }

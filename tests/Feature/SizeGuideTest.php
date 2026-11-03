@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Catalogue\GarmentSizes;
 use App\Catalogue\SizeGuide;
 use App\Shopify\ProductPayload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,6 +79,16 @@ class SizeGuideTest extends TestCase
         $input = app(ProductPayload::class)->build($p)['input'];
         $this->assertNull(collect($input['metafields'])->firstWhere('key', 'sizeguide'));
         $this->assertStringContainsString('Regular fit', $input['descriptionHtml'], 'the fit stays in Product specifications');
+    }
+
+    public function test_grouped_attributes_and_odd_details_do_not_stop_publishing(): void
+    {
+        $p = $this->tee([['name' => 'Chest (1/2)', 'detail' => 'S 52, M 55, L 58']],
+            ['Fit' => ['Slim'], 'Material' => ['Cotton', 'Elastane'], 'Gender: Men']);
+        $g = SizeGuide::forProduct($p);
+        $this->assertSame('Slim fit', $g['fit']);
+        $this->assertSame('L:58', GarmentSizes::metafield($p));
+        $this->assertNotEmpty(app(ProductPayload::class)->build($p)['input']['title']);
     }
 
     public function test_no_sizing_no_guide(): void

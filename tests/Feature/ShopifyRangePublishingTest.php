@@ -52,4 +52,10 @@ class ShopifyRangePublishingTest extends TestCase
         $this->artisan('shopify:publish --preview --limit=2')
             ->expectsOutputToContain('102')->expectsOutputToContain('103')->doesntExpectOutputToContain('101 ')->assertSuccessful();
     }
+
+    public function test_discontinued_products_never_on_the_store_are_not_picked(): void
+    {
+        DB::table('products')->where('id', 101)->update(['discontinued' => true]);
+        $this->artisan('shopify:publish --preview --limit=1')->expectsOutputToContain('102')->doesntExpectOutputToContain('101 ')->assertSuccessful();
+    }
 }
