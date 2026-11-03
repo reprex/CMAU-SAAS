@@ -53,11 +53,6 @@ Schedule::command('shopify:collections --sort --seconds=45')
     ->withoutOverlapping(10)
     ->when(fn () => (bool) cache()->get('shopify:auto_publish'));
 
-// White-background style photos become the hero (Scott, 2 Nov 2026; docs/images.md).
-Schedule::command('catalogue:backdrops')
-    ->everyMinute()
-    ->withoutOverlapping(5);
-
 // Logo areas: re-learn when staff approved one and apply to the range (docs/logo-preview.md).
 // Optional: coverage comes from templates and Promodata print areas; the --sample step is not scheduled.
 Schedule::command('catalogue:logo-areas')

@@ -28,7 +28,6 @@ class ShopifyRangeReportCommand extends Command
         $failedIds = DB::table('shopify_publish_log as l')->where('ok', false)->where('created_at', '>', now()->subDay())
             ->whereNotExists(fn ($q) => $q->from('shopify_publish_log as l2')->whereColumn('l2.product_id', 'l.product_id')->where('l2.ok', true)->whereColumn('l2.id', '>', 'l.id'))
             ->distinct()->pluck('product_id');
-        $photosToCheck = DB::table('product_images')->whereIn('product_id', $ids)->whereNull('white_bg')->where('role', '!=', 'line_art')->count();
 
         // Variants: one per colour (hidden colours left out), or one "Custom Print" variant.
         $colours = DB::table('product_colours')->whereIn('product_id', $ids)->selectRaw('product_id, count(distinct name) as n')->groupBy('product_id')->pluck('n', 'product_id');
@@ -45,7 +44,6 @@ class ShopifyRangeReportCommand extends Command
             ['  on the store now', $n($published)],
             ['  waiting to publish (new or changed)', $n($waiting)],
             ['  failed in the last day (not since fixed)', $n($failedIds->count())],
-            ['Photos still to check for white backgrounds', $n($photosToCheck)],
             ['Variants for the whole range (one per colour)', $n($variants)],
             ['  on the store now', $n($variantsOn)],
         ]);

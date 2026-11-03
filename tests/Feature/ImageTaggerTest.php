@@ -8,7 +8,6 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Tests\Support\QuoteFixtures;
 use Tests\TestCase;
 
@@ -186,27 +185,30 @@ class ImageTaggerTest extends TestCase
         $this->assertTrue($b->whiteEdge($im));
     }
 
-    public function test_white_background_style_photo_becomes_the_hero(): void
+    public function test_a_white_background_photo_no_longer_becomes_the_hero_and_restore_puts_promodatas_back(): void
     {
         $p = $this->mapleTee();
-        Http::fake([
-            '*tee_side*' => Http::response($this->png(255, 255, 255)),
-            '*' => Http::response($this->png(225, 225, 228)),
-        ]);
-        $this->artisan('catalogue:backdrops', ['--product' => $p->id])->assertSuccessful();
-        $tags = $this->tagsOf($p);
+        // As the white-background step left it: the side photo (on white) tagged as hero.
+        ProductImage::query()->where('url', self::CDN.'4001_maple_tee_side__57201.jpg')->update(['white_bg' => true, 'role' => 'hero_style']);
+        ProductImage::query()->where('url', self::CDN.'4001_maple_tee_main__87044.jpg')->update(['role' => 'other_style']);
+        $p->forceFill(['range_changed_at' => now()->subDay(), 'published_at' => now()->subHour()])->save();
 
-        $this->assertSame('hero_style', $tags['4001_maple_tee_side__57201.jpg']);
-        $this->assertSame('other_style', $tags['4001_maple_tee_main__87044.jpg']);
-        $this->assertSame('colour:Navy', $tags['navy.jpg']);
-        $this->assertNull(ProductImage::query()->where('url', self::CDN.'colours/navy.jpg')->value('white_bg')); // colour photos aren't looked at
+        $this->artisan('catalogue:restore-heroes --dry-run')->expectsOutputToContain('Would restore the hero on 1 of 1')->assertSuccessful();
+        $this->assertSame('hero_style', ProductImage::query()->where('url', self::CDN.'4001_maple_tee_side__57201.jpg')->value('role'));
+
+        $this->artisan('catalogue:restore-heroes')->expectsOutputToContain('Restored the hero on 1 of 1')->assertSuccessful();
+        $tags = $this->tagsOf($p);
+        $this->assertSame('hero_style', $tags['4001_maple_tee_main__87044.jpg']); // Promodata's hero
+        $this->assertSame('other_style', $tags['4001_maple_tee_side__57201.jpg']);
+        $this->assertTrue($p->fresh()->range_changed_at->gt($p->fresh()->published_at)); // goes to Shopify again
         $shop = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
-        $this->assertSame(self::CDN.'4001_maple_tee_side__57201.jpg', $shop['media'][0]);
+        $this->assertSame(self::CDN.'4001_maple_tee_main__87044.jpg', $shop['media'][0]);
+
+        // Nothing left to restore.
+        $this->artisan('catalogue:restore-heroes')->expectsOutputToContain('Restored the hero on 0 of 1')->assertSuccessful();
 
         // A hero staff chose still wins.
         ProductOverride::create(['product_id' => $p->id, 'data' => ['hero_image_url' => self::CDN.'4001_maple_tee_back__90295.jpg']]);
-        $tags = $this->tagsOf($p);
-        $this->assertSame('hero_style', $tags['4001_maple_tee_back__90295.jpg']);
-        $this->assertSame('other_style', $tags['4001_maple_tee_side__57201.jpg']);
+        $this->assertSame('hero_style', $this->tagsOf($p)['4001_maple_tee_back__90295.jpg']);
     }
 }
