@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DecorationTypeController;
 use App\Http\Controllers\Admin\PriceCheckController;
 use App\Http\Controllers\Admin\RangeSupplierController;
 use App\Http\Controllers\Admin\SearchLogController;
+use App\Http\Controllers\Admin\ShopifyPublishingController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
@@ -215,6 +216,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::get('/price-check/export', [PriceCheckController::class, 'export'])->name('price-check.export');
 
         Route::get('/search-log', [SearchLogController::class, 'index'])->name('search-log.index');
+
+        Route::get('/shopify-publishing', [ShopifyPublishingController::class, 'index'])->name('shopify-publishing.index');
+        Route::post('/shopify-publishing', [ShopifyPublishingController::class, 'toggle'])->name('shopify-publishing.toggle');
 
         Route::get('/decoration-types', [DecorationTypeController::class, 'index'])->name('dectypes.index');
         Route::put('/decoration-types/{decorationType}', [DecorationTypeController::class, 'update'])->name('dectypes.update');
