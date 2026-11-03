@@ -129,6 +129,35 @@ class ShopifyPublishTest extends TestCase
         $this->assertStringContainsString('blocked', DB::table('shopify_publish_log')->latest('id')->value('message'));
     }
 
+    public function test_a_picture_shopify_failed_to_load_is_left_out_and_the_product_retried(): void
+    {
+        $p = $this->tee();
+        DB::table('shopify_media')->insert(['product_id' => 43446, 'url_hash' => sha1(self::CDN.'5001_back.jpg'), 'url' => self::CDN.'5001_back.jpg', 'media_gid' => 'gid://shopify/MediaImage/45317247271210', 'created_at' => now(), 'updated_at' => now()]);
+        $first = true;
+        Http::fake(['cmau-dev.myshopify.com/*' => function ($request) use (&$first) {
+            $q = (string) ($request->data()['query'] ?? '');
+            if (str_contains($q, 'productSet') && $first) {
+                $first = false;
+
+                return Http::response(['data' => ['productSet' => ['product' => null, 'userErrors' => [['field' => ['input', 'files', '1', 'id'], 'message' => 'File with id 45317247271210 is in the FAILED state and cannot be associated with a product.']]]]]);
+            }
+            if (str_contains($q, 'publications(')) {
+                return Http::response(['data' => ['publications' => ['nodes' => [['id' => 'gid://shopify/Publication/9', 'name' => 'Online Store']]]]]);
+            }
+            if (str_contains($q, 'publishablePublish')) {
+                return Http::response(['data' => ['publishablePublish' => ['userErrors' => []]]]);
+            }
+
+            return Http::response(['data' => ['productSet' => ['userErrors' => [], 'product' => ['id' => 'gid://shopify/Product/777', 'media' => ['nodes' => [['id' => 'gid://shopify/MediaImage/1']]]]]]]);
+        }]);
+        $r = app(ProductPublisher::class)->publish($p);
+        $this->assertTrue($r['ok'], (string) $r['message']);
+        $this->assertStringContainsString('left out 1 picture', $r['message']);
+        $this->assertTrue((bool) $p->images()->where('url', self::CDN.'5001_back.jpg')->value('hide_web'));
+        $this->assertSame(0, DB::table('shopify_media')->where('media_gid', 'like', '%45317247271210')->count());
+        $this->assertSame(777, Product::find(43446)->shopify_product_id);
+    }
+
     public function test_shopify_errors_are_logged(): void
     {
         $this->tee();
