@@ -19,6 +19,12 @@ Read from the Trends distributor site (Pricing tab, Additional Costs down to Shi
 
 The same read checked Promodata's base prices against Trends' own page: 2,295 of 2,311 matched to the cent (the other 16 are flat-priced items with no quantity breaks to compare), and Trends' price headings ("Unbranded" or "Including full colour printing") were recorded as Price check verdicts (docs/price-check.md).
 
+### Logo Line (supplier 2)
+
+Read from the Logo Line distributor site (Price tab: Options and Add-Ons, where each option carries its group type, maximum, prerequisites and incompatibles) for all 695 Logo Line range products on 3 Nov 2026. Promodata gives Logo Line's branded totals as plain lines (hidden by TOD's rule) and the add-on amounts as "ADD …" lines (type 10). Packaging among those "ADD" lines (velvet pouches, cardboard sleeves, pen boxes, gift boxes, EVA cases, glow pouches, backing cards, toothbrush cases, bamboo lids, combo cables) and printing on that packaging were being offered as branding methods. The Logo Line rules mark them `branding_line`: `ProductOptions::claimed()` takes them out of DecorationJSON, branding positions and checkout branding, and they become options with their price and markup unchanged. Print on optional packaging is shown only once that packaging is chosen (`requires_any` → `needs`). Variable Data (a name per item) is personalisation.
+
+Logo Line's undecorated prices on its own pages matched Promodata for 669 of 681 products; the 12 that differ are recorded as "differs" in Price check.
+
 ## What the SaaS sends
 
 `custom.options` (JSON, product metafield): `{v, source, groups: [{key, label, pick, optional, with_method, note, max, unit_label, base_stitches, options: [{id, name, included, fixed, breaks, setup, per, count, per_stitches, excludes, note}]}], notes}`. `breaks` is the line's sell price per unit by quantity and `setup` its sell setup, both SaaS pricing. Products with no matching lines get no metafield and the product page is unchanged.
@@ -41,4 +47,5 @@ After adding or changing a template, mark the products that get options to publi
 
 ```
 cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:options-report --supplier=3 --mark
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:options-report --supplier=2 --reprice --mark   # Logo Line: reprice first (packaging leaves DecorationJSON)
 ```

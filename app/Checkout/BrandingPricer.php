@@ -2,8 +2,10 @@
 
 namespace App\Checkout;
 
+use App\Catalogue\ProductOptions;
 use App\Models\DecTypeCode;
 use App\Models\PriceOption;
+use App\Models\Product;
 use App\Pricing\Money;
 use Illuminate\Support\Collection;
 
@@ -21,8 +23,11 @@ class BrandingPricer
     /** @return Collection<string, PriceOption> option id => decoration option of the decoration product */
     public function options(int $decorationProductId): Collection
     {
-        return PriceOption::query()->where('product_id', $decorationProductId)->where('type_code', DecTypeCode::DECORATION)
-            ->whereNotNull('price_string')->where('price_string', '!=', '')->orderBy('position')->get()->keyBy('option_id');
+        $lines = PriceOption::query()->where('product_id', $decorationProductId)->where('type_code', DecTypeCode::DECORATION)
+            ->whereNotNull('price_string')->where('price_string', '!=', '')->orderBy('position')->get();
+        $claimed = app(ProductOptions::class)->claimed((int) Product::query()->whereKey($decorationProductId)->value('supplier_id'), $lines);
+
+        return $lines->reject(fn ($o) => in_array($o->option_id, $claimed, true))->keyBy('option_id'); // product options aren't branding
     }
 
     /**
