@@ -45,6 +45,12 @@ class ProductPublisher
             return ['action' => 'preview', 'ok' => true, 'message' => $action.' (not sent)', 'payload' => $built['input']];
         }
         if (! $force && $product->publish_hash === $hash) {
+            // Flagged as changed, but nothing Shopify sees differs: mark it in sync so the
+            // queue moves on instead of picking the same products every minute.
+            if ($product->exists && $product->shopify_product_id) {
+                DB::table('products')->where('id', $product->id)->update(['published_at' => now()]);
+            }
+
             return ['action' => 'skip', 'ok' => true, 'message' => 'unchanged'];
         }
         if ($action === 'create' && $built['input']['status'] === 'ARCHIVED') {
