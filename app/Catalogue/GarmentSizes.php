@@ -132,12 +132,12 @@ class GarmentSizes
         return ['size' => $same[0], 'cm' => $chart[$same[0]]];
     }
 
-    private static function isSize(string $s): bool
+    public static function isSize(string $s): bool
     {
         return in_array(self::norm($s), self::SIZE_ORDER, true) || ctype_digit($s);
     }
 
-    private static function norm(string $s): string
+    public static function norm(string $s): string
     {
         $s = strtoupper(trim($s));
 
@@ -145,7 +145,7 @@ class GarmentSizes
     }
 
     /** @return list<string> */
-    private static function sizesIn(string $line): array
+    public static function sizesIn(string $line): array
     {
         if (! preg_match_all('/\b(\d{1,2}XL|X{1,3}[SL]|XS|[SML]|\d{1,2})\b/i', $line, $m)) {
             return [];

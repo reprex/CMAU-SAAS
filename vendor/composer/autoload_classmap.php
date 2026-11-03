@@ -21,6 +21,7 @@ return array(
     'App\\Catalogue\\ProductFacts' => $baseDir . '/app/Catalogue/ProductFacts.php',
     'App\\Catalogue\\ProductHydrator' => $baseDir . '/app/Catalogue/ProductHydrator.php',
     'App\\Catalogue\\RangeManager' => $baseDir . '/app/Catalogue/RangeManager.php',
+    'App\\Catalogue\\SizeGuide' => $baseDir . '/app/Catalogue/SizeGuide.php',
     'App\\Catalogue\\SubstituteFinder' => $baseDir . '/app/Catalogue/SubstituteFinder.php',
     'App\\Catalogue\\SupplierCodes' => $baseDir . '/app/Catalogue/SupplierCodes.php',
     'App\\Catalogue\\SyncRunner' => $baseDir . '/app/Catalogue/SyncRunner.php',

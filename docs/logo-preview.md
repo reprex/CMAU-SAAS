@@ -73,3 +73,7 @@ Garment mockups draw each logo to scale against one stated size: **L** (womens *
 - **The logo:** its width in mm ÷ the chest width × the body's width in the photo, on the position's centre.
 - **The note** under the mockup images: "Mockup to scale for size L, 56 cm wide across the chest (supplier size chart). Your print will look larger on smaller sizes."
 - **Check coverage:** `catalogue:garment-sizes` (read-only) counts garments with and without a chart and shows size text it couldn't read; `--product=ID` shows one product.
+
+## Size guide on the product page (Scott, 3 Nov 2026)
+
+`App\Catalogue\SizeGuide` reads the fit ("Fit" detail, a "Fit: …" attribute, or "regular fit" in the description), the measurements (chest, ½ chest, bust, length, sleeve, shoulder, waist, hip, inseam, neck; per size, in cm, from the details or a table in the description) and the supplier's size chart (a product image named size chart / size guide, or a link in a size detail). It is published as `custom.sizeguide` (json: fit, sizes, rows, highlight, image, link, notes). The theme shows it as a "Size guide" concertina above Product specifications (`snippets/cm-size-guide.liquid`), with the mockup size highlighted. The lines it uses are left out of Product specifications and the description.

@@ -564,6 +564,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Catalogue\\ProductFacts' => __DIR__ . '/../..' . '/app/Catalogue/ProductFacts.php',
         'App\\Catalogue\\ProductHydrator' => __DIR__ . '/../..' . '/app/Catalogue/ProductHydrator.php',
         'App\\Catalogue\\RangeManager' => __DIR__ . '/../..' . '/app/Catalogue/RangeManager.php',
+        'App\\Catalogue\\SizeGuide' => __DIR__ . '/../..' . '/app/Catalogue/SizeGuide.php',
         'App\\Catalogue\\SubstituteFinder' => __DIR__ . '/../..' . '/app/Catalogue/SubstituteFinder.php',
         'App\\Catalogue\\SupplierCodes' => __DIR__ . '/../..' . '/app/Catalogue/SupplierCodes.php',
         'App\\Catalogue\\SyncRunner' => __DIR__ . '/../..' . '/app/Catalogue/SyncRunner.php',
