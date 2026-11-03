@@ -45,4 +45,11 @@ class ShopifyRangePublishingTest extends TestCase
             ->expectsOutputToContain('Failed: 102')
             ->assertSuccessful();
     }
+
+    public function test_new_products_publish_before_republishes(): void
+    {
+        DB::table('products')->where('id', 101)->update(['shopify_product_id' => 9001, 'published_at' => now()->subHour(), 'range_changed_at' => now()]);
+        $this->artisan('shopify:publish --preview --limit=2')
+            ->expectsOutputToContain('102')->expectsOutputToContain('103')->doesntExpectOutputToContain('101 ')->assertSuccessful();
+    }
 }

@@ -71,6 +71,15 @@ class SizeGuideTest extends TestCase
         $this->assertSame('https://supplier.example/5001-size-guide.pdf', $g['link']);
     }
 
+    public function test_a_fit_without_measurements_is_not_a_guide(): void
+    {
+        $p = $this->tee([['name' => 'Fit', 'detail' => 'Regular fit'], ['name' => 'Size Guide', 'detail' => 'https://supplier.example/guide.pdf']]);
+        $this->assertNull(SizeGuide::forProduct($p));
+        $input = app(ProductPayload::class)->build($p)['input'];
+        $this->assertNull(collect($input['metafields'])->firstWhere('key', 'sizeguide'));
+        $this->assertStringContainsString('Regular fit', $input['descriptionHtml'], 'the fit stays in Product specifications');
+    }
+
     public function test_no_sizing_no_guide(): void
     {
         $p = $this->tee([['name' => 'Material', 'detail' => 'Cotton'], ['name' => 'Print Area', 'detail' => 'Left chest 90 x 90mm']]);
