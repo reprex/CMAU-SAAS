@@ -594,6 +594,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Console\\Commands\\CatalogueHydrateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueHydrateCommand.php',
         'App\\Console\\Commands\\CatalogueLogoAreasCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueLogoAreasCommand.php',
         'App\\Console\\Commands\\CatalogueReadTemplatesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueReadTemplatesCommand.php',
+        'App\\Console\\Commands\\CatalogueRestoreHeroesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueRestoreHeroesCommand.php',
         'App\\Console\\Commands\\CatalogueTagImagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueTagImagesCommand.php',
         'App\\Console\\Commands\\HolidaysImportCommand' => __DIR__ . '/../..' . '/app/Console/Commands/HolidaysImportCommand.php',
         'App\\Console\\Commands\\PositionsReportCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PositionsReportCommand.php',

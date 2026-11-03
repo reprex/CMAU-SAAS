@@ -20,7 +20,7 @@ Worked out on every Promodata refresh (`App\Catalogue\ImageTagger`), in this ord
 
 There is always exactly one hero style.
 
-**White background first (Scott, 2 Nov 2026).** A style photo on a white background is the hero everywhere (collection cards, product page, cart, quote PDFs); Promodata's hero, usually a model or studio-grey shot, becomes other style. `catalogue:backdrops` (every minute, a batch of web-range products) looks at the edge of each style photo with PHP GD: at least 92% of a band round the edge white (red, green and blue all 240 or more) or see-through counts as white; studio grey (about 225) does not. The result is stored on the image (`product_images.white_bg`); colour photos aren't looked at. A hero staff picked always wins. Republish to send the new order to Shopify. One product: `catalogue:backdrops --product=ID`.
+**Hero: Promodata's, unless staff pick another (Scott, 3 Nov 2026).** The white-background hero (2 Nov) was undone: looking at the results, heroes need vetting by hand, one product at a time on Range › product. The hero is the photo Promodata marks as the hero image (`overview.hero_image`). When Promodata gives none, the first photo in Promodata's image list is used. A staff choice always wins. `catalogue:restore-heroes` put Promodata's hero back on products the white-background step had changed and marked them to publish again; `catalogue:backdrops` is no longer scheduled and only records `product_images.white_bg` as a hint.
 
 ## Claude image check
 

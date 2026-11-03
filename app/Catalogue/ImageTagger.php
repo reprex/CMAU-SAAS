@@ -144,20 +144,8 @@ class ImageTagger
                 ? ['role' => $t['colour'] && isset($colourImage[$t['url']]) ? self::COLOUR : self::OTHER_STYLE] + $t : $t);
         }
 
-        // A style photo on a white background is the hero (Scott, 2 Nov 2026): it takes over
-        // from Promodata's hero, which becomes other style. A staff hero still wins.
-        if (! $staffHero && ! $heroOverride) {
-            $white = $product->images->pluck('white_bg', 'url');
-            $current = $tags->search(fn ($t) => $t['role'] === self::HERO_STYLE);
-            $promote = $tags->search(fn ($t) => $t['role'] === self::OTHER_STYLE && $t['by'] !== 'staff' && ($white[$t['url']] ?? false));
-            if ($promote !== false && ($current === false || (! ($white[$tags[$current]['url']] ?? false) && $tags[$current]['by'] !== 'staff'))) {
-                if ($current !== false) {
-                    $old = $tags[$current];
-                    $tags[$current] = ($old['colour'] && isset($colourImage[$old['url']]) ? ['role' => self::COLOUR] : ['role' => self::OTHER_STYLE, 'colour' => null]) + $old;
-                }
-                $tags[$promote] = ['role' => self::HERO_STYLE, 'colour' => null] + $tags[$promote];
-            }
-        }
+        // The white-background hero (2 Nov 2026) was undone on 3 Nov 2026 (Scott): Promodata's own hero
+        // stays the hero unless staff pick another on Range › product, one product at a time.
 
         // Always exactly one hero: the first style image, else the first colour image.
         if (! $tags->contains('role', self::HERO_STYLE) && $tags->isNotEmpty()) {

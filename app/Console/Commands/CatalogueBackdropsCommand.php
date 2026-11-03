@@ -10,15 +10,15 @@ use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
- * White-background check (docs/images.md): each scheduler minute it looks at the
- * style photos of a batch of web-range products, then re-tags any that changed, so a
- * white-background style photo becomes the hero. Republish to send the new order to Shopify.
+ * White-background check (docs/images.md). No longer scheduled and no longer changes the hero
+ * (Scott, 3 Nov 2026: heroes are vetted by hand); it only records which style photos are on white,
+ * as a hint for staff. Run it by hand for one product if wanted.
  */
 class CatalogueBackdropsCommand extends Command
 {
     protected $signature = 'catalogue:backdrops {--product= : One product (any tier)} {--seconds=40 : Time budget for a run} {--fresh : With --product, look at every photo again}';
 
-    protected $description = 'Find style photos on a white background (they become the hero)';
+    protected $description = 'Record which style photos are on a white background (a hint only; the hero is not changed)';
 
     public function handle(Backdrop $backdrop, ImageTagger $tagger): int
     {

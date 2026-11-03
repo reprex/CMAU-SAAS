@@ -39,7 +39,6 @@ cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:publish --limit=50
 
 - `shopify:range-report`: the web range, how much is priced and fully detailed, on the store, waiting, failed in the last day, photos still to check for white backgrounds, and the variants the range needs (one per colour) against Shopify's limit: stores over 50,000 variants can only create 1,000 new variants a day (except Shopify Plus).
 - `shopify:auto-publish on|off`: when on, the minute cron runs `shopify:publish --limit=250 --seconds=45 --retry-after=60 --parallel=5`: new or changed products for 45 seconds a minute, failed ones retried after an hour (they don't block the queue). Shopify's daily new-variant limit pauses it for 6 hours. Once the range is up it keeps the store in step with range changes (curation, new heroes, price changes).
-- A new white-background hero marks the product to publish again (`catalogue:backdrops`).
 
 ## Range collections (3 Nov 2026)
 

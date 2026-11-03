@@ -51,6 +51,7 @@ return array(
     'App\\Console\\Commands\\CatalogueHydrateCommand' => $baseDir . '/app/Console/Commands/CatalogueHydrateCommand.php',
     'App\\Console\\Commands\\CatalogueLogoAreasCommand' => $baseDir . '/app/Console/Commands/CatalogueLogoAreasCommand.php',
     'App\\Console\\Commands\\CatalogueReadTemplatesCommand' => $baseDir . '/app/Console/Commands/CatalogueReadTemplatesCommand.php',
+    'App\\Console\\Commands\\CatalogueRestoreHeroesCommand' => $baseDir . '/app/Console/Commands/CatalogueRestoreHeroesCommand.php',
     'App\\Console\\Commands\\CatalogueTagImagesCommand' => $baseDir . '/app/Console/Commands/CatalogueTagImagesCommand.php',
     'App\\Console\\Commands\\HolidaysImportCommand' => $baseDir . '/app/Console/Commands/HolidaysImportCommand.php',
     'App\\Console\\Commands\\PositionsReportCommand' => $baseDir . '/app/Console/Commands/PositionsReportCommand.php',
