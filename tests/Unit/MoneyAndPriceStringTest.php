@@ -68,4 +68,12 @@ class MoneyAndPriceStringTest extends TestCase
             DecorationCode::optionId(2568, 'Pad Print Per Colour/Position (Pen - Positions D & E - 45mm x 7mm | Pen - Positions D & E - 32mm x 8mm)'),
         );
     }
+
+    public function test_a_leading_zero_price_means_not_available_below_the_next_break(): void
+    {
+        $p = PriceString::parse('1:0,20:4.5,250:2.5,1000:2'); // Legend Life Supacolour: from 20
+        $this->assertSame(20, $p->minQty());
+        $this->assertSame(4.5, $p->priceAt(20));
+        $this->assertSame(['1:0'], array_map(fn ($b) => $b['qty'].':'.$b['price'], PriceString::parse('1:0')->breaks())); // a placeholder stays
+    }
 }

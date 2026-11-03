@@ -85,6 +85,10 @@ Result for the live range on 24 Oct 2026 (4,991 products, 37,026 options):
 
 ## Not yet implemented
 
-- Legend Life (57): Melbourne Merch prices for up to 19 units. No live products use this rule.
+- Legend Life (57): not used (Scott, 3 Nov 2026). Legend Life is priced from its own Promodata decoration and option prices and its own minimums, not Melbourne Merch's prices for up to 19 units.
 - Reading EXT price files (AS Colour, Trends, Melbourne Merch). Their options are imported from TOD for now.
 - Quote pricing (markup tiered by value at $300 and $1,000; sample markup and freight).
+
+## Leading zero breaks
+
+A zero price on the first break(s) followed by real prices means "not available below the next quantity" (Promodata, e.g. Legend Life decoration `1:0,20:4.5,…`: from 20). `PriceString` drops those breaks, so the minimum is the first priced break; a string that is only zeros (a placeholder) is kept.

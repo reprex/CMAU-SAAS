@@ -26,6 +26,11 @@ final class PriceString
             $list[] = ['qty' => $qty, 'price' => (float) $break['price']];
         }
         usort($list, fn ($a, $b) => $a['qty'] <=> $b['qty']);
+        // Promodata marks "not available below the next quantity" with a leading zero price
+        // (Legend Life decoration "1:0,20:4.5,…": from 20). A zero there is never a free price.
+        while (count($list) > 1 && $list[0]['price'] == 0.0 && collect($list)->contains(fn ($b) => $b['price'] > 0)) {
+            array_shift($list);
+        }
 
         return new self($list);
     }
