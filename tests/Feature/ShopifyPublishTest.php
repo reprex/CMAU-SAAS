@@ -109,6 +109,13 @@ class ShopifyPublishTest extends TestCase
         $this->artisan('shopify:publish --product=43446')->expectsOutputToContain('1 skip')->assertSuccessful();
         $this->assertCount($count, Http::recorded()); // unchanged: nothing sent
 
+        // Flagged as changed (e.g. after a TOD import) but the payload is the same: marked in sync, not picked again.
+        $p->refresh()->forceFill(['range_changed_at' => now()->addSecond()])->save();
+        $this->travel(2)->seconds();
+        $this->artisan('shopify:publish')->expectsOutputToContain('1 skip')->assertSuccessful();
+        $this->artisan('shopify:publish')->expectsOutputToContain('Nothing to publish')->assertSuccessful();
+        $this->assertCount($count, Http::recorded());
+
         ProductOverride::query()->create(['product_id' => $p->id, 'data' => ['title' => 'Staple Tee Black Label']]);
         $this->artisan('shopify:publish --product=43446')->expectsOutputToContain('1 update')->assertSuccessful();
         $sets = collect(Http::recorded())->map(fn ($r) => json_decode($r[0]->body(), true))->filter(fn ($b) => str_contains($b['query'], 'productSet'))->values();
