@@ -42,6 +42,22 @@ class PositionResolver
         'Pocket' => [62, 14],
     ];
 
+    /** Largest embroidery for a print area that doesn't size embroidery itself (mm). */
+    public const EMBROIDERY_MAX = [100, 100];
+
+    /** @param  array<string, mixed>  $a */
+    private static function capped(array $a, array $max): array
+    {
+        $w = (float) $a['width_mm'];
+        $h = (float) ($a['height_mm'] ?? $a['width_mm']);
+        if ($w <= $max[0] && $h <= $max[1]) {
+            return $a;
+        }
+        $f = min($max[0] / $w, $max[1] / $h);
+
+        return array_merge($a, ['width_mm' => (int) round($w * $f), 'height_mm' => (int) round($h * $f)]);
+    }
+
     public function __construct(private readonly PrintAreas $areas, private readonly BrandingTemplates $templates) {}
 
     /**
@@ -95,7 +111,9 @@ class PositionResolver
         foreach ($areas as $a) {
             if ($a['method'] === null && $known !== []) {
                 foreach ($known as $m) {
-                    $expanded[] = ['method' => $m] + $a;
+                    // A print area isn't an embroidery size: a stitched logo is priced by stitches and stays small
+                    // (a Legend Life polo showed embroidery "up to 420 × 300 mm"). Cap it unless the data sizes embroidery itself.
+                    $expanded[] = ['method' => $m] + ($m === 'embroidery' ? self::capped($a, self::EMBROIDERY_MAX) : $a);
                 }
             } else {
                 $expanded[] = $a;
