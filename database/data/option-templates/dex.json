@@ -8,18 +8,78 @@
     "ranges": "supplier-pages/dex-ranges.json",
     "default": "12days",
     "options": [
-      { "key": "sameday", "match": "^Same Day\\b", "name": "Same day", "days": 0, "note": "Dispatched the same day. A same-day dispatch charge applies, and we'll confirm it before production." },
-      { "key": "24hrs", "match": "^24 Hrs\\.?", "name": "24 hours", "days": 1 },
-      { "key": "3days", "match": "^3 Days\\b", "name": "3 working days", "days": 3 },
-      { "key": "7days", "match": "^7 Days\\b", "name": "7 working days", "days": 7 },
-      { "key": "12days", "match": "^12 Days\\b", "name": "12 working days", "days": 12 }
+      {
+        "key": "sameday",
+        "match": "^Same Day\\b",
+        "name": "Same day",
+        "days": 0,
+        "note": "Dispatched the same day. A same-day dispatch charge applies, and we'll confirm it before production."
+      },
+      {
+        "key": "24hrs",
+        "match": "^24 Hrs\\.?",
+        "name": "24 hours",
+        "days": 1
+      },
+      {
+        "key": "3days",
+        "match": "^3 Days\\b",
+        "name": "3 working days",
+        "days": 3
+      },
+      {
+        "key": "7days",
+        "match": "^7 Days\\b",
+        "name": "7 working days",
+        "days": 7
+      },
+      {
+        "key": "12days",
+        "match": "^12 Days\\b",
+        "name": "12 working days",
+        "days": 12
+      }
     ]
   },
   "groups": {
-    "personalise": { "label": "Personalise each item", "pick": "many", "order": 30, "note": "A different name on each item. Send the list with your artwork." }
+    "personalise": {
+      "label": "Personalise each item",
+      "pick": "many",
+      "order": 30,
+      "note": "A different name on each item. Send the list with your artwork."
+    },
+    "extras": {
+      "label": "Extras",
+      "pick": "many",
+      "order": 50
+    }
   },
   "lines": [
-    { "match": "^(7days|12days|3days|24hrs|sameday)?dataupload", "group": "personalise", "name": "Names from a list (data upload)" }
+    {
+      "match": "^(\\d+days|\\d+hrs|sameday)?dataupload",
+      "group": "personalise",
+      "name": "Names from a list (data upload)"
+    },
+    {
+      "match": "^(\\d+days|\\d+hrs|sameday)?laserengraveaddit[io]+nalindividualnames?",
+      "group": "personalise",
+      "name": "Engraved names, one per item"
+    },
+    {
+      "match": "^(\\d+days|\\d+hrs|sameday)?insertpen",
+      "group": "extras",
+      "name": "Pen inserted in its box"
+    },
+    {
+      "match": "^(\\d+days|\\d+hrs|sameday)?insert$",
+      "group": "extras",
+      "name": "Items inserted in the pack"
+    },
+    {
+      "match": "^(\\d+days|\\d+hrs|sameday)?digitalcrystallabelperset",
+      "group": "extras",
+      "name": "Crystal label on the set"
+    }
   ],
   "notes": {}
 }
