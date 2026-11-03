@@ -47,6 +47,31 @@ class ProductPayload
     ) {}
 
     /**
+     * A colour name Shopify accepts as an option value: no control or invisible characters, single
+     * spaces, at most 255 characters, not blank and not a repeat of another colour on the product
+     * (Shopify said "The name provided is not valid" for 74456 and 74457, 3 Nov 2026).
+     *
+     * @param  array<string, true>  $used  names already given (lower case), updated
+     */
+    public static function optionName(string $name, int $n, array &$used): string
+    {
+        $label = preg_replace('/\.png$/i', '', $name);
+        $label = preg_replace('/[\p{C}\x{00A0}\x{FEFF}]+/u', ' ', (string) $label) ?? $name;
+        $label = trim(preg_replace('/\s+/u', ' ', $label));
+        $label = mb_substr($label, 0, 200);
+        if ($label === '' || ! preg_match('/[\p{L}\p{N}]/u', $label)) {
+            $label = 'Colour '.$n;
+        }
+        $base = $label;
+        for ($i = 2; isset($used[mb_strtolower($label)]); $i++) {
+            $label = $base.' '.$i;
+        }
+        $used[mb_strtolower($label)] = true;
+
+        return $label;
+    }
+
+    /**
      * @param  array<string, string>  $mediaIds  image url => existing Shopify media gid (kept, not re-uploaded)
      * @return array{input: array<string, mixed>, files: list<string>}
      */
@@ -67,8 +92,9 @@ class ProductPayload
         $moq = (int) ($wp?->collection_moq ?: $wp?->actual_moq ?: 0);
         $variants = [];
         $pos = 0;
+        $used = [];
         foreach ($img['colours'] as $name => $c) {
-            $label = trim(preg_replace('/\.png$/i', '', $name));
+            $label = self::optionName((string) $name, $pos + 1, $used);
             $v = [
                 'optionValues' => [['optionName' => 'Color', 'name' => $label]],
                 'inventoryItem' => ['sku' => $product->id.'-'.Str::of($label)->lower()->replaceMatches('/[^a-z0-9]+/', '')->toString()],
