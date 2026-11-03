@@ -27,10 +27,15 @@ final class DecorationAreas
      * screen, pad, embroidery) mean the same thing there.
      */
     public const METHODS = [
+        // Supplier transfer brands (Legend Life: Supacolour, Supaflex, Supaetch, Supasub; SupaDTF is DTF).
+        'supacolour' => ['Full colour transfer', '/supacolou?r/i'],
+        'supaflex' => ['Flex transfer', '/supaflex/i'],
+        'supaetch' => ['Etched look transfer', '/supaetch/i'],
+        'supasub' => ['Sublimated transfer', '/supasub/i'],
         'embroidery' => ['Embroidery', '/embroider|stitch(?:ed|ing)\b/i'],
         'transfer_screen' => ['Screen printed transfer', '/(screen|plastisol|pastisol).{0,25}transfer|transfer.{0,25}(screen|plastisol|pastisol)|plastisol|pastisol/i'],
         'dtf_oversize' => ['Oversize DTF', '/(over\s*-?\s*size|oversized|jumbo).{0,20}(dtf|transfer)|(dtf|transfer).{0,20}(over\s*-?\s*size|oversized|jumbo)/i'],
-        'dtf' => ['DTF', '/\bdtf\b|direct[\s-]to[\s-]film|digital transfer|full colou?r transfer/i'],
+        'dtf' => ['DTF', '/\bdtf\b|supadtf|direct[\s-]to[\s-]film|digital transfer|full colou?r transfer/i'],
         'sublimation' => ['Sublimation', '/sublimat/i'],
         'screen' => ['Screen print', '/screen/i'],
         'pad' => ['Pad print', '/\bpad\b/i'],

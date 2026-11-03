@@ -4,6 +4,7 @@ namespace App\Catalogue;
 
 use App\Models\PriceOption;
 use App\Models\Product;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -183,6 +184,8 @@ class ProductOptions
             return [];
         }
         $out = [];
+        $lines = collect($lines);
+        $offered = $this->offered($file, $lines);
         foreach ($lines as $line) {
             if ((int) $line->type_code !== 10) {
                 continue;
@@ -190,10 +193,44 @@ class ProductOptions
             $rule = $this->ruleFor($file, preg_replace('/^\d+-/', '', (string) $line->option_id));
             if ($rule && ($rule['branding_line'] ?? false)) {
                 $out[] = (string) $line->option_id;
+            } elseif ($offered && $offered($line) === false) {
+                $out[] = (string) $line->option_id; // a method the supplier doesn't offer on this product (Legend Life)
             }
         }
 
         return $out;
+    }
+
+    /**
+     * The supplier's own list of methods per product (template "offered", e.g. Legend Life): a closure
+     * that says whether a line's method is offered, or null when the template has no list.
+     *
+     * @return (callable(PriceOption): ?bool)|null true offered, false not offered, null not a listed method or product
+     */
+    private function offered(array $file, Collection $lines): ?callable
+    {
+        $def = $file['offered'] ?? null;
+        if (! $def || $lines->isEmpty()) {
+            return null;
+        }
+        $lists = $this->ranges($def['file'] ?? null); // product code => [method names]
+        $codes = Product::query()->whereIn('id', $lines->pluck('product_id')->unique())->pluck('code', 'id');
+        $methods = $def['methods'] ?? [];
+
+        return function (PriceOption $line) use ($lists, $codes, $methods): ?bool {
+            $list = $lists[(string) ($codes[$line->product_id] ?? '')] ?? null;
+            if (! is_array($list)) {
+                return null;
+            }
+            $desc = mb_strtolower((string) $line->description);
+            foreach ($methods as $m) {
+                if (str_starts_with($desc, mb_strtolower($m))) {
+                    return in_array($m, $list, true);
+                }
+            }
+
+            return null;
+        };
     }
 
     /** Lines of a product no rule covers and that aren't branding: for the review report. @return list<string> */

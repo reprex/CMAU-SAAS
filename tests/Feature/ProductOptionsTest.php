@@ -140,6 +140,20 @@ class ProductOptionsTest extends TestCase
         $this->assertSame('7days', $o['groups'][0]['options'][0]['speed']); // data upload priced for 7 days shows with 7 days only
     }
 
+    public function test_legend_life_methods_it_does_not_offer_leave_branding(): void
+    {
+        $this->supplier(57, 'Legend Life');
+        $p = Product::create(['id' => 59500, 'supplier_id' => 57, 'name' => 'Polo', 'code' => 'ST9010', 'tier' => 'live']); // Legend Life: SupaDTF only
+        foreach ([['Undecorated', 12, '1:20'], ['Supacolour 60mm x 60mm', 10, '1:0,20:4.5,250:2.5'], ['SupaDTF 100mm x 100mm', 10, '1:0,20:3'], ['SupaDTF 210mm x 300mm', 10, '1:0,20:4']] as $i => [$desc, $type, $breaks]) {
+            PriceOption::create(['product_id' => 59500, 'option_id' => '59500-'.strtolower(preg_replace('/[^a-z0-9]/i', '', $desc)), 'code' => strtolower(preg_replace('/[^a-z0-9]/i', '', $desc)),
+                'kind' => 'PDADEC', 'type_code' => $type, 'description' => $desc, 'price_string' => $breaks, 'cost_string' => $breaks, 'setup_price' => $type === 10 ? 60 : 0, 'position' => $i]);
+        }
+        $this->assertSame(['59500-supacolour60mmx60mm'], app(ProductOptions::class)->claimed(57, $p->priceOptions));
+        $wp = app(WebPriceCalculator::class)->calculate($p->fresh());
+        $this->assertSame(['SupaDTF 100mm x 100mm', 'SupaDTF 210mm x 300mm'], array_column(json_decode($wp->decoration_json, true)['Decorations'], 'DecName'));
+        $this->assertSame(20, $wp->actual_moq); // decoration from 20 (the leading zero break)
+    }
+
     public function test_other_suppliers_get_nothing(): void
     {
         $this->supplier(88, 'AS Colour');
