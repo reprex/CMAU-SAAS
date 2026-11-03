@@ -166,7 +166,8 @@ class RangeCurationTest extends TestCase
         $this->get(route('admin.dectypes.index'))->assertOk()->assertSee($todo->code);
         // "On the range": only descriptions a live product uses.
         $this->assertSame(Product::TIER_LIVE, $product->refresh()->tier);
-        $this->get(route('admin.dectypes.index', ['show' => 'live']))->assertOk()->assertSee('To classify · on the range')->assertSee($todo->code);
+        $this->get(route('admin.dectypes.index', ['show' => 'live']))->assertOk()->assertSee('To classify · on the range')->assertSee($todo->code)
+            ->assertSee(route('range.show', $product))->assertSee('on the range')->assertSee('Other price lines on');
         $product->forceFill(['tier' => Product::TIER_ACTIVE])->save();
         $this->get(route('admin.dectypes.index', ['show' => 'live']))->assertOk()->assertDontSee('mono small muted">'.$todo->code, false);
         $product->forceFill(['tier' => Product::TIER_LIVE])->save();

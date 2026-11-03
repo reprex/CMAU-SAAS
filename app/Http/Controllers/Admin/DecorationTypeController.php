@@ -41,8 +41,25 @@ class DecorationTypeController extends Controller
             ->whereIn('product_id', Product::query()->where('tier', Product::TIER_LIVE)->select('id'))
             ->selectRaw('code, count(distinct product_id) as n')->groupBy('code')->pluck('n', 'code');
 
+        // Context for deciding: up to three products using each description (on the range first),
+        // with that line's prices and the first product's other price lines.
+        $examples = [];
+        $siblings = [];
+        foreach ($codes as $c) {
+            $rows = PriceOption::query()->join('products as p', 'p.id', '=', 'price_options.product_id')
+                ->where('price_options.code', $c->code)
+                ->orderByRaw("case when p.tier = 'live' and p.discontinued = 0 then 0 when p.tier = 'live' then 1 else 2 end")
+                ->orderBy('p.id')->limit(3)
+                ->get(['price_options.product_id', 'price_options.kind', 'price_options.price_string', 'price_options.setup_price', 'p.name', 'p.code as product_code', 'p.tier', 'p.promodata_type_name']);
+            $examples[$c->code] = $rows;
+            if ($first = $rows->first()) {
+                $siblings[$c->code] = PriceOption::query()->where('product_id', $first->product_id)->where('code', '!=', $c->code)
+                    ->orderBy('position')->limit(8)->get(['description', 'type_code', 'price_string']);
+            }
+        }
+
         return view('admin.decoration-types.index', [
-            'codes' => $codes, 'show' => $show, 'q' => $q, 'usage' => $usage,
+            'codes' => $codes, 'show' => $show, 'q' => $q, 'usage' => $usage, 'examples' => $examples, 'siblings' => $siblings,
             'todo' => DecTypeCode::query()->whereNull('type_code')->count(),
             'todoLive' => DecTypeCode::query()->whereNull('type_code')->joinSub($live(), 'lu', 'lu.code', '=', 'dec_type_codes.code')->count(),
         ]);
