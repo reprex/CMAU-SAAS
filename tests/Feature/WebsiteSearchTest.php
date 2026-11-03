@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\SearchLog;
 use App\Search\BriefParser;
 use App\Search\PageToken;
+use App\Search\Synonyms;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\QuoteFixtures;
@@ -51,8 +52,9 @@ class WebsiteSearchTest extends TestCase
             'challenges.cloudflare.com/*' => Http::response(['success' => $pass, 'hostname' => 'crowdmerch.com.au']),
             'api.anthropic.com/*' => Http::response([
                 'content' => [['type' => 'text', 'text' => json_encode([
-                    'understood' => ['qty' => 100, 'budget_each' => null, 'eco' => true, 'products' => ['tote bags']],
-                    'picks' => [['id' => 103, 'reason' => 'Natural jute suits an eco brief.'], ['id' => 999, 'reason' => 'Made up'], ['id' => 104, 'reason' => '<b>Soft</b> cotton']],
+                    'heading' => 'Conference picks',
+                    'understood' => ['qty' => 100, 'budget_each' => null, 'eco' => true, 'occasion' => 'conference'],
+                    'groups' => [['tag' => 'totebags', 'why' => 'Reusable bags guests keep using.'], ['tag' => 'madeup', 'why' => 'Not on the menu'], ['tag' => 'caps', 'why' => '<b>Easy</b> to wear on the day']],
                 ])]],
                 'usage' => ['input_tokens' => 900, 'output_tokens' => 120],
             ]),
@@ -122,8 +124,11 @@ class WebsiteSearchTest extends TestCase
     {
         $this->withTurnstile();
         $res = $this->search(['q' => 'eco tote bags for 100 conference guests', 'cf_turnstile' => 'ok'])->assertOk()->assertJsonPath('mode', 'ai');
-        $this->assertSame([103, 104], array_column($res->json('results'), 'id'));        // made-up id 999 dropped
-        $this->assertSame('Soft cotton', $res->json('results.1.reason'));                // markup stripped
+        // Tote bags first, then caps, taken in turn; the made-up subcategory is dropped.
+        $this->assertSame([103, 101, 104, 102], array_column($res->json('results'), 'id'));
+        $this->assertSame('Reusable bags guests keep using.', $res->json('results.0.reason'));
+        $this->assertSame('Easy to wear on the day', $res->json('results.1.reason'));    // markup stripped
+        $this->assertSame('Conference picks', $res->json('understood.heading'));
         $this->assertNotNull($res->json('results.0.price'));                              // price from SaaS pricing
         $this->assertSame(900, (int) SearchLog::query()->where('mode', 'ai')->value('tokens_in'));
 
@@ -199,5 +204,39 @@ class WebsiteSearchTest extends TestCase
         $this->actingAs($this->staff('admin'))->get('/admin/search-log')->assertOk()
             ->assertSee('navy caps')->assertSee('Filled the hidden field (bot)')->assertSee('Keyword search was enough');
         $this->actingAs($this->staff('sales'))->get('/admin/search-log')->assertForbidden();
+    }
+
+    public function test_synonyms_name_exact_subcategories(): void
+    {
+        $syn = app(Synonyms::class);
+        $this->assertSame(['drinkbottles'], $syn->match('water bottles for the gym')['tags']);
+        $this->assertSame(['reusablecoffeecups'], $syn->match('Keep cups')['tags']);
+        $this->assertSame(['stubbyholders'], $syn->match('koozies')['tags']);
+        $this->assertSame(['travelmugs'], $syn->match('travel mug')['tags'], 'the longer phrase wins');
+        $this->assertContains('metalpens', $syn->match('pens')['tags'], 'a broad word covers the group');
+        $this->assertContains('coolerbags', $syn->match('bags')['tags'], 'a category word covers its subcategories');
+        $this->assertSame([], $syn->match('gifts for clients')['tags']);
+    }
+
+    public function test_price_per_item_in_many_forms(): void
+    {
+        $p = app(BriefParser::class);
+        $this->assertEquals([20.0, null, true], array_slice(BriefParser::budget('gifts under $20 each'), 0, 3));
+        $this->assertEquals([15.0, null, false], array_slice(BriefParser::budget('around 15 dollars'), 0, 3));
+        $this->assertEquals([20.0, 10.0, true], array_slice(BriefParser::budget('$10-$20 per item'), 0, 3));
+        $this->assertEquals([30.0, null, true], array_slice(BriefParser::budget('under 30 for 50 staff'), 0, 3));
+        $b = $p->parse('gifts under 30 for 50 staff');
+        $this->assertSame(50, $b['qty'], 'the price is not read as the quantity');
+        $this->assertEquals(30.0, $b['budget']);
+        $this->assertNull(BriefParser::budget('300 tote bags')[0]);
+    }
+
+    public function test_without_claude_an_occasion_gives_a_spread_of_subcategories(): void
+    {
+        Http::fake();
+        $res = $this->search(['q' => 'merch stand essentials for our band'])->assertOk()->assertJsonPath('mode', 'keyword');
+        $groups = array_values(array_unique(array_column($res->json('results'), 'group')));
+        $this->assertSame(['Caps', 'Tote Bags'], $groups, 'caps and tote bags both suit a merch stand');
+        $this->assertSame('Merch stand essentials', $res->json('understood.heading'));
     }
 }

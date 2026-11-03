@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\SearchLog;
 use App\Search\BriefParser;
-use App\Search\ClaudeCurator;
+use App\Search\ClaudePlanner;
 use App\Search\KeywordSearch;
+use App\Search\Occasions;
 use App\Search\PageToken;
 use App\Search\Turnstile;
+use App\Shopify\RangeCollections;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -41,7 +43,7 @@ class WebsiteSearchController extends Controller
         return $this->reply($request, ['token' => $tokens->issue(), 'turnstile_site_key' => config('search.turnstile.site_key')]);
     }
 
-    public function search(Request $request, PageToken $tokens, Turnstile $turnstile, BriefParser $parser, KeywordSearch $keyword, ClaudeCurator $claude): JsonResponse
+    public function search(Request $request, PageToken $tokens, Turnstile $turnstile, BriefParser $parser, KeywordSearch $keyword, ClaudePlanner $claude): JsonResponse
     {
         $started = microtime(true);
         if ($blocked = $this->origin($request)) {
@@ -88,7 +90,8 @@ class WebsiteSearchController extends Controller
         $hits = $keyword->search($brief);
         $answer = fn (string $mode, $rows, array $extra = []) => $this->reply($request, [
             'mode' => $mode,
-            'understood' => ['qty' => $brief['qty'], 'budget' => $brief['budget'], 'under' => $brief['under'], 'eco' => $brief['eco'], 'colours' => $brief['colours'], 'types' => $brief['types']] + ($extra['understood'] ?? []),
+            'understood' => array_merge(['qty' => $brief['qty'], 'budget' => $brief['budget'], 'under' => $brief['under'], 'eco' => $brief['eco'], 'colours' => $brief['colours'], 'types' => $brief['types'],
+                'heading' => Occasions::heading($brief['occasions'])], $extra['understood'] ?? []),
             'results' => array_values(is_array($rows) ? $rows : $rows->all()),
         ]);
 
@@ -124,16 +127,35 @@ class WebsiteSearchController extends Controller
             return $answer('ai', $cached['results'], ['understood' => $cached['understood']]);
         }
 
-        // 5. Claude picks from a shortlist the SaaS built and priced.
+        // 5. Claude predicts which subcategories suit the request; the SaaS shows their top-ranked products, priced.
         RateLimiter::hit($aiHour, 3600);
         Cache::add($dayKey, 0, now()->endOfDay());
         Cache::increment($dayKey);
         try {
-            $shortlist = $keyword->candidates($brief);
-            $ai = $claude->curate($q, $shortlist);
-            $byId = $shortlist->keyBy('id');
-            $results = array_map(fn ($p) => $byId[$p['id']] + ['reason' => $p['reason']], $ai['picks']);
-            $understood = array_intersect_key($ai['understood'], array_flip(['qty', 'budget_each', 'needed_by', 'eco', 'products']));
+            $ai = $claude->plan($q, $brief['tags']);
+            if ($ai['groups'] === []) {
+                $log('keyword', 'ai_no_groups', $hits->all(), $ai);
+
+                return $answer('keyword', $hits);
+            }
+            $u = $ai['understood'];
+            $plannedBrief = $brief;
+            $plannedBrief['budget'] ??= is_numeric($u['budget_each'] ?? null) && $u['budget_each'] > 0 ? (float) $u['budget_each'] : null;
+            $plannedBrief['qty'] ??= is_numeric($u['qty'] ?? null) && $u['qty'] > 0 ? (int) $u['qty'] : null;
+            $tags = array_column($ai['groups'], 'tag');
+            $why = array_column($ai['groups'], 'why', 'tag');
+            $perType = count($tags) === 1 ? 24 : (count($tags) <= 4 ? 5 : 3);
+            $collections = app(RangeCollections::class);
+            $results = $keyword->forTags($tags, $plannedBrief, 24, $perType)
+                ->map(fn ($r) => $r + ['reason' => $why[$collections->tagFor($r['type']) ?? ''] ?? null])->values()->all();
+            if ($results === []) {
+                $log('keyword', 'ai_nothing_in_budget', $hits->all(), $ai);
+
+                return $answer('keyword', $hits);
+            }
+            $understood = array_filter(['qty' => $plannedBrief['qty'], 'budget_each' => $plannedBrief['budget'], 'needed_by' => $u['needed_by'] ?? null,
+                'eco' => (bool) ($u['eco'] ?? $brief['eco']), 'occasion' => $u['occasion'] ?? null, 'heading' => $ai['heading'],
+                'products' => array_values(array_unique(array_filter(array_map(fn ($r) => $r['group'] ?? null, $results))))], fn ($v) => $v !== null);
             Cache::put($cacheKey, ['results' => $results, 'understood' => $understood], now()->addMinutes((int) config('search.anthropic.cache_minutes')));
             $log('ai', null, $results, $ai);
 
