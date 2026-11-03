@@ -129,9 +129,9 @@ class ProductPayload
             ($positions = $this->positions->forShopify($product)) ? $this->mf('custom', 'brandingpositions', 'json', json_encode($positions)) : null,
             ($tpl = $this->templates->templateUrl($product)) ? $this->mf('custom', 'brandingtemplate', 'url', $tpl) : null,
             // The size chart's chest width for the mockup, e.g. "L:56" (docs/logo-preview.md); none means the theme uses a typical width.
-            ($garment = GarmentSizes::metafield($product)) ? $this->mf('custom', 'mockupgarment', 'single_line_text_field', $garment) : null,
+            ($garment = $this->sizing(fn () => GarmentSizes::metafield($product))) ? $this->mf('custom', 'mockupgarment', 'single_line_text_field', $garment) : null,
             // Fit, measurements and the supplier's size chart for the product page's Size guide.
-            ($guide = SizeGuide::forProduct($product)) ? $this->mf('custom', 'sizeguide', 'json', json_encode($guide, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : null,
+            ($guide = $this->sizing(fn () => SizeGuide::forProduct($product))) ? $this->mf('custom', 'sizeguide', 'json', json_encode($guide, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : null,
         ]));
 
         $input = [
@@ -242,7 +242,7 @@ class ProductPayload
             $html .= '<details><summary>Additional options available for custom quote</summary>'.nl2br(e($product->webPrice->accessory_list), false).'</details>';
         }
         // Fit and measurements show in the Size guide instead (custom.sizeguide).
-        $hasGuide = SizeGuide::forProduct($product) !== null;
+        $hasGuide = $this->sizing(fn () => SizeGuide::forProduct($product)) !== null;
         $specs = $hasGuide ? $details->reject(fn ($x) => SizeGuide::usesDetail((string) ($x['name'] ?? ''), (string) $x['detail'])) : $details;
         if ($specs->isNotEmpty()) {
             $html .= '<details><summary>Product Specifications</summary><ul>'
@@ -250,6 +250,18 @@ class ProductPayload
         }
 
         return $html;
+    }
+
+    /** Sizing is a nice-to-have: a product whose size data can't be read still publishes (logged, without it). */
+    private function sizing(callable $read): mixed
+    {
+        try {
+            return $read();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /** @return array{namespace: string, key: string, type: string, value: string} */

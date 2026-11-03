@@ -39,7 +39,7 @@ class SizeGuide
 
         $lines = [];
         foreach ((array) ($d?->details ?? []) as $x) {
-            if (is_array($x) && filled($x['detail'] ?? null)) {
+            if (is_array($x) && is_scalar($x['detail'] ?? null) && filled($x['detail']) && is_scalar($x['name'] ?? '')) {
                 $lines[] = [(string) ($x['name'] ?? ''), (string) $x['detail']];
             }
         }
@@ -51,8 +51,8 @@ class SizeGuide
                 break;
             }
         }
-        foreach ((array) ($d?->promodata_attributes ?? []) as $a) {
-            if (! $guide['fit'] && preg_match('/^\s*fit\s*:\s*(.+)$/i', (string) $a, $m)) {
+        foreach (self::flatten((array) ($d?->promodata_attributes ?? [])) as $a) {
+            if (! $guide['fit'] && preg_match('/^\s*fit\s*:\s*(.+)$/i', $a, $m)) {
                 $guide['fit'] = self::fitWords($m[1]);
             }
         }
@@ -107,6 +107,26 @@ class SizeGuide
         }
 
         return self::table($text) !== null;
+    }
+
+    /**
+     * Promodata attributes come as "Fit: Slim" strings or as groups ({"Fit": ["Slim"]}); one string each.
+     *
+     * @return list<string>
+     */
+    private static function flatten(array $items, string $prefix = ''): array
+    {
+        $out = [];
+        foreach ($items as $k => $v) {
+            $key = is_string($k) ? ($prefix !== '' ? $prefix.' ' : '').$k : $prefix;
+            if (is_array($v)) {
+                array_push($out, ...self::flatten($v, $key));
+            } elseif (is_scalar($v)) {
+                $out[] = $key !== '' ? $key.': '.$v : (string) $v;
+            }
+        }
+
+        return $out;
     }
 
     private static function fitWords(string $s): string

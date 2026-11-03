@@ -32,7 +32,7 @@ class ShopifyPublishCommand extends Command
         $ids = array_map('intval', (array) $this->option('product'));
         $q = Product::query()->with(['supplier', 'detail', 'webPrice', 'override', 'images', 'colours'])
             ->when($ids !== [], fn ($w) => $w->whereIn('id', $ids), fn ($w) => $w->where(fn ($w) => $w
-                ->where(fn ($w) => $w->where('tier', Product::TIER_LIVE)->where(fn ($w) => $w->whereNull('published_at')->orWhereColumn('range_changed_at', '>', 'published_at')))
+                ->where(fn ($w) => $w->where('tier', Product::TIER_LIVE)->where(fn ($w) => $w->where(fn ($w) => $w->whereNull('published_at')->whereNull('shopify_product_id')->where('discontinued', false))->orWhereColumn('range_changed_at', '>', 'published_at')))
                 ->orWhere(fn ($w) => $w->whereNotNull('shopify_product_id')->where(fn ($w) => $w->where('tier', '!=', Product::TIER_LIVE)->orWhere('discontinued', true))->whereColumn('updated_at', '>', 'published_at'))))
             ->when($ids === [] && (int) $this->option('retry-after') > 0, fn ($w) => $w->whereNotIn('id', DB::table('shopify_publish_log')
                 ->where('ok', false)->where('created_at', '>', now()->subMinutes((int) $this->option('retry-after')))->select('product_id')))
