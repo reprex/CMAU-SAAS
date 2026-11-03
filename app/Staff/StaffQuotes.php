@@ -45,6 +45,7 @@ class StaffQuotes
             'product_id' => (int) $cart['product_id'],
             'lines' => $cart['lines'],
             'positions' => array_map(fn ($p) => $p + ['has_logo' => true], $cart['positions']),
+            'options' => array_map(fn ($o) => ['id' => (string) $o['id'], 'n' => (int) ($o['n'] ?? 1)], $cart['options'] ?? []),
             'delivery' => ['country' => 'AU', 'postcode' => $client['address']['postcode'] ?? null],
         ]);
         if (! ($result['found'] ?? false)) {
@@ -135,6 +136,29 @@ class StaffQuotes
                     'decoration_setup_price' => $pos['setup'],
                 ]);
                 $item->decoration_product_id = $products[$result['product']['id']] ? (ProductWebPrice::find($result['product']['id'])?->decoration_product_id) : null;
+                $this->items->fillCosts($item);
+                $item->save();
+                $added++;
+            }
+
+            // Product options with a charge (clips, packaging, samples…): a line each, for the whole run.
+            foreach ($result['options'] ?? [] as $opt) {
+                if ($opt['unit'] <= 0 && $opt['once'] <= 0) {
+                    continue;
+                }
+                $item = new QuoteItem([
+                    'quote_id' => $quote->id,
+                    'position' => $quote->nextPosition(),
+                    'product_id' => $result['product']['id'],
+                    'supplier_id' => $products[$result['product']['id']]->supplier_id ?? null,
+                    'supplier_name' => $products[$result['product']['id']]->supplier?->name ?? null,
+                    'product_code' => $products[$result['product']['id']]->code ?? null,
+                    'name' => $result['product']['name'].': '.$opt['name'].($opt['n'] > 1 ? ' × '.$opt['n'] : ''),
+                    'product_option_id' => $opt['id'],
+                    'quantity' => $result['units'],
+                    'product_unit_price' => $opt['unit'],
+                    'product_setup_price' => $opt['once'],
+                ]);
                 $this->items->fillCosts($item);
                 $item->save();
                 $added++;

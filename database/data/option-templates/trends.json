@@ -1,0 +1,421 @@
+{
+  "key": "trends",
+  "supplier_id": 3,
+  "source": "Trends distributor product pages (trends.com.au, Pricing tab, Additional Costs down to Shipping and Handling), all 2,443 Trends products on the range read 3 Nov 2026. Prices stay Promodata's (SaaS pricing); this file only says how the lines combine.",
+  "groups": {
+    "clip": {
+      "label": "Clip",
+      "pick": "one",
+      "order": 10,
+      "note": "Standard: single metal clip and safety clip."
+    },
+    "attach": {
+      "label": "Add attachments",
+      "pick": "many",
+      "order": 11
+    },
+    "stitches": {
+      "label": "Embroidery extras",
+      "pick": "many",
+      "order": 20,
+      "with_method": [
+        "embroidery"
+      ],
+      "base_stitches": 10000,
+      "note": "Embroidery is priced up to 10,000 stitches; bigger designs add blocks of 5,000."
+    },
+    "personalise": {
+      "label": "Personalise each item",
+      "pick": "count",
+      "order": 30,
+      "max": 3,
+      "unit_label": "line",
+      "note": "A different name or line of text on each item. Send the list with your artwork.",
+      "with_method": [
+        "laser",
+        "digital",
+        "label",
+        "doming",
+        "pad",
+        "screen",
+        "dtf",
+        "sublimation"
+      ]
+    },
+    "packaging": {
+      "label": "Packaging",
+      "pick": "one",
+      "optional": true,
+      "order": 40
+    },
+    "data": {
+      "label": "Data upload",
+      "pick": "many",
+      "order": 45,
+      "note": "Your files loaded onto every drive."
+    },
+    "extras": {
+      "label": "Extras",
+      "pick": "many",
+      "order": 50
+    },
+    "base": {
+      "label": "Base",
+      "pick": "one",
+      "optional": true,
+      "order": 51
+    },
+    "service": {
+      "label": "Before production",
+      "pick": "many",
+      "order": 60
+    }
+  },
+  "lines": [
+    {
+      "match": "^metalclip$",
+      "group": "clip",
+      "name": "Single metal clip",
+      "included": true
+    },
+    {
+      "match": "^doubleclip",
+      "group": "clip",
+      "name": "Double clip"
+    },
+    {
+      "match": "^jhookclip",
+      "group": "clip",
+      "name": "J hook clip"
+    },
+    {
+      "match": "^loopclip",
+      "group": "clip",
+      "name": "Loop clip"
+    },
+    {
+      "match": "^ovalclip",
+      "group": "clip",
+      "name": "Oval clip"
+    },
+    {
+      "match": "^springclip",
+      "group": "clip",
+      "name": "Spring clip"
+    },
+    {
+      "match": "^safetyclip",
+      "group": "attach",
+      "name": "Safety clip",
+      "included": true,
+      "fixed": true
+    },
+    {
+      "match": "^loopattachment",
+      "group": "attach",
+      "name": "Phone loop"
+    },
+    {
+      "match": "^snaplockjoiner",
+      "group": "attach",
+      "name": "Snap lock joiner"
+    },
+    {
+      "match": "^idholder",
+      "group": "attach",
+      "name": "ID holder",
+      "excludes": [
+        "duetidholder"
+      ]
+    },
+    {
+      "match": "^duetidholder",
+      "group": "attach",
+      "name": "Duet ID holder",
+      "excludes": [
+        "idholder"
+      ]
+    },
+    {
+      "match": "^shoelaceattachment",
+      "group": "attach",
+      "name": "Shoelace attachment"
+    },
+    {
+      "match": "^embroideryperadditional\\d+stitches",
+      "group": "stitches",
+      "name": "Extra 5,000 stitches",
+      "count": {
+        "max": 4,
+        "label": "× 5,000 stitches"
+      }
+    },
+    {
+      "match": "^metallicthread",
+      "group": "stitches",
+      "name": "Metallic thread",
+      "per_stitches": 1000
+    },
+    {
+      "match": "^threadchangeoutfee",
+      "group": "stitches",
+      "name": "Thread colour change",
+      "per": "order"
+    },
+    {
+      "match": "^classicthreadsurcharge",
+      "group": "stitches",
+      "name": "Classic thread colours",
+      "per": "order"
+    },
+    {
+      "match": "^personalisationsurcharge",
+      "group": "personalise",
+      "name": "Personalisation"
+    },
+    {
+      "match": "^giftboxsleeve|^packagingsleeve",
+      "group": "packaging",
+      "name": "Printed gift box sleeve"
+    },
+    {
+      "match": "^magneticclosuregiftbox",
+      "group": "packaging",
+      "name": "Magnetic gift box"
+    },
+    {
+      "match": "^monacokraftgiftbox",
+      "group": "packaging",
+      "name": "Kraft gift box"
+    },
+    {
+      "match": "^monacogiftbox",
+      "group": "packaging",
+      "name": "Gift box (black)"
+    },
+    {
+      "match": "^pierrecardingiftbox",
+      "group": "packaging",
+      "name": "Pierre Cardin gift box"
+    },
+    {
+      "match": "^pierrecardinsleeve",
+      "group": "packaging",
+      "name": "Pierre Cardin sleeve"
+    },
+    {
+      "match": "^wedgegiftbox",
+      "group": "packaging",
+      "name": "Wedge gift box"
+    },
+    {
+      "match": "^giftbox",
+      "group": "packaging",
+      "name": "Gift box"
+    },
+    {
+      "match": "^gifttubelarge",
+      "group": "packaging",
+      "name": "Gift tube (large)"
+    },
+    {
+      "match": "^gifttubesmall",
+      "group": "packaging",
+      "name": "Gift tube (small)"
+    },
+    {
+      "match": "^gifttube",
+      "group": "packaging",
+      "name": "Gift tube"
+    },
+    {
+      "match": "^kraftpaperpensleeve",
+      "group": "packaging",
+      "name": "Kraft paper sleeve"
+    },
+    {
+      "match": "^velvetpensleeve",
+      "group": "packaging",
+      "name": "Velvet sleeve"
+    },
+    {
+      "match": "^presentationsleeve",
+      "group": "packaging",
+      "name": "Presentation sleeve"
+    },
+    {
+      "match": "^(rockford|cyrus).*(box|case)",
+      "group": "packaging",
+      "name": "Presentation box"
+    },
+    {
+      "match": "^helixminicase",
+      "group": "packaging",
+      "name": "Mini case"
+    },
+    {
+      "match": "^montegocase",
+      "group": "packaging",
+      "name": "Hard case"
+    },
+    {
+      "match": "^microfibrepouch",
+      "group": "packaging",
+      "name": "Microfibre pouch"
+    },
+    {
+      "match": "^carrycase",
+      "group": "packaging",
+      "name": "Carry case"
+    },
+    {
+      "match": "^individualsealedpolybag|^individualpolybag",
+      "group": "packaging",
+      "name": "Individual polybag"
+    },
+    {
+      "match": "^foldedinpolybag",
+      "group": "packaging",
+      "name": "Folded in a polybag"
+    },
+    {
+      "match": "^fullcolourheadercard",
+      "group": "packaging",
+      "name": "Printed header card"
+    },
+    {
+      "match": "^datauploadupto",
+      "group": "data",
+      "name": "Load your files (up to 200MB)"
+    },
+    {
+      "match": "^additionaldataupload",
+      "group": "data",
+      "name": "Each extra 200MB",
+      "count": {
+        "max": 20,
+        "label": "× 200MB"
+      },
+      "requires": [
+        "datauploadupto"
+      ]
+    },
+    {
+      "match": "^kittingfee",
+      "group": "extras",
+      "name": "Packed as a kit"
+    },
+    {
+      "match": "^additionalcolourcombinations",
+      "group": "extras",
+      "name": "Extra colour combinations",
+      "per": "order",
+      "count": {
+        "max": 10,
+        "label": "combinations"
+      }
+    },
+    {
+      "match": "^changeout.*pullers?$",
+      "group": "extras",
+      "name": "Coloured zip pullers"
+    },
+    {
+      "match": "^gluedandtapedseam",
+      "group": "extras",
+      "name": "Glued and taped seam"
+    },
+    {
+      "match": "^individualnumbering|^numbering$",
+      "group": "extras",
+      "name": "Numbered"
+    },
+    {
+      "match": "^tripleconnectorcable",
+      "group": "extras",
+      "name": "Triple connector cable"
+    },
+    {
+      "match": "^addfoureyelets",
+      "group": "extras",
+      "name": "Four eyelets"
+    },
+    {
+      "match": "^phonelockermagnet",
+      "group": "extras",
+      "name": "PhoneLocker magnet"
+    },
+    {
+      "match": "^moleskineclassictoolbelt",
+      "group": "extras",
+      "name": "Moleskine toolbelt"
+    },
+    {
+      "match": "^waterweights",
+      "group": "extras",
+      "name": "Water weights"
+    },
+    {
+      "match": "wallsinglesided",
+      "group": "extras",
+      "name": "Wall, single sided",
+      "count": {
+        "max": 4,
+        "label": "walls"
+      }
+    },
+    {
+      "match": "walldoublesided",
+      "group": "extras",
+      "name": "Wall, double sided",
+      "count": {
+        "max": 4,
+        "label": "walls"
+      }
+    },
+    {
+      "match": "^wallmountbase",
+      "group": "base",
+      "name": "Wall mount"
+    },
+    {
+      "match": "^waterbag",
+      "group": "base",
+      "name": "Water bag"
+    },
+    {
+      "match": "^crossbase",
+      "group": "base",
+      "name": "Cross base"
+    },
+    {
+      "match": "^floormount",
+      "group": "base",
+      "name": "Floor mount"
+    },
+    {
+      "match": "^spikebase",
+      "group": "base",
+      "name": "Spike base"
+    },
+    {
+      "match": "^squarebase",
+      "group": "base",
+      "name": "Square base"
+    },
+    {
+      "match": "^wheelbase",
+      "group": "base",
+      "name": "Wheel base"
+    },
+    {
+      "match": "^(branded|unbranded)?preproductionsample",
+      "group": "service",
+      "name": "Pre-production sample",
+      "per": "artwork"
+    }
+  ],
+  "notes": {
+    "lanyard": "Special PMS lanyard colours from 500."
+  }
+}

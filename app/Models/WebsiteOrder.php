@@ -41,6 +41,7 @@ class WebsiteOrder extends Model
             'freight_breakdown' => 'array',
             'eta_breakdown' => 'array',
             'alerts' => 'array',
+            'options' => 'array',
             'goods' => 'decimal:2',
             'setup' => 'decimal:2',
             'freight' => 'decimal:2',

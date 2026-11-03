@@ -8,6 +8,7 @@ use App\Catalogue\ImageTagger;
 use App\Catalogue\OurCodes;
 use App\Catalogue\PositionResolver;
 use App\Catalogue\PrintAreas;
+use App\Catalogue\ProductOptions;
 use App\Catalogue\SizeGuide;
 use App\Catalogue\SupplierCodes;
 use App\Models\Product;
@@ -77,7 +78,7 @@ class ProductPayload
      */
     public function build(Product $product, array $mediaIds = []): array
     {
-        $product->loadMissing(['supplier', 'detail', 'webPrice', 'override', 'images', 'colours']);
+        $product->loadMissing(['supplier', 'detail', 'webPrice', 'override', 'images', 'colours', 'priceOptions']);
         $wp = $product->webPrice;
         $archived = $product->discontinued || $product->tier !== Product::TIER_LIVE;
         $img = $this->images->forShopify($product);
@@ -158,6 +159,8 @@ class ProductPayload
             ($garment = $this->sizing(fn () => GarmentSizes::metafield($product))) ? $this->mf('custom', 'mockupgarment', 'single_line_text_field', $garment) : null,
             // Fit, measurements and the supplier's size chart for the product page's Size guide.
             ($guide = $this->sizing(fn () => SizeGuide::forProduct($product))) ? $this->mf('custom', 'sizeguide', 'json', json_encode($guide, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : null,
+            // Options that aren't branding (clips, packaging, embroidery extras, personalisation, samples): docs/product-options.md.
+            ($opts = $this->sizing(fn () => app(ProductOptions::class)->forProduct($product))) ? $this->mf('custom', 'options', 'json', json_encode($opts, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : null,
         ]));
 
         $input = [

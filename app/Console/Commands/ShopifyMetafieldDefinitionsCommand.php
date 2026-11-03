@@ -28,6 +28,7 @@ class ShopifyMetafieldDefinitionsCommand extends Command
         ['PRODUCT', 'custom', 'brandingtemplate', 'url', 'Branding template', 'The supplier\'s branding template (PDF or drawing)'],
         ['PRODUCT', 'custom', 'mockupgarment', 'single_line_text_field', 'Mockup garment size', 'Size chart chest width for the mockup, size:cm laid flat, e.g. L:56'],
         ['PRODUCT', 'custom', 'sizeguide', 'json', 'Size guide', 'Fit, measurements per size (cm) and the supplier size chart picture or link'],
+        ['PRODUCT', 'custom', 'options', 'json', 'Product options', 'Options that are not branding: clips, packaging, embroidery extras, personalisation, samples (docs/product-options.md)'],
         ['PRODUCTVARIANT', 'custom', 'altimages', 'list.url', 'Other colour images', 'More pictures of this colour'],
         ['PRODUCTVARIANT', 'custom', 'colourfamily', 'list.single_line_text_field', 'Colour family', 'APPA colour families, for the colour filter'],
     ];

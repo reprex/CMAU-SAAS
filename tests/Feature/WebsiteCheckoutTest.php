@@ -11,8 +11,10 @@ use App\Freight\EstimateFreightDriver;
 use App\Freight\PackData;
 use App\Mail\WebsiteInvoiceMail;
 use App\Models\PendingEmail;
+use App\Models\PriceOption;
 use App\Models\Product;
 use App\Models\ProductDetail;
+use App\Models\Supplier;
 use App\Models\WebsiteOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,6 +63,32 @@ class WebsiteCheckoutTest extends TestCase
         $this->assertArrayNotHasKey('supplier_sku', $r->json('lines.0'));
         $this->assertArrayNotHasKey('supplier', $r->json('product'));
         $this->assertSame([['product_id' => self::WOMENS, 'code' => '7-4001', 'name' => 'AS Colour Womens Maple Tee', 'label' => 'Womens fit']], $r->json('related_styles'));
+    }
+
+    public function test_product_options_are_priced_by_the_saas_and_kept_with_the_order(): void
+    {
+        // The main product as a Trends product with two options (docs/product-options.md).
+        Supplier::query()->firstOrCreate(['id' => 3], ['name' => 'Trends']);
+        $main = Product::query()->find(self::MENS);
+        $main->forceFill(['supplier_id' => 3])->save();
+        foreach ([['Gift Box', '1:2.00,100:1.50', 0], ['Pre-Production Sample Per Artwork', null, 60]] as $i => [$d, $b, $setup]) {
+            PriceOption::create(['product_id' => self::MENS, 'option_id' => self::MENS.'-'.strtolower(preg_replace('/[^a-z0-9]/i', '', $d)), 'code' => strtolower(preg_replace('/[^a-z0-9]/i', '', $d)),
+                'kind' => 'PDADEC', 'type_code' => 11, 'description' => $d, 'price_string' => $b, 'setup_price' => $setup, 'position' => 50 + $i]);
+        }
+        $mens = ['lines' => [['product_id' => self::MENS, 'colour' => 'Black', 'size' => 'M', 'qty' => 60], ['product_id' => self::MENS, 'colour' => 'Black', 'size' => 'L', 'qty' => 50]]];
+        $cart = $this->cart($mens + ['options' => [['id' => self::MENS.'-giftbox', 'n' => 1], ['id' => self::MENS.'-preproductionsampleperartwork', 'n' => 1]]]);
+        $plain = $this->price($this->cart($mens))->assertOk();
+        $r = $this->price($cart)->assertOk()->assertJson(['can_order' => true]);
+
+        // 110 units: gift box 1.50 each on every unit, the sample 60 once (one artwork).
+        $styles = collect($r->json('styles'))->keyBy('product_id');
+        $this->assertSame(15.75 + 1.5, (float) $styles[self::MENS]['unit']);
+        $this->assertEqualsWithDelta((float) $plain->json('totals.setup') + 60, (float) $r->json('totals.setup'), 0.001);
+        $this->assertSame(['Gift box', 'Pre-production sample'], array_column($r->json('options'), 'name'));
+
+        // An option the product doesn't have is refused rather than ignored.
+        $this->price($this->cart($mens + ['options' => [['id' => '999-nothing']]]))->assertOk()->assertJson(['can_order' => false])
+            ->assertJsonFragment(['code' => 'option']);
     }
 
     public function test_setup_is_charged_once_per_position_and_methods_price_by_their_own_rules(): void

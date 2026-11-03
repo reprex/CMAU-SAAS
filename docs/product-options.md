@@ -1,0 +1,44 @@
+# Product options (not branding)
+
+Built 3 Nov 2026 (Scott): "the price data still comes from Promodata, but the logic comes from the supplier's own product webpage."
+
+Many products have priced lines that aren't branding: a lanyard's clips and holders, gift boxes and pen sleeves, extra embroidery stitches and metallic thread, personalisation (a name per item), data upload on flash drives, a pre-production sample, kitting, flag bases and more. Promodata lists them as flat price lines with no rules. The supplier's own product page says how they combine: what comes as standard, what replaces what, what can be added, and what goes with which branding method.
+
+## Where the logic lives
+
+`database/data/option-templates/<supplier>.json`, one file per supplier:
+
+- `groups`: label, `pick` (`one` = choose one, `many` = add any, `count` = a stepper), `optional`, `with_method` (only shown when a branding position uses one of these methods, e.g. embroidery extras), `note`, `order`.
+- `lines`: rules that put each Promodata line into a group by its code (the description in lower-case letters and digits, without the APPAID prefix), first match wins. A rule can say `included` (comes as standard, shown ticked), `fixed` (can't be removed), `per` (`order` or `artwork` instead of per unit), `count` (a quantity, e.g. extra 5,000 stitches × n), `per_stitches` (metallic thread: per 1,000 stitches of the design), `excludes` (ID holder vs Duet ID holder), `requires`.
+
+Branding lines (type 10) stay in DecorationJSON and are never options; hidden lines (23) are left out.
+
+### Trends (supplier 3)
+
+Read from the Trends distributor site (Pricing tab, Additional Costs down to Shipping and Handling) for all 2,443 Trends range products on 3 Nov 2026. 102 kinds of non-branding line, all covered by 61 rules in 9 groups: clip, attachments, embroidery extras, personalisation, packaging, data upload, extras, base (flags), before production (sample). The lanyard set-up comes from Trends' Attachments picture: standard is a single metal clip and a safety clip; every other attachment is optional.
+
+The same read checked Promodata's base prices against Trends' own page: 2,295 of 2,311 matched to the cent (the other 16 are flat-priced items with no quantity breaks to compare), and Trends' price headings ("Unbranded" or "Including full colour printing") were recorded as Price check verdicts (docs/price-check.md).
+
+## What the SaaS sends
+
+`custom.options` (JSON, product metafield): `{v, source, groups: [{key, label, pick, optional, with_method, note, max, unit_label, base_stitches, options: [{id, name, included, fixed, breaks, setup, per, count, per_stitches, excludes, note}]}], notes}`. `breaks` is the line's sell price per unit by quantity and `setup` its sell setup, both SaaS pricing. Products with no matching lines get no metafield and the product page is unchanged.
+
+## Product page, cart and orders
+
+The product page shows an Options section under Branding. Included parts cost nothing; chosen options add to the price each, setups and per-artwork charges add to the setup, and the branding line names them ("…, with J hook clip and ID holder"). The choices go with the cart and quick quote.
+
+At checkout the SaaS prices the chosen options itself from the product's lines (`CheckoutPricer::options`), never from the page's numbers. An option the product no longer has stops the order with an issue. Website orders keep the priced options (`website_orders.options`); staff quotes get a line per charged option.
+
+## Commands
+
+```
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:options-report --supplier=3        # coverage and lines no rule covers
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:options-report --product=2084      # one product's custom.options
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan shopify:metafield-definitions                # once: adds custom.options
+```
+
+After adding or changing a template, mark the products that get options to publish again:
+
+```
+cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:options-report --supplier=3 --mark
+```
