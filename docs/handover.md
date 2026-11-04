@@ -65,6 +65,8 @@ Commit messages end with the attribution lines the session's system reminder giv
   Never edit live ROD.mdb or TOD.mdb. Never enter passwords (Scott signs in himself). Don't bypass
   CAPTCHAs or Cloudflare. Customer artwork stays private.
 - Images are public URLs only (product images); private files (artwork, templates) on private disks.
+- Supplier branding templates go straight from the supplier's website to the server, never via Scott's
+  laptop: `catalogue:fetch-templates` (docs/branding-templates.md, "Fetching templates").
 - Dex Group (Promodata supplier 19, merch) is not Dex Audio (ROD).
 
 ## REPSTACK (OneDrive › ReplicatData › REPSTACK)

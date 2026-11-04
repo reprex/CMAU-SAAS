@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Quote;
 use App\Shopify\ProductPayload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\QuoteFixtures;
@@ -121,5 +122,25 @@ class TemplateEmailTest extends TestCase
         $this->staff('read_only');
         $r = $this->get(route('range.templates.download', [8385, $t]))->assertOk();
         $this->assertStringStartsWith('%PDF', $r->getContent());
+    }
+
+    public function test_a_suppliers_templates_are_fetched_from_its_website_straight_to_the_server(): void
+    {
+        $this->supplier(57, 'Legend Life');
+        Product::create(['id' => 59001, 'supplier_id' => 57, 'name' => 'Motion Backpack', 'code' => '1040', 'tier' => 'live']);
+        Product::create(['id' => 59002, 'supplier_id' => 57, 'name' => 'Cap', 'code' => '4374A', 'tier' => 'live']);
+        Http::fake([
+            'www.legendlife.com.au/media/EPI_MediaFolder/1040/*' => Http::response('%PDF-1.4 '.str_repeat('z', 800)),
+            '*' => Http::response('<html>not found</html>', 404),
+        ]);
+
+        $this->artisan('catalogue:fetch-templates', ['supplier' => 57])->expectsOutputToContain('Fetched 1 templates')->assertSuccessful();
+        $t = BrandingTemplate::query()->where('product_id', 59001)->sole();
+        $this->assertSame(['57/1040 Technical Drawing.pdf', 'new'], [$t->file_path, $t->status]); // read for positions by the cron
+        Storage::disk('templates')->assertExists('57/1040 Technical Drawing.pdf');
+        Http::assertSent(fn ($r) => $r->url() === 'https://www.legendlife.com.au/media/EPI_MediaFolder/1040/Technical%20Drawings/1040_Technical%20Drawing.pdf');
+
+        $this->artisan('catalogue:fetch-templates', ['supplier' => 57])->expectsOutputToContain('already there')->assertSuccessful();
+        $this->assertSame(1, BrandingTemplate::query()->where('product_id', 59001)->count());
     }
 }
