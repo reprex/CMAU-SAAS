@@ -51,6 +51,7 @@ return array(
     'App\\Console\\Commands\\CatalogueCheckImagesCommand' => $baseDir . '/app/Console/Commands/CatalogueCheckImagesCommand.php',
     'App\\Console\\Commands\\CatalogueClassifyCommand' => $baseDir . '/app/Console/Commands/CatalogueClassifyCommand.php',
     'App\\Console\\Commands\\CatalogueDemoteCommand' => $baseDir . '/app/Console/Commands/CatalogueDemoteCommand.php',
+    'App\\Console\\Commands\\CatalogueFetchTemplatesCommand' => $baseDir . '/app/Console/Commands/CatalogueFetchTemplatesCommand.php',
     'App\\Console\\Commands\\CatalogueGarmentSizesCommand' => $baseDir . '/app/Console/Commands/CatalogueGarmentSizesCommand.php',
     'App\\Console\\Commands\\CatalogueHydrateCommand' => $baseDir . '/app/Console/Commands/CatalogueHydrateCommand.php',
     'App\\Console\\Commands\\CatalogueImportTemplatesCommand' => $baseDir . '/app/Console/Commands/CatalogueImportTemplatesCommand.php',

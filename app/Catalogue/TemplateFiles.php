@@ -69,9 +69,40 @@ class TemplateFiles
     private const FILES = '/\.(pdf|png|jpe?g|ai|eps)$/i';
 
     /** @param  callable(): (resource|false)  $open */
-    private function importOne(string $name, int $bytes, callable $open, ?int $supplierId, array &$out, ?callable $say): void
+    /**
+     * Fetch a template straight from the supplier's website onto the private disk (no laptop in between):
+     * the addresses come from the supplier's product pages (database/data/supplier-pages/<supplier>-templates.json).
+     *
+     * @param  array{imported: int, same: int, unmatched: list<string>}  $out
+     */
+    public function importUrl(Product $product, string $url, array &$out): void
     {
-        $product = $this->productFor($name, $supplierId);
+        $name = $this->safe($product->code.' '.preg_replace('/^'.preg_quote((string) $product->code, '/').'[_ -]*/i', '', rawurldecode(basename((string) parse_url($url, PHP_URL_PATH)))));
+        try {
+            $r = Http::timeout(60)->withHeaders(['User-Agent' => 'CrowdMerch SaaS (branding templates)'])->get($url);
+        } catch (Throwable $e) {
+            $out['unmatched'][] = $name.' (could not be fetched: '.mb_substr($e->getMessage(), 0, 80).')';
+
+            return;
+        }
+        if (! $r->successful() || ! str_starts_with($r->body(), '%PDF')) {
+            $out['unmatched'][] = $name.' (not a PDF at the address: '.$r->status().')';
+
+            return;
+        }
+        $body = $r->body();
+        $this->importOne($name, strlen($body), function () use ($body) {
+            $h = fopen('php://temp', 'r+b');
+            fwrite($h, $body);
+            rewind($h);
+
+            return $h;
+        }, (int) $product->supplier_id, $out, null, $product);
+    }
+
+    private function importOne(string $name, int $bytes, callable $open, ?int $supplierId, array &$out, ?callable $say, ?Product $product = null): void
+    {
+        $product ??= $this->productFor($name, $supplierId);
         if (! $product) {
             $out['unmatched'][] = $name;
 

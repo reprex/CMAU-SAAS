@@ -594,6 +594,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Console\\Commands\\CatalogueCheckImagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueCheckImagesCommand.php',
         'App\\Console\\Commands\\CatalogueClassifyCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueClassifyCommand.php',
         'App\\Console\\Commands\\CatalogueDemoteCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueDemoteCommand.php',
+        'App\\Console\\Commands\\CatalogueFetchTemplatesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueFetchTemplatesCommand.php',
         'App\\Console\\Commands\\CatalogueGarmentSizesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueGarmentSizesCommand.php',
         'App\\Console\\Commands\\CatalogueHydrateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueHydrateCommand.php',
         'App\\Console\\Commands\\CatalogueImportTemplatesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueImportTemplatesCommand.php',

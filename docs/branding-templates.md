@@ -65,3 +65,31 @@ Follow-up work in the SaaS:
 - **Website quote API and intake:** a cart or list line carries several decorations (position, decID, logo per position) instead of one `decID`; the quote desk splits them into the product line plus one decoration line per position (it already splits product and decoration).
 - **DecorationJSON:** add each option's methods and which template positions it suits (additive keys the current theme ignores), and leave combined options out of the new templates.
 - **Uploaded logos:** sent with the quote request, one per position, stored privately with the quote.
+
+## Fetching templates from a supplier's website (Scott, 5 Nov 2026)
+
+"Create a template folder in SaaS for supplier 57 and download the individual PDFs directly to there
+rather than my laptop. Remember this process for other suppliers."
+
+The process, for any supplier:
+
+1. Claude reads the supplier's product pages in Scott's signed-in Chrome and finds each product's
+   template (Legend Life: Downloads tab › **Technical Drawings**, which are its branding templates; other
+   suppliers name them Branding Template, Line Art, Decoration Template…). It checks the files are public
+   (they download without a login).
+2. The addresses go into `database/data/supplier-pages/<supplier>-templates.json`
+   (`{"base": "https://…", "products": {"<supplier code>": ["/path/file.pdf"]}}`) and the supplier is added
+   to `CatalogueFetchTemplatesCommand::FILES`.
+3. Scott runs, on the server: `cd ~/saas-app && /usr/local/bin/ea-php84 artisan catalogue:fetch-templates <supplier id>`.
+   The server downloads each PDF into `storage/app/private/branding-templates/<supplier id>/`
+   ("<code> Technical Drawing.pdf"); nothing passes through a laptop. Safe to run again (fetched files
+   are skipped); a short or failed write is reported, never counted.
+4. The minute cron then reads each new template for positions and mockups (catalogue:read-templates), and
+   it is attached to quote and invoice emails. The product page only says a template is available.
+
+If the files need a login, they can't be fetched by the server: download them in Chrome and import the
+folder or zip with `catalogue:import-templates` (as for Dex, Trends and Logo Line, 3 Nov).
+
+Legend Life (57), 5 Nov: 317 technical drawings (280 from the 3 Nov page read, 38 found at Legend
+Life's standard file address for products whose page wasn't reached; 3 of those are line drawings named
+"_LD"). About 270 range products, mostly garments, have no technical drawing on the site.
