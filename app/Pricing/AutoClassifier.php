@@ -21,8 +21,8 @@ use Illuminate\Support\Collection;
  *   3. a production time (Dex): a listed time's line is 10, any other time's (28 days, offshore) is 23;
  *   4. a method the supplier lists as offered (Legend Life) is 10;
  *   5. an undecorated line (Promodata's blank price) is 12;
- *   6. a description that names a branding method and isn't a charge on top (setup, sample,
- *      surcharge, additional…) is 10.
+ *   6. a description that names a branding method, or a transfer or print under a supplier's own name
+ *      (Colourflex, DigiFlex), and isn't a charge on top (setup, sample, surcharge, additional…) is 10.
  *
  * Only descriptions with no type are filled in. A type staff already set that disagrees is listed,
  * never changed, and a description two suppliers would type differently is left for staff.
@@ -114,6 +114,10 @@ class AutoClassifier
         }
         if (DecorationAreas::method($description) !== null && ! preg_match(self::NOT_A_METHOD, $description)) {
             return [DecTypeCode::DECORATION, 'names a branding method'];
+        }
+        // Supplier brand names for transfers and prints (Colourflex, DigiFlex, …): branding all the same.
+        if (preg_match('/\b(transfer|print(?:ed|ing)?|imprint|branding)\b/i', $description) && ! preg_match(self::NOT_A_METHOD, $description)) {
+            return [DecTypeCode::DECORATION, 'a transfer or print'];
         }
 
         return [null, null];

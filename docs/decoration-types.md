@@ -16,7 +16,7 @@ them out for the suppliers whose pages we have read (an option template in
 3. a production time (Dex): a listed time's line is 10; another time (28 days, offshore) is 23;
 4. a method the supplier lists as offered for its styles (Legend Life) is 10;
 5. Promodata's blank price is 12;
-6. wording that names a branding method, unless it is a charge on top (setup, sample, surcharge,
+6. wording that names a branding method, or a transfer or print under a supplier's own name (Colourflex, DigiFlex), unless it is a charge on top (setup, sample, surcharge,
    additional, extra, fee, freight, proof…), is 10.
 
 Rules:

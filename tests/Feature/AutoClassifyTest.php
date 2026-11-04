@@ -33,7 +33,7 @@ class AutoClassifyTest extends TestCase
         $this->supplier(19, 'Dex');
         $this->lines(3, 100, [
             ['Unbranded', 'UNDEC', null], ['Screen Print Per Colour/Position', 'PDADEC', null], ['J Hook Clip', 'PDADEC', null],
-            ['Gift Box', 'PDADEC', 10], ['Repeat Screen Setup', 'PDADEC', null], ['Mystery Widget', 'PDADEC', null],
+            ['Gift Box', 'PDADEC', 10], ['Repeat Screen Setup', 'PDADEC', null], ['Mystery Widget', 'PDADEC', null], ['DigiFlex Transfer Per Panel - Umbrellas (250mm x 150mm)', 'PDADEC', null],
         ]);
         $this->lines(19, 200, [['Local Blank Stock', 'UNDEC', null], ['7 Days Print Per Col/Pos', 'PDADEC', null], ['28 Days Print Per Col/Pos', 'PDADEC', null], ['7 Days Data Upload', 'PDADEC', null]]);
         Queue::fake();
@@ -46,7 +46,7 @@ class AutoClassifyTest extends TestCase
             ->expectsOutputToContain('Repeat Screen Setup')->assertSuccessful();
 
         $t = DecTypeCode::query()->pluck('type_code', 'code');
-        $this->assertSame([12, 10, 11, 10, null, null], [$t['unbranded'], $t['screenprintpercolourposition'], $t['jhookclip'], $t['giftbox'], $t['repeatscreensetup'], $t['mysterywidget']]);
+        $this->assertSame([12, 10, 11, 10, null, null, 10], [$t['unbranded'], $t['screenprintpercolourposition'], $t['jhookclip'], $t['giftbox'], $t['repeatscreensetup'], $t['mysterywidget'], $t['digiflextransferperpanelumbrellas250mmx150mm']]);
         $this->assertSame([12, 10, 23, 11], [$t['localblankstock'], $t['7daysprintpercolpos'], $t['28daysprintpercolpos'], $t['7daysdataupload']]);
         Queue::assertPushed(RepriceProduct::class, 2);
     }
