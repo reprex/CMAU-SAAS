@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Catalogue\GarmentSizes;
 use App\Catalogue\PositionResolver;
 use App\Models\Product;
 use Illuminate\Console\Command;
@@ -25,9 +26,25 @@ class PositionsReportCommand extends Command
         $guessTypes = [];
         $positions = 0;
         $n = 0;
-        Product::query()->where('tier', Product::TIER_LIVE)->orderBy('id')->chunkById(200, function ($chunk) use ($resolver, &$bySource, &$guessTypes, &$positions, &$n) {
+        $mock = ['mockup' => 0, 'garment' => 0, 'guide' => 0, 'guide_by_supplier' => [], 'garment_no_chart' => []];
+        Product::query()->where('tier', Product::TIER_LIVE)->orderBy('id')->chunkById(200, function ($chunk) use ($resolver, &$bySource, &$guessTypes, &$positions, &$n, &$mock) {
             foreach ($chunk as $p) {
                 $list = $resolver->forShopify($p);
+                // Mockup or guide card (the theme's rule, Scott 4 Nov 2026): a template or staff position with a box,
+                // or a garment with the supplier's size chart.
+                if ($list !== []) {
+                    $trusted = collect($list)->contains(fn ($x) => in_array($x['source'] ?? null, ['template', 'staff'], true) && isset($x['width']));
+                    $garment = (bool) preg_match(PositionResolver::GARMENT, $p->promodata_type_name.' '.$p->name);
+                    $chart = $garment && rescue(fn () => GarmentSizes::metafield($p), null, false);
+                    $kind = $trusted ? 'mockup' : ($chart ? 'garment' : 'guide');
+                    $mock[$kind]++;
+                    if ($kind === 'guide') {
+                        $mock['guide_by_supplier'][$p->supplier_id] = ($mock['guide_by_supplier'][$p->supplier_id] ?? 0) + 1;
+                        if ($garment && count($mock['garment_no_chart']) < 100) {
+                            $mock['garment_no_chart'][] = $p->id;
+                        }
+                    }
+                }
                 $n++;
                 $positions += count($list);
                 $src = $list === [] ? 'none (not brandable)' : (string) ($list[0]['source'] ?? 'staff');
@@ -42,7 +59,7 @@ class PositionsReportCommand extends Command
         arsort($bySource);
         arsort($guessTypes);
         // For Range › Positions (plain arrays only: the cache refuses objects).
-        Cache::forever('positions:report', ['at' => now()->toIso8601String(), 'products' => $n, 'sources' => $bySource, 'guess_types' => $guessTypes]);
+        Cache::forever('positions:report', ['at' => now()->toIso8601String(), 'products' => $n, 'sources' => $bySource, 'guess_types' => $guessTypes, 'mockups' => $mock]);
         $this->info("{$n} live products, {$positions} positions");
         $this->table(['Positions from', 'Products'], collect($bySource)->map(fn ($c, $s) => [$s, $c])->values()->all());
         arsort($guessTypes);

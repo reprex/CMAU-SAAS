@@ -7,7 +7,6 @@ use App\Models\BrandingTemplate;
 use App\Models\Product;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
-use Throwable;
 
 /**
  * Branding templates (docs/branding-templates.md): each run looks for supplier-
@@ -16,13 +15,27 @@ use Throwable;
  */
 class CatalogueReadTemplatesCommand extends Command
 {
-    protected $signature = 'catalogue:read-templates {--product= : One product} {--limit=2}';
+    protected $signature = 'catalogue:read-templates
+        {--product= : One product}
+        {--limit=2 : Templates to read this run}
+        {--all : Every template not read yet, until done (or --seconds)}
+        {--again : Read templates already read again, with the current reading rules}
+        {--parallel=1 : Send this many to Claude at once}
+        {--seconds=0 : Stop after this many seconds (0: no limit)}
+        {--supplier= : Only this supplier\'s products}
+        {--reread : Mark every template already read (or failed) to be read again by the minute cron, then stop}';
 
     protected $description = 'Find and read supplier branding templates';
 
     public function handle(BrandingTemplates $templates): int
     {
-        if (! config('images.check.enabled') && ! $this->option('product')) {
+        if (! config('images.check.enabled') && ! $this->option('product') && ! $this->option('all')) {
+            return self::SUCCESS;
+        }
+        if ($this->option('reread')) {
+            $n = $this->query(['read', 'none', 'failed'], now()->addMinute())->update(['status' => 'new']);
+            $this->info("{$n} templates will be read again by the minute cron (".(int) config('images.templates.per_day', 5000).' a day at most).');
+
             return self::SUCCESS;
         }
         if ($id = $this->option('product')) {
@@ -35,7 +48,51 @@ class CatalogueReadTemplatesCommand extends Command
             return self::SUCCESS;
         }
 
-        // Look for supplier-pattern templates, a few products a run.
+        // Look for supplier-pattern templates, a few products a run (the cron's run only).
+        if (! $this->option('all')) {
+            $this->discoverSome($templates);
+        }
+
+        $started = microtime(true);
+        $read = 0;
+        $positions = 0;
+        $limit = $this->option('all') ? PHP_INT_MAX : (int) $this->option('limit');
+        $parallel = max(1, (int) $this->option('parallel'));
+        $statuses = $this->option('again') ? ['new', 'read', 'none', 'failed'] : ['new'];
+        $since = now(); // --again: a template read in this run isn't read twice
+        $total = $this->query($statuses, $since)->count();
+        if ($this->option('all')) {
+            $this->info("{$total} templates to read…");
+        }
+        $seen = [];
+        while ($read < $limit) {
+            if (! $templates->canRead()) {
+                $this->warn('Stopped: no Claude key, or today\'s limit (TEMPLATE_READS_PER_DAY) is reached.');
+                break;
+            }
+            $todo = $this->query($statuses, $since)->whereNotIn('id', $seen)->orderBy('id')->limit(min($parallel * 4, $limit - $read))->get();
+            array_push($seen, ...$todo->pluck('id')->all());
+            if ($todo->isEmpty()) {
+                break;
+            }
+            $got = $templates->readMany($todo, $parallel);
+            $read += count($got);
+            $positions += array_sum($got);
+            if ($this->option('all') && $read % 50 < count($got)) {
+                $this->line("{$read} of {$total}…");
+            }
+            if ((int) $this->option('seconds') > 0 && microtime(true) - $started > (int) $this->option('seconds')) {
+                break;
+            }
+        }
+        $left = $this->query($statuses, $since)->count();
+        $this->info("Read {$read} templates ({$positions} positions).".($left && $this->option('all') ? " {$left} left: run it again." : ''));
+
+        return self::SUCCESS;
+    }
+
+    private function discoverSome(BrandingTemplates $templates): void
+    {
         $cursor = (int) Cache::get('templates:cursor', 0);
         $batch = Product::query()->with('supplier')->where('tier', Product::TIER_LIVE)->where('id', '>', $cursor)
             ->whereHas('supplier', fn ($q) => $q->whereNotNull('template_url_pattern'))->orderBy('id')->limit(5)->get();
@@ -43,21 +100,14 @@ class CatalogueReadTemplatesCommand extends Command
             $templates->discover($p);
         }
         Cache::forever('templates:cursor', $batch->isEmpty() ? 0 : $batch->last()->id);
+    }
 
-        $read = 0;
-        $todo = BrandingTemplate::query()->where('status', 'new')
-            ->whereIn('product_id', Product::query()->where('tier', Product::TIER_LIVE)->select('id'))
-            ->orderBy('id')->limit((int) $this->option('limit'))->get();
-        foreach ($todo as $t) {
-            try {
-                $templates->read($t);
-                $read++;
-            } catch (Throwable $e) {
-                $t->update(['status' => 'failed', 'message' => mb_substr($e->getMessage(), 0, 500)]);
-            }
-        }
-        $this->info("Read {$read} templates.");
-
-        return self::SUCCESS;
+    /** Templates of range products to read. */
+    private function query(array $statuses, \DateTimeInterface $since)
+    {
+        return BrandingTemplate::query()->whereIn('status', $statuses)
+            ->whereIn('product_id', Product::query()->where('tier', Product::TIER_LIVE)
+                ->when($this->option('supplier'), fn ($q) => $q->where('supplier_id', (int) $this->option('supplier')))->select('id'))
+            ->when($this->option('again'), fn ($q) => $q->where(fn ($w) => $w->whereNull('read_at')->orWhere('read_at', '<', $since)));
     }
 }

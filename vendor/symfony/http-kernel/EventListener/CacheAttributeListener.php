@@ -161,7 +161,7 @@ class CacheAttributeListener implements EventSubscriberInterface
         }
 
         if ($response?->isNotModified($request)) {
-            $event->setController(static fn () => $response);
+            $event->setController(static fn () => $response, $event->getAttributes('*'));
             $event->stopPropagation();
         }
     }
@@ -289,7 +289,9 @@ class CacheAttributeListener implements EventSubscriberInterface
     {
         if (!is_numeric($time)) {
             $now = time();
-            $time = strtotime($time, $now) - $now;
+            $then = strtotime($time, $now);
+            // ignore daylight saving time changes, so that "1 day" is always 86400 seconds
+            $time = $then - $now + idate('Z', $then) - idate('Z', $now);
         }
 
         return $time;

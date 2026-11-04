@@ -30,6 +30,17 @@ Schedule::command('catalogue:demote')
     ->dailyAt('03:30')
     ->withoutOverlapping();
 
+// Decoration types from the supplier rules and pages, so new descriptions aren't classified by hand
+// (docs/decoration-types.md). Only fills in types not yet set; disagreements are left for staff.
+Schedule::command('catalogue:classify --apply --show=0')
+    ->dailyAt('03:45')
+    ->withoutOverlapping(30);
+
+// Price check from the suppliers' own pages (blank prices), before the patterns are recounted.
+Schedule::command('pricing:verify-pages')
+    ->dailyAt('03:55')
+    ->withoutOverlapping(30);
+
 // Price check: recount price patterns and screengrab examples (docs/price-check.md).
 Schedule::command('pricing:patterns')
     ->dailyAt('04:00')
@@ -59,8 +70,8 @@ Schedule::command('catalogue:logo-areas')
     ->everyTenMinutes()
     ->withoutOverlapping(10);
 
-// Supplier branding templates: find and read a couple a minute (docs/branding-templates.md).
-Schedule::command('catalogue:read-templates')
+// Supplier branding templates: find them, and read up to 20 a minute, 5 at a time (docs/branding-templates.md).
+Schedule::command('catalogue:read-templates --limit=20 --parallel=5 --seconds=50')
     ->everyMinute()
     ->withoutOverlapping(5);
 
