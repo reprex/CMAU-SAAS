@@ -122,21 +122,27 @@ class BrandingTemplateTest extends TestCase
         }
         Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => json_encode(['positions' => [
             ['name' => 'Barrel', 'view' => 'front', 'max_width_mm' => null, 'max_height_mm' => null, 'confidence' => 'high',
-                'methods' => [['name' => 'Screen print', 'max_width_mm' => 55, 'max_height_mm' => 12], ['name' => 'Pad print', 'max_width_mm' => 60, 'max_height_mm' => 7]], 'box' => ['left' => 30, 'top' => 46, 'width' => 40]],
+                'methods' => [['name' => 'Screen print', 'max_width_mm' => 55, 'max_height_mm' => 12], ['name' => 'Pad print', 'max_width_mm' => 60, 'max_height_mm' => 7]], 'box' => null,
+                'quad' => [[30, 50], [68, 38], [70, 43], [32, 55]], 'surface' => 'cylinder_h'],
+            ['name' => 'Cap', 'view' => 'front', 'confidence' => 'high', 'methods' => [], 'quad' => [[10, 10], [20, 20], [20, 10], [10, 20]], 'box' => null],
             ['name' => 'Clip', 'view' => 'front', 'max_width_mm' => 30, 'max_height_mm' => 5, 'confidence' => 'low', 'methods' => ['Pad print'], 'box' => ['left' => 70, 'top' => 40, 'width' => 10]],
         ]])]]])]);
 
-        $this->artisan('catalogue:read-templates', ['--all' => true, '--parallel' => 2])->expectsOutputToContain('Read 3 templates (6 positions)')->assertSuccessful();
+        $this->artisan('catalogue:read-templates', ['--all' => true, '--parallel' => 2])->expectsOutputToContain('Read 3 templates (9 positions)')->assertSuccessful();
 
         $this->assertSame(3, BrandingTemplate::query()->where('status', 'read')->count());
         Http::assertSent(fn ($r) => $r['model'] === 'claude-sonnet-5-5' && str_contains($r['system'], 'never by the template'));
         $barrel = BrandingPosition::query()->where('product_id', 105947)->where('name', 'Barrel')->sole();
-        $this->assertSame([[55, 12], ['Screen print' => [55, 12], 'Pad print' => [60, 7]], 30.0], [[$barrel->max_width_mm, $barrel->max_height_mm], $barrel->method_sizes, $barrel->left]);
+        $this->assertSame([[55, 12], ['Screen print' => [55, 12], 'Pad print' => [60, 7]], 30.0, 38.0, 40.0], [[$barrel->max_width_mm, $barrel->max_height_mm], $barrel->method_sizes, $barrel->left, $barrel->top, $barrel->width]); // the corners' bounding box
+        $this->assertSame([[[30, 50], [68, 38], [70, 43], [32, 55]], 'cylinder_h'], [$barrel->quad, $barrel->surface]);
+        $this->assertNull(BrandingPosition::query()->where('product_id', 105947)->where('name', 'Cap')->value('quad')); // crossed corners: no mockup
         $this->assertNull(BrandingPosition::query()->where('product_id', 105947)->where('name', 'Clip')->value('left')); // low confidence: a guide card
 
         $areas = collect(app(PositionResolver::class)->forShopify(Product::find(105947)))->keyBy('name');
         $this->assertSame([[55, 12], [60, 7]], array_column($areas['Barrel']['method_areas'], 'max_mm'));
         $this->assertArrayNotHasKey('method_sizes', $areas['Barrel']);
+        $this->assertSame('cylinder_h', $areas['Barrel']['surface']);
+        $this->assertSame([68, 38], $areas['Barrel']['quad'][1]);
 
         $this->artisan('catalogue:read-templates', ['--all' => true])->expectsOutputToContain('Read 0 templates')->assertSuccessful();
         $this->travel(1)->minutes(); // read again with newer reading rules

@@ -25,6 +25,41 @@ class BrandingTemplates
 {
     public const VIEWS = ['front', 'back', 'side', 'top'];
 
+    /** The shape under a print area: how the logo curves on the mockup. */
+    public const SURFACES = ['flat', 'cylinder_v', 'cylinder_h', 'dome'];
+
+    /** Four [x, y] corners in percent (top-left, top-right, bottom-right, bottom-left), or null if not usable. @return list<array{0: float, 1: float}>|null */
+    public static function quad(mixed $q): ?array
+    {
+        if (! is_array($q) || count($q) !== 4) {
+            return null;
+        }
+        $out = [];
+        foreach (array_values($q) as $pt) {
+            $pt = is_array($pt) ? array_values($pt) : [];
+            if (count($pt) < 2 || ! is_numeric($pt[0]) || ! is_numeric($pt[1])) {
+                return null;
+            }
+            $out[] = [round(max(0, min(100, (float) $pt[0])), 2), round(max(0, min(100, (float) $pt[1])), 2)];
+        }
+        // A usable area: not collapsed, and its corners go round in order (no crossed edges).
+        $area = 0.0;
+        for ($i = 0; $i < 4; $i++) {
+            [$x1, $y1] = $out[$i];
+            [$x2, $y2] = $out[($i + 1) % 4];
+            $area += $x1 * $y2 - $x2 * $y1;
+        }
+        $cross = function ($a, $b, $c) {
+            return ($b[0] - $a[0]) * ($c[1] - $a[1]) - ($b[1] - $a[1]) * ($c[0] - $a[0]);
+        };
+        $signs = [];
+        for ($i = 0; $i < 4; $i++) {
+            $signs[] = $cross($out[$i], $out[($i + 1) % 4], $out[($i + 2) % 4]) > 0;
+        }
+
+        return abs($area) / 2 >= 1 && count(array_unique($signs)) === 1 ? $out : null;
+    }
+
     public function __construct(private readonly PrintAreas $areas, private readonly ImageTagger $images) {}
 
     /** Add the supplier-pattern template for a product if the supplier has one and it exists. */
@@ -173,9 +208,12 @@ class BrandingTemplates
         .'For each give: name; view (front, back, side or top: the side of the product the position is on); the methods offered there, each with its own maximum print size in mm '
         .'(a diameter D gives width and height D); the position\'s largest size; and, only if a picture of that view is provided, the print area as a box on that picture, in percent of the picture: '
         .'left and top of the box\'s top-left corner and its width, drawn at the maximum print size to the scale of the product in the picture, where the print area sits on the product. '
+        .'Also give the print area\'s four corners on that picture as quad, in percent of the picture ([x,y] each): top-left, top-right, bottom-right, bottom-left as a logo printed upright there would read, '
+        .'so a rotated, skewed or perspective surface is followed exactly; and surface, the shape of the product under the print area: "flat"; "cylinder_v", round with the axis running up and down the print '
+        .'(a bottle or mug side, a stubby holder); "cylinder_h", round with the axis running across the print (a pen barrel, a lanyard tube); or "dome" (a cap front, a ball). '
         .'confidence is "high" only when the picture shows that side of the product the same way as the template, so the box is where the print really goes; otherwise "low". '
         .'Reply with JSON only: {"positions":[{"name":string,"view":"front"|"back"|"side"|"top","max_width_mm":number|null,"max_height_mm":number|null,'
-        .'"methods":[{"name":string,"max_width_mm":number|null,"max_height_mm":number|null}],"box":{"left":n,"top":n,"width":n}|null,"confidence":"high"|"low"}]}. '
+        .'"methods":[{"name":string,"max_width_mm":number|null,"max_height_mm":number|null}],"box":{"left":n,"top":n,"width":n}|null,"quad":[[x,y],[x,y],[x,y],[x,y]]|null,"surface":"flat"|"cylinder_v"|"cylinder_h"|"dome","confidence":"high"|"low"}]}. '
         .'If it is not a branding template, reply {"positions":[]}.';
 
     /** @param  array<string, mixed>  $job */
@@ -209,9 +247,17 @@ class BrandingTemplates
                 $pic = ['front' => $front, 'back' => $back][$view] ?? null;
                 $box = is_array($p['box'] ?? null) && $pic && is_numeric($p['box']['left'] ?? null) && is_numeric($p['box']['top'] ?? null) && is_numeric($p['box']['width'] ?? null) ? $p['box'] : null;
                 $confidence = in_array($p['confidence'] ?? null, ['high', 'low'], true) ? $p['confidence'] : null;
+                $quad = $pic ? self::quad($p['quad'] ?? null) : null;
+                if (! $box && $quad) {
+                    $xs = array_column($quad, 0);
+                    $ys = array_column($quad, 1);
+                    $box = ['left' => min($xs), 'top' => min($ys), 'width' => max($xs) - min($xs)]; // the corners' bounding box
+                }
                 if ($confidence === 'low') {
                     $box = null; // not where the print really goes on our picture: a guide card, not a mockup
+                    $quad = null;
                 }
+                $surface = in_array($p['surface'] ?? null, self::SURFACES, true) ? $p['surface'] : null;
                 // Methods: names, each with its own size where the template gives one.
                 $names = [];
                 $sizes = [];
@@ -236,6 +282,7 @@ class BrandingTemplates
                     'name' => mb_substr(trim((string) $p['name']), 0, 60), 'view' => $view, 'image_url' => $box ? $pic : null,
                     'left' => $box ? max(0, min(95, (float) $box['left'])) : null, 'top' => $box ? max(0, min(95, (float) $box['top'])) : null,
                     'width' => $box ? max(3, min(100, (float) $box['width'])) : null,
+                    'quad' => $box ? $quad : null, 'surface' => $surface,
                     'max_width_mm' => $mw, 'max_height_mm' => $mh,
                     'methods' => $names, 'method_sizes' => $sizes ?: null, 'confidence' => $confidence,
                 ]);
@@ -276,6 +323,7 @@ class BrandingTemplates
             ->map(fn ($p) => array_filter([
                 'name' => $p->name, 'view' => $p->view, 'image' => $p->image_url,
                 'left' => $p->left, 'top' => $p->top, 'width' => $p->width,
+                'quad' => $p->quad ?: null, 'surface' => $p->surface,
                 'max_mm' => $p->max_width_mm ? [$p->max_width_mm, $p->max_height_mm] : null,
                 'methods' => $p->methods ?: null,
                 'method_sizes' => $p->method_sizes ?: null,
