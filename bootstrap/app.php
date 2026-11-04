@@ -4,6 +4,7 @@ use App\Http\CloudflareIps;
 use App\Http\Middleware\RequireRole;
 use App\Http\Middleware\RequireTwoFactor;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetDivision;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'two-factor' => RequireTwoFactor::class,
             'role' => RequireRole::class,
+            'division' => SetDivision::class,
         ]);
         $middleware->web(append: [SecurityHeaders::class]);
         // Shopify webhooks are verified by HMAC instead of a CSRF token; the website

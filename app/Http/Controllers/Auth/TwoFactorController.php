@@ -62,7 +62,7 @@ class TwoFactorController extends Controller
         $request->session()->regenerate();
         $request->session()->put('two_factor_passed', $request->user()->id);
 
-        return redirect()->intended(route('quotes.index'));
+        return redirect()->intended(url('/'));
     }
 
     private function verify(Request $request, string $secret): void

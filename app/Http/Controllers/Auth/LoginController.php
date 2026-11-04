@@ -35,7 +35,7 @@ class LoginController extends Controller
         $request->user()->forceFill(['last_login_at' => now()])->save();
         AuditLog::record('user.login', $request->user());
 
-        return redirect()->intended(route('quotes.index'));
+        return redirect()->intended(url('/'));
     }
 
     public function logout(Request $request)
