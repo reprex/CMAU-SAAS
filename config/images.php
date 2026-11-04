@@ -16,4 +16,15 @@ return [
         'colour_references' => 12,     // send colour images as references when a product has this many colours or fewer
         'min_confidence' => 0.7,       // below this Claude's view is shown but not used
     ],
+
+    /*
+    | Reading supplier branding templates for positions (docs/branding-templates.md). A stronger model
+    | than the image check: it places each print area on our photo, and that box is the mockup.
+    */
+    'templates' => [
+        'model' => env('ANTHROPIC_TEMPLATE_MODEL', 'claude-sonnet-5-5'),
+        'timeout' => 90,
+        'per_day' => (int) env('TEMPLATE_READS_PER_DAY', 5000),
+        'max_tokens' => 1800,
+    ],
 ];

@@ -173,8 +173,9 @@ class PositionResolver
         $template = $this->templates->forShopify($product);
         $rule = PositionRule::for($product);
         if ($template !== []) {
-            $positions = array_map(fn ($p) => $p + [
-                'method_areas' => array_map(fn ($name) => ['method' => DecorationAreas::method($name), 'name' => $name, 'max_mm' => $p['max_mm'] ?? null], $p['methods'] ?? []),
+            $positions = array_map(fn ($p) => array_diff_key($p, ['method_sizes' => 1]) + [
+                // Each method's own size where the template gives one (a pen: pad print 60 × 7, screen print 55 × 12).
+                'method_areas' => array_map(fn ($name) => ['method' => DecorationAreas::method($name), 'name' => $name, 'max_mm' => $p['method_sizes'][$name] ?? $p['max_mm'] ?? null], $p['methods'] ?? []),
                 'source' => 'template',
             ], $template);
 

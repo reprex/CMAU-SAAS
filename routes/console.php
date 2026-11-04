@@ -65,8 +65,8 @@ Schedule::command('catalogue:logo-areas')
     ->everyTenMinutes()
     ->withoutOverlapping(10);
 
-// Supplier branding templates: find and read a couple a minute (docs/branding-templates.md).
-Schedule::command('catalogue:read-templates')
+// Supplier branding templates: find them, and read up to 20 a minute, 5 at a time (docs/branding-templates.md).
+Schedule::command('catalogue:read-templates --limit=20 --parallel=5 --seconds=50')
     ->everyMinute()
     ->withoutOverlapping(5);
 

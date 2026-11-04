@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Catalogue\BrandingTemplates;
 use App\Catalogue\ImageTagger;
 use App\Catalogue\LogoAreaLearner;
+use App\Catalogue\PositionResolver;
 use App\Catalogue\PrintAreas;
 use App\Models\BrandingPosition;
 use App\Models\BrandingTemplate;
@@ -109,5 +110,36 @@ class BrandingTemplateTest extends TestCase
         $this->get(route('range.show', $p))->assertOk()->assertSee('Branding template')->assertSee('5001.pdf')->assertSee('To read');
         $this->post(route('range.templates.store', $p), ['url' => 'https://cdn.example/other.pdf'])->assertRedirect();
         $this->assertSame(2, BrandingTemplate::query()->where('product_id', $p->id)->count());
+    }
+
+    public function test_all_templates_are_read_in_parallel_with_each_methods_size_and_only_trusted_boxes(): void
+    {
+        $this->supplier(3, 'Trends');
+        foreach ([105947, 105948, 105949] as $id) {
+            $p = Product::create(['id' => $id, 'supplier_id' => 3, 'name' => 'Vulcan Pen', 'code' => (string) $id, 'tier' => 'live', 'hydrated_at' => now(), 'hero_image_url' => "https://cdn.example/{$id}.jpg"]);
+            $p->images()->create(['url' => "https://cdn.example/{$id}.jpg", 'role' => 'hero_style', 'position' => 0]);
+            BrandingTemplate::query()->create(['product_id' => $id, 'url' => "https://cdn.example/{$id}.pdf", 'source' => 'file']);
+        }
+        Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => json_encode(['positions' => [
+            ['name' => 'Barrel', 'view' => 'front', 'max_width_mm' => null, 'max_height_mm' => null, 'confidence' => 'high',
+                'methods' => [['name' => 'Screen print', 'max_width_mm' => 55, 'max_height_mm' => 12], ['name' => 'Pad print', 'max_width_mm' => 60, 'max_height_mm' => 7]], 'box' => ['left' => 30, 'top' => 46, 'width' => 40]],
+            ['name' => 'Clip', 'view' => 'front', 'max_width_mm' => 30, 'max_height_mm' => 5, 'confidence' => 'low', 'methods' => ['Pad print'], 'box' => ['left' => 70, 'top' => 40, 'width' => 10]],
+        ]])]]])]);
+
+        $this->artisan('catalogue:read-templates', ['--all' => true, '--parallel' => 2])->expectsOutputToContain('Read 3 templates (6 positions)')->assertSuccessful();
+
+        $this->assertSame(3, BrandingTemplate::query()->where('status', 'read')->count());
+        Http::assertSent(fn ($r) => $r['model'] === 'claude-sonnet-5-5' && str_contains($r['system'], 'never by the template'));
+        $barrel = BrandingPosition::query()->where('product_id', 105947)->where('name', 'Barrel')->sole();
+        $this->assertSame([[55, 12], ['Screen print' => [55, 12], 'Pad print' => [60, 7]], 30.0], [[$barrel->max_width_mm, $barrel->max_height_mm], $barrel->method_sizes, $barrel->left]);
+        $this->assertNull(BrandingPosition::query()->where('product_id', 105947)->where('name', 'Clip')->value('left')); // low confidence: a guide card
+
+        $areas = collect(app(PositionResolver::class)->forShopify(Product::find(105947)))->keyBy('name');
+        $this->assertSame([[55, 12], [60, 7]], array_column($areas['Barrel']['method_areas'], 'max_mm'));
+        $this->assertArrayNotHasKey('method_sizes', $areas['Barrel']);
+
+        $this->artisan('catalogue:read-templates', ['--all' => true])->expectsOutputToContain('Read 0 templates')->assertSuccessful();
+        $this->travel(1)->minutes(); // read again with newer reading rules
+        $this->artisan('catalogue:read-templates', ['--all' => true, '--again' => true, '--supplier' => 3])->expectsOutputToContain('Read 3 templates')->assertSuccessful();
     }
 }
