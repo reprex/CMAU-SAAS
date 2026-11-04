@@ -36,6 +36,11 @@ Theme: `node docs/validate-theme.js` and the smoke tests (`docs/tests/smoke.js`,
 `npm install jsdom` in a scratch folder and run with `NODE_PATH=<that folder>/node_modules`).
 
 ## Release and deploy
+- **More than one session may be building at once** (e.g. CrowdMerch and Replicat). Work on your own
+  branch (`feat/quotes` for CrowdMerch, `feat/replicat` for Replicat, …). Before releasing:
+  `git fetch origin && git rebase origin/release`, run the tests, then `git push origin HEAD:<branch>
+  HEAD:release`. Never force-push `release`: a rejected push means the other session released first, so
+  fetch, rebase and test again.
 - Commit, push to `release`; GitHub Actions tests on PHP 8.4 and builds the `deploy` branch. Check it went
   green (`gh run list -R reprex/CMAU-SAAS -L 3`) before telling Scott to deploy.
 - **Scott deploys** in cPanel › Git Version Control: "Update from Remote", then "Deploy HEAD Commit"
