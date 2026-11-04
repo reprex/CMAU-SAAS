@@ -30,6 +30,12 @@ Schedule::command('catalogue:demote')
     ->dailyAt('03:30')
     ->withoutOverlapping();
 
+// Decoration types from the supplier rules and pages, so new descriptions aren't classified by hand
+// (docs/decoration-types.md). Only fills in types not yet set; disagreements are left for staff.
+Schedule::command('catalogue:classify --apply --show=0')
+    ->dailyAt('03:45')
+    ->withoutOverlapping(30);
+
 // Price check: recount price patterns and screengrab examples (docs/price-check.md).
 Schedule::command('pricing:patterns')
     ->dailyAt('04:00')
