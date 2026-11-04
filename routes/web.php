@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\SetupController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\BrandingTemplateController;
 use App\Http\Controllers\CurationRequestController;
+use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DraftOrderController;
 use App\Http\Controllers\LineTransferController;
 use App\Http\Controllers\LogoAreaController;
@@ -116,8 +117,17 @@ Route::middleware('auth')->group(function () {
 
 // ---- Staff app ------------------------------------------------------------
 
-Route::middleware(['auth', 'two-factor'])->group(function () {
-    Route::redirect('/', '/quotes');
+Route::middleware(['auth', 'two-factor', 'division'])->group(function () {
+    Route::get('/', [DivisionController::class, 'home']);
+
+    // Divisions and the shared modules (docs/divisions.md).
+    Route::get('/division/{division}', [DivisionController::class, 'switch'])->name('division.switch');
+    Route::get('/dashboard', [DivisionController::class, 'dashboard'])->name('dashboard');
+    Route::get('/reports', [DivisionController::class, 'reports'])->name('reports.index');
+    Route::get('/contacts', [DivisionController::class, 'module'])->defaults('module', 'contacts')->name('contacts.index');
+    Route::get('/freight', [DivisionController::class, 'module'])->defaults('module', 'freight')->name('freight.index');
+    Route::get('/replicat', [DivisionController::class, 'module'])->defaults('module', 'replicat')->name('replicat.home');
+    Route::get('/crowdlink', [DivisionController::class, 'module'])->defaults('module', 'crowdlink')->name('crowdlink.home');
 
     Route::get('/quotes', [QuoteController::class, 'index'])->name('quotes.index');
     Route::get('/quotes/{quote}', [QuoteController::class, 'show'])->whereNumber('quote')->name('quotes.show');

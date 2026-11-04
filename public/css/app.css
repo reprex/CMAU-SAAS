@@ -112,3 +112,7 @@ td.breaks { word-break: break-all; max-width: 260px; }
 .logo-handle{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:#B3202E;border:2px solid #FFFFFF;cursor:nwse-resize}
 .logo-box.white img{filter:invert(1)}
 [data-logo-invert][aria-pressed="true"]{background:#1A1B18;color:#FFFFFF}
+/* Division switcher (docs/divisions.md) */
+.nav .divs { display: flex; gap: 2px; padding: 0 0 12px; margin: 0 0 6px; border-bottom: 1px solid #3A352D; }
+.nav .divs a { flex: 1 1 0; text-align: center; padding: 6px 4px; font-size: 12px; border-radius: 6px; }
+@media (max-width: 760px) { .nav .divs { flex: 1 1 100%; border: 0; padding: 0; margin: 0; } }

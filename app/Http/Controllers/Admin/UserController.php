@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\Divisions;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -18,32 +19,57 @@ class UserController extends Controller
         ]);
     }
 
+    /** The access fields: one level (or none) per division and for the shared modules. */
+    private function accessRules(): array
+    {
+        $rules = ['access' => 'array'];
+        foreach ([...Divisions::keys(), Divisions::SHARED] as $d) {
+            $rules["access.{$d}"] = ['nullable', Rule::in(array_keys(config('divisions.levels')))];
+        }
+
+        return $rules;
+    }
+
+    /** @return array<string, ?string> */
+    private function access(Request $request): array
+    {
+        $out = [];
+        foreach ([...Divisions::keys(), Divisions::SHARED] as $d) {
+            $out[$d] = $request->input("access.{$d}") ?: null;
+        }
+
+        return $out;
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
             'name' => 'required|string|max:120',
             'email' => 'required|email|max:190|unique:users,email',
-            'role' => ['required', Rule::in(User::ROLES)],
             'password' => 'required|string|min:12',
-        ]);
-        $data['email'] = mb_strtolower($data['email']);
-        $user = User::create($data);
-        AuditLog::record('user.created', $user, ['role' => $user->role]);
+        ] + $this->accessRules());
+        $divisions = $this->access($request);
+        $user = User::create(['name' => $data['name'], 'email' => mb_strtolower($data['email']), 'password' => $data['password'],
+            'role' => in_array('admin', $divisions, true) ? 'admin' : (in_array('staff', $divisions, true) ? 'sales' : 'readonly'), 'divisions' => $divisions]);
+        AuditLog::record('user.created', $user, ['divisions' => $divisions]);
 
         return back()->with('status', "{$user->name} added. They set up two-factor sign-in the first time they log in.");
     }
 
     public function update(Request $request, User $user)
     {
-        $data = $request->validate(['role' => ['required', Rule::in(User::ROLES)], 'active' => 'boolean']);
-        $data['active'] = $request->boolean('active');
+        $request->validate(['active' => 'boolean'] + $this->accessRules());
+        $divisions = $this->access($request);
+        $active = $request->boolean('active');
 
-        if ($user->is($request->user()) && ($data['role'] !== 'admin' || ! $data['active'])) {
-            return back()->withErrors(['role' => 'You cannot remove your own admin access.']);
+        if ($user->is($request->user()) && ($divisions[Divisions::SHARED] !== 'admin' || ! $active)) {
+            return back()->withErrors(['access' => 'You cannot remove your own Users & access admin rights.']);
         }
 
-        $user->update($data);
-        AuditLog::record('user.updated', $user, $data);
+        $before = [...Divisions::keys(), Divisions::SHARED];
+        $before = collect($before)->mapWithKeys(fn ($d) => [$d => $user->access($d)])->all();
+        $user->update(['divisions' => $divisions, 'active' => $active]);
+        AuditLog::record('user.updated', $user, ['before' => $before, 'after' => $divisions, 'active' => $active]);
 
         return back()->with('status', "{$user->name} updated.");
     }
