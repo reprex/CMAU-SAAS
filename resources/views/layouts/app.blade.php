@@ -19,16 +19,12 @@
     <a href="{{ route('curation-requests.index') }}" class="{{ request()->routeIs('curation-requests.*') ? 'on' : '' }}">Curation requests</a>
     <a href="{{ route('drafts.index') }}" class="{{ request()->routeIs('drafts.*') ? 'on' : '' }}">Wish lists &amp; intake</a>
     <a href="{{ route('range.index') }}" class="{{ request()->routeIs('range.*') && ! request()->routeIs('range.logo-areas*') && ! request()->routeIs('range.positions*') && ! request()->routeIs('range.changes*') ? 'on' : '' }}">Range</a>
-    @php($vetCount = \App\Models\RangeSuggestion::query()->where('status', 'pending')->count())
-    <a href="{{ route('range.changes') }}" class="{{ request()->routeIs('range.changes*') ? 'on' : '' }}">Changes to vet @if($vetCount)<span class="pill warn small">{{ $vetCount }}</span>@endif</a>
-    <a href="{{ route('range.positions') }}" class="{{ request()->routeIs('range.positions*') ? 'on' : '' }}">Positions</a>
-    <a href="{{ route('range.logo-areas') }}" class="{{ request()->routeIs('range.logo-areas*') ? 'on' : '' }}">Logo areas</a>
+    @php($vetCount = rescue(fn () => app(\App\Catalogue\VetQueue::class)->count(), 0, false))
+    <a href="{{ route('vet.index') }}" class="{{ request()->routeIs('vet.*') || request()->routeIs('range.changes*') || request()->routeIs('range.positions*') || request()->routeIs('range.logo-areas*') ? 'on' : '' }}">Vet @if($vetCount)<span class="pill warn small">{{ number_format($vetCount) }}</span>@endif</a>
     @if(auth()->user()->isAdmin())
       <span class="group">ADMIN ONLY</span>
       <a href="{{ route('admin.sync.index') }}" class="{{ request()->routeIs('admin.sync.*') ? 'on' : '' }}">Promodata sync</a>
-      <a href="{{ route('admin.dectypes.index') }}" class="{{ request()->routeIs('admin.dectypes.*') ? 'on' : '' }}">Decoration types</a>
       <a href="{{ route('admin.shopify-publishing.index') }}" class="{{ request()->routeIs('admin.shopify-publishing.*') ? 'on' : '' }}">Shopify publishing</a>
-      <a href="{{ route('admin.price-check.index') }}" class="{{ request()->routeIs('admin.price-check.*') ? 'on' : '' }}">Price check</a>
       <a href="{{ route('admin.search-log.index') }}" class="{{ request()->routeIs('admin.search-log.*') ? 'on' : '' }}">Search log</a>
       <a href="{{ route('admin.suppliers.index') }}" class="{{ request()->routeIs('admin.suppliers.*') ? 'on' : '' }}">Suppliers</a>
       <a href="{{ route('admin.users.index') }}" class="{{ request()->routeIs('admin.users.*') ? 'on' : '' }}">Users &amp; audit</a>

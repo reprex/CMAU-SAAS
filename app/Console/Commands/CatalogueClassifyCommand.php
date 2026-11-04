@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Catalogue\ProductOptions;
 use App\Jobs\RepriceProduct;
 use App\Models\AuditLog;
 use App\Models\DecTypeCode;
@@ -10,6 +11,7 @@ use App\Models\Product;
 use App\Models\Supplier;
 use App\Pricing\AutoClassifier;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Fill in decoration types (10/11/12/23) from the supplier rules and pages (AutoClassifier), so they
@@ -68,6 +70,14 @@ class CatalogueClassifyCommand extends Command
             $this->warn(count($sorted['mixed']).' descriptions two suppliers would type differently (left for staff): '.implode(', ', array_slice($sorted['mixed'], 0, 20)));
         }
 
+        // For the Vet screen (docs/vet.md): what disagrees and what is left, plus option lines no rule covers.
+        Cache::forever('vet:classify', [
+            'at' => now()->toIso8601String(),
+            'disagree' => array_values($sorted['disagree']),
+            'mixed' => array_values($sorted['mixed']),
+        ]);
+        Cache::forever('vet:options', ['at' => now()->toIso8601String(), 'lines' => $this->unmatchedOptions($suppliers)]);
+
         $this->newLine();
         $left = collect($sorted['left']);
         $this->info($left->pluck('code')->unique()->count().' descriptions still to classify'.($left->isEmpty() ? '.' : ', by supplier (most used on the range first):'));
@@ -80,5 +90,34 @@ class CatalogueClassifyCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Add-on lines on the range that no supplier-page rule groups (shown as Promodata words them).
+     *
+     * @param  list<int>  $suppliers
+     * @return list<array{supplier_id: int, description: string, products: int}>
+     */
+    private function unmatchedOptions(array $suppliers): array
+    {
+        $count = [];
+        $options = app(ProductOptions::class);
+        Product::query()->with('priceOptions')->where('tier', Product::TIER_LIVE)->where('discontinued', false)->whereIn('supplier_id', $suppliers)
+            ->chunkById(200, function ($chunk) use ($options, &$count) {
+                foreach ($chunk as $p) {
+                    foreach (array_unique($options->unmatched($p)) as $d) {
+                        $k = $p->supplier_id.'|'.$d;
+                        $count[$k] = ($count[$k] ?? 0) + 1;
+                    }
+                }
+            });
+        arsort($count);
+        $out = [];
+        foreach (array_slice($count, 0, 300, true) as $k => $n) {
+            [$sid, $d] = explode('|', $k, 2);
+            $out[] = ['supplier_id' => (int) $sid, 'description' => $d, 'products' => $n];
+        }
+
+        return $out;
     }
 }

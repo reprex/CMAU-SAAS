@@ -36,6 +36,11 @@ Schedule::command('catalogue:classify --apply --show=0')
     ->dailyAt('03:45')
     ->withoutOverlapping(30);
 
+// Price check from the suppliers' own pages (blank prices), before the patterns are recounted.
+Schedule::command('pricing:verify-pages')
+    ->dailyAt('03:55')
+    ->withoutOverlapping(30);
+
 // Price check: recount price patterns and screengrab examples (docs/price-check.md).
 Schedule::command('pricing:patterns')
     ->dailyAt('04:00')

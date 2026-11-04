@@ -37,6 +37,7 @@ use App\Http\Controllers\RangeController;
 use App\Http\Controllers\RelatedStyleController;
 use App\Http\Controllers\StaffConnectController;
 use App\Http\Controllers\SubstituteController;
+use App\Http\Controllers\VetController;
 use App\Http\Controllers\WebsiteOrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -127,6 +128,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/products/search', [ProductLookupController::class, 'search'])->name('products.search');
     Route::get('/products/{product}/options', [ProductLookupController::class, 'options'])->name('products.options');
     Route::get('/items/{item}/skus', [QuoteItemController::class, 'skuList'])->name('items.skus');
+    Route::get('/vet', [VetController::class, 'index'])->name('vet.index');
     Route::get('/range', [RangeController::class, 'index'])->name('range.index');
     Route::get('/range/changes', [RangeChangesController::class, 'index'])->name('range.changes');
     Route::get('/range/{product}', [RangeController::class, 'show'])->whereNumber('product')->name('range.show');
