@@ -1,5 +1,7 @@
 # CMAU-SAAS: notes for Claude
 
+- New session? Read `docs/handover.md` first: workspace set-up, release and deploy, Scott's standing rules, where requirements live.
+
 - Requirements and contracts live in `docs/`. The Shopify product shape and DecorationJSON in `docs/contracts/` are fixed: the CMAU theme is frozen, so never change what it reads.
 - Production runs on PHP 8.4 (ea-php84) and MariaDB 10.11 on cPanel. There is no SSH, and all background work runs from a one-minute cron (`routes/console.php`), so keep jobs short and batched.
 - Images are stored as public URLs only. Never commit secrets, `.env`, customer data or TOD exports.
