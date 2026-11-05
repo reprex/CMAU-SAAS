@@ -117,6 +117,11 @@ class AutoClassifier
             }
         }
         if ($kind === PriceOption::KIND_UNDECORATED) {
+            // Promodata's base price; branded when its wording says so (Trends "Branded", "Including full colour printing").
+            if (preg_match('/\bbranded\b|\bincl(?:uding|udes|\.)?\b|\bwith\b.*\b(?:print|logo|decoration)/i', $description) && ! preg_match('/\bun-?branded\b|undecorated|blank|plain/i', $description)) {
+                return [DecTypeCode::DECORATION, 'branded base price'];
+            }
+
             return [DecTypeCode::UNDECORATED, 'blank price'];
         }
         if (DecorationAreas::method($description) !== null && ! preg_match(self::NOT_A_METHOD, $description)) {
@@ -144,6 +149,11 @@ class AutoClassifier
         foreach ($plan as $row) {
             if ($row['staff']) {
                 continue; // staff set this supplier's type: left alone
+            }
+            // A general reading of the wording (not the supplier's own pages or rule) only fills a gap: a type
+            // TOD's staff set by hand stands (Trends "Resin Coated Finish" is an option, though it names resin).
+            if ($row['derived'] !== null && $row['current'] !== null && ! self::supplierSpecific((string) $row['why'])) {
+                continue;
             }
             if ($row['derived'] === null) {
                 if ($row['current'] === null) {

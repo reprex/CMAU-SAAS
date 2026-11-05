@@ -20,7 +20,8 @@ have read (an option template in `database/data/option-templates/`), in this ord
    Line packaging) stays 10;
 4. a listed production time (Dex) is 10 (12 for its blank price);
 5. a method the supplier lists as offered for its styles (Legend Life) is 10;
-6. Promodata's blank price is 12;
+6. Promodata's base price is 12 (blank), or 10 when its wording says it is branded (Trends "Branded",
+   "Including full colour printing");
 7. wording that names a branding method, or a transfer or print under a supplier's own name
    (Colourflex, DigiFlex), unless it is a charge on top (setup, sample, surcharge, additional, extra, fee,
    freight, proof…), is 10.
@@ -30,7 +31,9 @@ Rules:
 - Pricing uses the supplier's own type first, then TOD's shared table (`PriceOptionBuilder`), so
   suppliers whose pages aren't read yet (Shiny, AS Colour, JB's Wear) work as before.
 - The classifier never writes TOD's shared table; one supplier's reading never changes another's.
-- A type staff set for a supplier (`staff` = true) is left alone.
+- A type staff set for a supplier (`staff` = true) is left alone. Readings 6 and 7 are general (from the
+  wording, not the supplier's pages): they only fill a gap, and never replace a type TOD's staff set
+  (Trends "Resin Coated Finish" stays an option).
 - The output lists what changes what pricing uses now, grouped by supplier, old → new type and reason,
   and what no reading covers. `--apply` saves and reprices only the products whose type changed (queued,
   worked through by the minute cron). Nightly at 03:45: `catalogue:classify --apply --show=0`.

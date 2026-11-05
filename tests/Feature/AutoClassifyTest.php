@@ -77,4 +77,17 @@ class AutoClassifyTest extends TestCase
         $type = fn ($id) => app(PriceOptionBuilder::class)->build(Product::find($id))->firstWhere('code', '1col1pospadprint')->type_code;
         $this->assertSame([23, 10], [(int) $type(1), (int) $type(2)]); // Trends' own type; AS Colour falls back to TOD's table
     }
+
+    public function test_a_general_reading_only_fills_gaps_and_branded_base_prices_are_branding(): void
+    {
+        $this->supplier(3, 'Trends');
+        $this->lines(3, 500, [['Resin Coated Finish', 'PDADEC', 11], ['Branded', 'UNDEC', null], ['Including full colour printing', 'UNDEC', 10], ['Unbranded', 'UNDEC', 10], ['Pad Print 1 Colour', 'PDADEC', null]]);
+        Queue::fake();
+        $this->artisan('catalogue:classify', ['--supplier' => [3], '--apply' => true])->assertSuccessful();
+        $t = $this->own(3);
+        $this->assertArrayNotHasKey('resincoatedfinish', $t);   // TOD's 11 stands against a guess from the word "resin"
+        $this->assertArrayNotHasKey('unbranded', $t);           // TOD's type stands (a guess, not the supplier's pages)
+        $this->assertSame([10, 10], [$t['branded'], $t['padprint1colour']]);
+        $this->assertArrayNotHasKey('includingfullcolourprinting', $t); // TOD already says 10: nothing to change
+    }
 }
