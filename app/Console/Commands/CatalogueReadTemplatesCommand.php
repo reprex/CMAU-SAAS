@@ -38,6 +38,13 @@ class CatalogueReadTemplatesCommand extends Command
 
             return self::SUCCESS;
         }
+        if ($this->option('product') && ! $templates->canRead()) {
+            $this->error(blank(config('search.anthropic.key'))
+                ? 'No Claude key on the server: set ANTHROPIC_API_KEY in .env, then run config:cache.'
+                : 'Today\'s limit for template reads (TEMPLATE_READS_PER_DAY) is used up.');
+
+            return self::FAILURE;
+        }
         if ($id = $this->option('product')) {
             $product = Product::query()->with('supplier')->findOrFail((int) $id);
             $templates->discover($product);
