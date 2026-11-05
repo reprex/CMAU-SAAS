@@ -22,6 +22,7 @@ class CatalogueClassifyCommand extends Command
     protected $signature = 'catalogue:classify
         {--supplier=* : Only these suppliers (default: every supplier whose pages we have read)}
         {--apply : Save the types and reprice the products that use them}
+        {--replace : With --apply, also change a type already set where the supplier\'s pages or pricing rule say otherwise}
         {--show=25 : List at most this many descriptions per supplier that are still to classify}';
 
     protected $description = 'Set decoration types from the supplier rules and pages; list what disagrees and what is left';
@@ -59,11 +60,36 @@ class CatalogueClassifyCommand extends Command
         }
 
         if ($sorted['disagree'] !== []) {
+            $replaceable = collect($sorted['disagree'])->filter(fn ($d) => AutoClassifier::supplierSpecific($d['why']));
             $this->newLine();
-            $this->warn(count($sorted['disagree']).' descriptions where the type already set disagrees with the supplier (left as they are; change them in Decoration types if the supplier is right):');
-            foreach ($sorted['disagree'] as $d) {
-                $this->line("  {$d['description']}: set {$d['current']} ({$types[$d['current']]}), supplier says {$d['derived']} ({$types[$d['derived']]}) · {$d['why']} · ".($names[$d['supplier_id']] ?? $d['supplier_id']).", {$d['on_range']} on the range");
+            if ($this->option('apply') && $this->option('replace') && $replaceable->isNotEmpty()) {
+                foreach ($replaceable as $d) {
+                    $row = DecTypeCode::query()->whereKey($d['code'])->where('type_code', $d['current'])->first();
+                    if ($row) {
+                        $row->update(['type_code' => $d['derived']]);
+                        AuditLog::record('decoration_type.classified', $row, ['before' => ['type_code' => $d['current']], 'after' => ['type_code' => $d['derived']], 'why' => $d['why'].' (replaced)']);
+                    }
+                }
+                $ids = PriceOption::query()->whereIn('code', $replaceable->pluck('code'))->whereIn('product_id', Product::query()->fullDetail()->select('id'))->distinct()->pluck('product_id');
+                $ids->each(fn ($id) => RepriceProduct::dispatch((int) $id));
+                $this->info($replaceable->count()." types set before were changed to what the supplier's pages say; {$ids->count()} products are being repriced.");
+                $sorted['disagree'] = collect($sorted['disagree'])->reject(fn ($d) => AutoClassifier::supplierSpecific($d['why']))->values()->all();
             }
+        }
+        if ($sorted['disagree'] !== []) {
+            $this->warn(count($sorted['disagree']).' descriptions where the type already set disagrees with the supplier (left as they are), by supplier and reason:');
+            $groups = collect($sorted['disagree'])->groupBy(fn ($d) => ($names[$d['supplier_id']] ?? $d['supplier_id']).' · set '.$d['current'].' → supplier says '.$d['derived'].' · '.preg_replace('/^supplier pages: .*option$/', 'supplier pages: option', $d['why']));
+            foreach ($groups->sortByDesc(fn ($g) => $g->count()) as $label => $g) {
+                $this->line(sprintf('  %4d  %s  (e.g. %s)', $g->count(), $label, $g->first()['description']));
+            }
+            $this->line('  '.collect($sorted['disagree'])->filter(fn ($d) => AutoClassifier::supplierSpecific($d['why']))->count().' of them come from the supplier\'s pages or pricing rule: --apply --replace changes those to match.');
+            foreach (collect($sorted['disagree'])->sortByDesc('on_range')->take((int) $this->option('show')) as $d) {
+                $this->line("    {$d['description']}: set {$d['current']} ({$types[$d['current']]}), supplier says {$d['derived']} ({$types[$d['derived']]}) · {$d['why']} · {$d['on_range']} on the range");
+            }
+        }
+        if ($sorted['shared'] !== []) {
+            $this->newLine();
+            $this->line(count($sorted['shared']).' descriptions other suppliers use too were left as they are: one supplier\'s own pages or pricing rule never sets a shared type (that supplier\'s products follow its rule anyway).');
         }
         if ($sorted['mixed'] !== []) {
             $this->newLine();
