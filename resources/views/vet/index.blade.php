@@ -120,6 +120,7 @@
   @if($s['summary'])
     <p class="small" style="margin:0">{{ number_format($s['summary']['mockup']) }} with a mockup from a template or staff · {{ number_format($s['summary']['garment']) }} garments to scale · <b>{{ number_format($s['summary']['guide']) }} guide card only</b>
       @if($s['by_supplier'])<span class="muted">({{ collect($s['by_supplier'])->map(fn ($n, $k) => $k.' '.number_format($n))->implode(', ') }})</span>@endif</p>
+    @if(($s['photos']['checked'] ?? 0) > 0)<p class="small" style="margin:6px 0 0"><span class="muted">Photos checked for example branding:</span> {{ number_format($s['photos']['checked']) }} · {{ number_format($s['photos']['branded']) }} with branding · {{ number_format($s['photos']['unusable']) }} not used for mockups (large or textured, or could not be checked); small branding in a print area is painted over.</p>@endif
     @if($s['garments'])<p class="small" style="margin:6px 0 0"><span class="muted">Garments with no size chart in the supplier data:</span>
       @foreach($s['garments'] as $g)<a href="{{ route('range.show', $g->id) }}">{{ $g->name }}</a>@if(! $loop->last), @endif @endforeach</p>@endif
   @else

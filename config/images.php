@@ -27,4 +27,16 @@ return [
         'per_day' => (int) env('TEMPLATE_READS_PER_DAY', 5000),
         'max_tokens' => 4000, // up to 12 positions, each with methods, a box and four corners
     ],
+
+    /*
+    | Example branding on the colour photos a mockup is drawn on (docs/branding-templates.md, "Photos with
+    | example branding"). Each photo once; its own daily limit, separate from the image check.
+    */
+    'branding' => [
+        'enabled' => (bool) env('PHOTO_BRANDING_CHECK', env('IMAGE_CHECK', false)),
+        'model' => env('ANTHROPIC_IMAGE_MODEL', 'claude-haiku-5-5'),
+        'timeout' => 60,
+        'images_per_request' => 16,
+        'per_day' => (int) env('PHOTO_BRANDING_PER_DAY', 20000),
+    ],
 ];

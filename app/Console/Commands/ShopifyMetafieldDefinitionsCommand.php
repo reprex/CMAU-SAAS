@@ -31,6 +31,7 @@ class ShopifyMetafieldDefinitionsCommand extends Command
         ['PRODUCT', 'custom', 'supplierproductcode', 'single_line_text_field', 'Supplier product code', "The supplier's product code alone, e.g. 5001 (title chip; never the supplier name)"],
         ['PRODUCT', 'custom', 'printarea', 'json', 'Logo area', 'Where the logo goes on the hero image (percent)'],
         ['PRODUCT', 'custom', 'brandingpositions', 'json', 'Branding positions', 'From the supplier template, else Promodata decoration print areas, else the type default: name, view, methods, max size, box on the picture'],
+        ['PRODUCT', 'custom', 'mockupphotos', 'json', 'Mockup photos', 'Per colour and side: whether its photo can carry a logo mockup (ok, skip, or example branding to paint over first)'],
         ['PRODUCT', 'custom', 'mockupgarment', 'single_line_text_field', 'Mockup garment size', 'Size chart chest width for the mockup, size:cm laid flat, e.g. L:56'],
         ['PRODUCT', 'custom', 'sizeguide', 'json', 'Size guide', 'Fit, measurements per size (cm) and the supplier size chart picture or link'],
         ['PRODUCT', 'custom', 'hasbrandingtemplate', 'boolean', 'Branding template available', 'A supplier branding template is available: sent with the quote or invoice email, never linked (docs/branding-templates.md)'],

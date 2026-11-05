@@ -70,6 +70,11 @@ Schedule::command('catalogue:logo-areas')
     ->everyTenMinutes()
     ->withoutOverlapping(10);
 
+// Example branding on mockup photos: each colour photo a mockup could use, checked once (docs/branding-templates.md).
+Schedule::command('catalogue:check-branding --products=12 --parallel=5 --seconds=45')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
 // Supplier branding templates: find them, and read up to 20 a minute, 5 at a time (docs/branding-templates.md).
 Schedule::command('catalogue:read-templates --limit=20 --parallel=5 --seconds=50')
     ->everyMinute()
