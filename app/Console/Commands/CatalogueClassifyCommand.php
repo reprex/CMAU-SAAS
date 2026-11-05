@@ -5,27 +5,27 @@ namespace App\Console\Commands;
 use App\Catalogue\ProductOptions;
 use App\Jobs\RepriceProduct;
 use App\Models\AuditLog;
-use App\Models\DecTypeCode;
 use App\Models\PriceOption;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Models\SupplierDecType;
 use App\Pricing\AutoClassifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Fill in decoration types (10/11/12/23) from the supplier rules and pages (AutoClassifier), so they
- * are never assigned by hand. Nightly with --apply; without it, shows what it would do.
+ * Each supplier's decoration types (10/11/12/23) from its own pages and rules (AutoClassifier), saved per
+ * supplier so they are never assigned by hand and one supplier never changes another's. Nightly with
+ * --apply; without it, shows what it would do.
  */
 class CatalogueClassifyCommand extends Command
 {
     protected $signature = 'catalogue:classify
         {--supplier=* : Only these suppliers (default: every supplier whose pages we have read)}
-        {--apply : Save the types and reprice the products that use them}
-        {--replace : With --apply, also change a type already set where the supplier\'s pages or pricing rule say otherwise}
-        {--show=25 : List at most this many descriptions per supplier that are still to classify}';
+        {--apply : Save the types for each supplier and reprice the products whose type changes}
+        {--show=10 : List at most this many changes and this many untyped descriptions per supplier}';
 
-    protected $description = 'Set decoration types from the supplier rules and pages; list what disagrees and what is left';
+    protected $description = 'Set each supplier\'s decoration types from its own pages and rules; list what changes and what is left';
 
     public function handle(AutoClassifier $classifier): int
     {
@@ -33,84 +33,51 @@ class CatalogueClassifyCommand extends Command
         $names = Supplier::query()->whereIn('id', $suppliers)->pluck('name', 'id');
         $sorted = $classifier->sort($classifier->plan($suppliers));
         $types = [10 => 'decoration', 11 => 'option', 12 => 'undecorated', 23 => 'hidden'];
+        $show = (int) $this->option('show');
 
-        $byType = collect($sorted['fill'])->countBy('type')->sortKeys()->map(fn ($n, $t) => "{$n} {$types[$t]}")->implode(', ');
-        $this->info(count($sorted['fill']).' descriptions to fill in'.($byType ? " ({$byType})" : '').'.');
+        $set = collect($sorted['set']);
+        $changes = collect($sorted['changes']);
+        $this->info(number_format($set->count()).' descriptions typed from the suppliers\' own pages and rules ('
+            .$set->countBy('derived')->sortKeys()->map(fn ($n, $t) => "{$n} {$types[$t]}")->implode(', ').'), saved per supplier.');
+        $this->info(number_format($changes->count()).' of them change what pricing uses now (from a type TOD set, or none), by supplier and reason:');
+        foreach ($changes->groupBy(fn ($c) => ($names[$c['supplier_id']] ?? $c['supplier_id']).' · '.($c['current'] === null ? 'none' : $c['current']).' → '.$c['derived'].' · '.preg_replace('/^supplier pages: .*option$/', 'supplier pages: option', (string) $c['why']))
+            ->sortByDesc(fn ($g) => $g->count()) as $label => $g) {
+            $this->line(sprintf('  %4d  %s  (e.g. %s)', $g->count(), $label, $g->sortByDesc('on_range')->first()['description']));
+        }
+        foreach ($changes->sortByDesc('on_range')->take($show) as $c) {
+            $this->line("    {$c['description']}: ".($c['current'] === null ? 'none' : $types[$c['current']])." → {$types[$c['derived']]} · {$c['why']} · ".($names[$c['supplier_id']] ?? '').", {$c['on_range']} on the range");
+        }
 
-        $repriced = 0;
-        if ($this->option('apply') && $sorted['fill'] !== []) {
-            foreach ($sorted['fill'] as $code => $f) {
-                $row = DecTypeCode::query()->whereKey($code)->whereNull('type_code')->first();
-                if (! $row) {
-                    continue;
-                }
-                $row->update(['type_code' => $f['type']]);
-                AuditLog::record('decoration_type.classified', $row, ['before' => ['type_code' => null], 'after' => ['type_code' => $f['type']], 'why' => $f['why']]);
+        if ($this->option('apply')) {
+            $now = now();
+            foreach ($set->chunk(500) as $chunk) {
+                SupplierDecType::query()->upsert($chunk->map(fn ($r) => ['supplier_id' => $r['supplier_id'], 'code' => $r['code'], 'type_code' => $r['derived'],
+                    'why' => mb_substr((string) $r['why'], 0, 160), 'staff' => false, 'created_at' => $now, 'updated_at' => $now])->values()->all(),
+                    ['supplier_id', 'code'], ['type_code', 'why', 'updated_at']);
             }
-            $ids = PriceOption::query()->whereIn('code', array_keys($sorted['fill']))
-                ->whereIn('product_id', Product::query()->fullDetail()->select('id'))->distinct()->pluck('product_id');
-            $ids->each(fn ($id) => RepriceProduct::dispatch((int) $id));
-            $repriced = $ids->count();
-            $this->info("Saved. {$repriced} products using them are being repriced (the minute cron works through them).");
-        } elseif ($sorted['fill'] !== []) {
-            foreach (array_slice($sorted['fill'], 0, 15, true) as $code => $f) {
-                $this->line("  {$types[$f['type']]}: {$f['description']}  ({$f['why']})");
+            $ids = collect();
+            foreach ($changes->groupBy('supplier_id') as $sid => $rows) {
+                $ids = $ids->merge(PriceOption::query()->whereIn('code', $rows->pluck('code')->all())
+                    ->whereIn('product_id', Product::query()->fullDetail()->where('supplier_id', (int) $sid)->select('id'))->distinct()->pluck('product_id'));
             }
+            $ids->unique()->each(fn ($id) => RepriceProduct::dispatch((int) $id));
+            AuditLog::record('decoration_type.classified', null, ['suppliers' => $suppliers, 'typed' => $set->count(), 'changed' => $changes->count(), 'repriced' => $ids->unique()->count()]);
+            $this->info("Saved. {$ids->unique()->count()} products whose type changed are being repriced (the minute cron works through them).");
+        } elseif ($changes->isNotEmpty()) {
             $this->line('Run again with --apply to save them.');
         }
 
-        if ($sorted['disagree'] !== []) {
-            $replaceable = collect($sorted['disagree'])->filter(fn ($d) => AutoClassifier::supplierSpecific($d['why']));
-            $this->newLine();
-            if ($this->option('apply') && $this->option('replace') && $replaceable->isNotEmpty()) {
-                foreach ($replaceable as $d) {
-                    $row = DecTypeCode::query()->whereKey($d['code'])->where('type_code', $d['current'])->first();
-                    if ($row) {
-                        $row->update(['type_code' => $d['derived']]);
-                        AuditLog::record('decoration_type.classified', $row, ['before' => ['type_code' => $d['current']], 'after' => ['type_code' => $d['derived']], 'why' => $d['why'].' (replaced)']);
-                    }
-                }
-                $ids = PriceOption::query()->whereIn('code', $replaceable->pluck('code'))->whereIn('product_id', Product::query()->fullDetail()->select('id'))->distinct()->pluck('product_id');
-                $ids->each(fn ($id) => RepriceProduct::dispatch((int) $id));
-                $this->info($replaceable->count()." types set before were changed to what the supplier's pages say; {$ids->count()} products are being repriced.");
-                $sorted['disagree'] = collect($sorted['disagree'])->reject(fn ($d) => AutoClassifier::supplierSpecific($d['why']))->values()->all();
-            }
-        }
-        if ($sorted['disagree'] !== []) {
-            $this->warn(count($sorted['disagree']).' descriptions where the type already set disagrees with the supplier (left as they are), by supplier and reason:');
-            $groups = collect($sorted['disagree'])->groupBy(fn ($d) => ($names[$d['supplier_id']] ?? $d['supplier_id']).' · set '.$d['current'].' → supplier says '.$d['derived'].' · '.preg_replace('/^supplier pages: .*option$/', 'supplier pages: option', $d['why']));
-            foreach ($groups->sortByDesc(fn ($g) => $g->count()) as $label => $g) {
-                $this->line(sprintf('  %4d  %s  (e.g. %s)', $g->count(), $label, $g->first()['description']));
-            }
-            $this->line('  '.collect($sorted['disagree'])->filter(fn ($d) => AutoClassifier::supplierSpecific($d['why']))->count().' of them come from the supplier\'s pages or pricing rule: --apply --replace changes those to match.');
-            foreach (collect($sorted['disagree'])->sortByDesc('on_range')->take((int) $this->option('show')) as $d) {
-                $this->line("    {$d['description']}: set {$d['current']} ({$types[$d['current']]}), supplier says {$d['derived']} ({$types[$d['derived']]}) · {$d['why']} · {$d['on_range']} on the range");
-            }
-        }
-        if ($sorted['shared'] !== []) {
-            $this->newLine();
-            $this->line(count($sorted['shared']).' descriptions other suppliers use too were left as they are: one supplier\'s own pages or pricing rule never sets a shared type (that supplier\'s products follow its rule anyway).');
-        }
-        if ($sorted['mixed'] !== []) {
-            $this->newLine();
-            $this->warn(count($sorted['mixed']).' descriptions two suppliers would type differently (left for staff): '.implode(', ', array_slice($sorted['mixed'], 0, 20)));
-        }
-
-        // For the Vet screen (docs/vet.md): what disagrees and what is left, plus option lines no rule covers.
-        Cache::forever('vet:classify', [
-            'at' => now()->toIso8601String(),
-            'disagree' => array_values($sorted['disagree']),
-            'mixed' => array_values($sorted['mixed']),
-        ]);
+        // For the Vet screen (docs/vet.md): what is left, plus option lines no rule covers.
+        Cache::forever('vet:classify', ['at' => now()->toIso8601String(), 'left' => collect($sorted['left'])->sortByDesc('on_range')->take(300)->values()->all()]);
         Cache::forever('vet:options', ['at' => now()->toIso8601String(), 'lines' => $this->unmatchedOptions($suppliers)]);
 
         $this->newLine();
         $left = collect($sorted['left']);
-        $this->info($left->pluck('code')->unique()->count().' descriptions still to classify'.($left->isEmpty() ? '.' : ', by supplier (most used on the range first):'));
+        $this->info($left->count().' descriptions no reading covers yet'.($left->isEmpty() ? '.' : ', by supplier (most used on the range first):'));
         foreach ($left->groupBy('supplier_id') as $sid => $rows) {
             $rows = $rows->sortByDesc('on_range')->values();
             $this->line(($names[$sid] ?? "Supplier {$sid}").': '.$rows->count());
-            foreach ($rows->take((int) $this->option('show')) as $r) {
+            foreach ($rows->take($show) as $r) {
                 $this->line("  {$r['description']}  ({$r['on_range']} on the range, {$r['products']} in all)");
             }
         }

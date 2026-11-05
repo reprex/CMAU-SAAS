@@ -8,6 +8,7 @@ use App\Models\PriceOption;
 use App\Models\PriceOptionSetting;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Models\SupplierDecType;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -19,7 +20,8 @@ use RuntimeException;
  *  1. Each price line becomes an option keyed "APPAID-code", where the code is
  *     the description in lower-case letters and digits. Lines sharing a code
  *     are merged (the first line's setup and description are kept).
- *  2. The code is looked up in dec_type_codes (TOD: DecTypeCode). The unit
+ *  2. The code is looked up per supplier in supplier_dec_types (read from the supplier's own pages
+ *     and rules, docs/decoration-types.md), else in dec_type_codes (TOD: DecTypeCode). The unit
  *     markup is SupplierMarkupDec for type 10, SupplierMarkupUnDec for 12 and
  *     SupplierMarkupAcc for anything else (including unclassified codes).
  *     New codes are added to dec_type_codes unclassified, for staff to review.
@@ -52,6 +54,7 @@ class PriceOptionBuilder
 
         $groups = $this->groupByCode($lines);
         $types = $this->typeCodes($groups, $product, $supplier);
+        $supplierTypes = SupplierDecType::forSupplier($product->supplier_id); // per supplier, from its pages (docs/decoration-types.md)
         $settings = PriceOptionSetting::query()->where('product_id', $product->id)->get()->keyBy('option_id');
         $rules = SupplierRules::for($product->supplier_id);
         $moqOne = (bool) $product->overrideValue('moq_one', false);
@@ -62,7 +65,7 @@ class PriceOptionBuilder
             /** @var PriceLine $first */
             $first = $group[0];
             $type = $types->get($code);
-            $tableType = $type?->type_code;
+            $tableType = $supplierTypes[(string) $code] ?? $type?->type_code;
             $markup = $this->unitMarkup($rules->markupType() ?? $tableType, $supplier);
             $optionId = $product->id.'-'.$code;
 

@@ -179,6 +179,7 @@ return array(
     'App\\Models\\SearchLog' => $baseDir . '/app/Models/SearchLog.php',
     'App\\Models\\ShopifyDraftOrder' => $baseDir . '/app/Models/ShopifyDraftOrder.php',
     'App\\Models\\Supplier' => $baseDir . '/app/Models/Supplier.php',
+    'App\\Models\\SupplierDecType' => $baseDir . '/app/Models/SupplierDecType.php',
     'App\\Models\\SupplierFreightRate' => $baseDir . '/app/Models/SupplierFreightRate.php',
     'App\\Models\\SyncRun' => $baseDir . '/app/Models/SyncRun.php',
     'App\\Models\\User' => $baseDir . '/app/Models/User.php',

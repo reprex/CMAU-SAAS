@@ -722,6 +722,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Models\\SearchLog' => __DIR__ . '/../..' . '/app/Models/SearchLog.php',
         'App\\Models\\ShopifyDraftOrder' => __DIR__ . '/../..' . '/app/Models/ShopifyDraftOrder.php',
         'App\\Models\\Supplier' => __DIR__ . '/../..' . '/app/Models/Supplier.php',
+        'App\\Models\\SupplierDecType' => __DIR__ . '/../..' . '/app/Models/SupplierDecType.php',
         'App\\Models\\SupplierFreightRate' => __DIR__ . '/../..' . '/app/Models/SupplierFreightRate.php',
         'App\\Models\\SyncRun' => __DIR__ . '/../..' . '/app/Models/SyncRun.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
