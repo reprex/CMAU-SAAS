@@ -46,7 +46,7 @@ final class DecorationAreas
         'doming' => ['Resin dome', '/resin|doming|\bdome[ds]?\b/i'],
         'offset' => ['Offset print', '/\boffset\b|\blitho/i'],
         'deboss' => ['Deboss / emboss', '/deboss|emboss/i'],
-        'foil' => ['Foil stamp', '/\bfoil/i'],
+        'foil' => ['Foil stamp', '/\bfoil|hot[\s-]*stamp/i'],
         'heat_transfer' => ['Heat transfer', '/heat[\s-]*(?:press|transfer)|\bvinyl\b|\bhtv\b/i'],
         'digital' => ['Full colour digital', '/full[\s-]*colou?r|\bdigital|\buv\b|\bcmyk\b|4\s*colou?r process|\b4cp\b|direct print|\bdtg\b/i'],
     ];
