@@ -82,20 +82,30 @@ class BrandingTemplates
         return $ok ? BrandingTemplate::query()->create(['product_id' => $product->id, 'url' => $url, 'source' => 'supplier']) : null;
     }
 
-    /** The picture that shows a view: hero for the front; for the back an image Claude or the file name marked as a back view. */
+    /**
+     * The picture a print area is placed on: a colour photo, because mockups are only drawn on colour photos
+     * (Scott, 2 Nov 2026) and a box placed on the hero or a style photo wouldn't line up on them (5 Nov).
+     * Front: a colour's own photo (one that also has a second photo, if any does); back: that colour's
+     * other photo, as the product page uses. Suppliers shoot every colour the same way, so one placement
+     * serves them all. No colour photo: null, and the template gives positions and sizes only (guide cards).
+     */
     public function pictureFor(Product $product, string $view): ?string
     {
         $tags = $this->images->tags($product->loadMissing(['images', 'colours', 'override']));
-        if ($view === 'front') {
-            return $tags->firstWhere('role', ImageTagger::HERO_STYLE)['url'] ?? null;
+        $colours = $tags->where('role', ImageTagger::COLOUR)->filter(fn ($t) => filled($t['colour'] ?? null))->values();
+        if ($colours->isEmpty()) {
+            return null;
         }
-        $style = $tags->where('role', ImageTagger::OTHER_STYLE);
+        $others = $tags->where('role', ImageTagger::OTHER_COLOUR)->filter(fn ($t) => filled($t['colour'] ?? null))->groupBy('colour');
+        $pick = $colours->first(fn ($t) => isset($others[$t['colour']])) ?? $colours->first();
 
-        return $style->first(fn ($t) => preg_match('/\b'.$view.'\b/i', str_replace(['_', '-'], ' ', basename((string) parse_url($t['url'], PHP_URL_PATH))))
-            || (($t['seen']['note'] ?? '') && stripos((string) $t['seen']['note'], $view) !== false))['url'] ?? null;
+        return match ($view) {
+            'front' => $pick['url'],
+            'back' => ($others[$pick['colour']] ?? collect())->first()['url'] ?? null,
+            default => null,
+        };
     }
 
-    /** Read one template with Claude. Returns how many positions were found. */
     public function read(BrandingTemplate $template): int
     {
         return $this->readMany([$template])[$template->id] ?? 0;
