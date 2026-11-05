@@ -72,4 +72,10 @@ fi
 "$PHP" artisan route:cache
 "$PHP" artisan view:cache
 "$PHP" artisan up
+
+# Phone shortcut (Scott, 5 Nov 2026): typing just  st  in cPanel's Terminal shows the status (saas:status).
+# Added once to ~/.bashrc, and only if it isn't there already.
+if ! grep -q "alias st=" "$ACCOUNT_HOME/.bashrc" 2>/dev/null; then
+  echo "alias st='sh \$HOME/saas-app/st'  # CMAU SaaS status (added by deploy)" >> "$ACCOUNT_HOME/.bashrc"
+fi
 echo "=== done"
