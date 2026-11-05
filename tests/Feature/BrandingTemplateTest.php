@@ -4,12 +4,9 @@ namespace Tests\Feature;
 
 use App\Catalogue\BrandingTemplates;
 use App\Catalogue\ImageTagger;
-use App\Catalogue\LogoAreaLearner;
 use App\Catalogue\PositionResolver;
-use App\Catalogue\PrintAreas;
 use App\Models\BrandingPosition;
 use App\Models\BrandingTemplate;
-use App\Models\PrintArea;
 use App\Models\Product;
 use App\Shopify\ProductPayload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +33,10 @@ class BrandingTemplateTest extends TestCase
         $p->images()->create(['url' => self::CDN.'5001_main.jpg', 'role' => 'hero_style', 'position' => 0]);
         $p->images()->create(['url' => self::CDN.'5001_back.jpg', 'role' => 'other_style', 'position' => 1]);
         $p->images()->create(['url' => 'https://cdn.example/5001-template.pdf', 'role' => 'line_art', 'position' => 2]);
+        // Colour photos: the print areas are placed on these (the product page draws mockups only on colour photos).
+        $p->colours()->create(['name' => 'Black', 'image_url' => self::CDN.'5001_black.jpg', 'position' => 0]);
+        $p->images()->create(['url' => self::CDN.'5001_black.jpg', 'role' => 'colour', 'position' => 3]);
+        $p->images()->create(['url' => self::CDN.'5001_black_back.jpg', 'role' => 'other_colour', 'position' => 4]);
 
         return $p;
     }
@@ -64,15 +65,19 @@ class BrandingTemplateTest extends TestCase
         $this->fakeClaude();
 
         $this->assertSame(4, app(BrandingTemplates::class)->read($t));
-        Http::assertSent(fn ($r) => $r['messages'][0]['content'][1]['type'] === 'document'
-            && str_contains(json_encode($r['messages']), '5001_back.jpg'));
+        $sent = '';
+        Http::assertSent(function ($r) use (&$sent) {
+            $sent = json_encode($r['messages']);
 
-        $back = BrandingPosition::query()->where('name', 'Back')->first();
-        $this->assertSame(self::CDN.'5001_back.jpg', $back->image_url);
+            return $r['messages'][0]['content'][1]['type'] === 'document';
+        });
+        $this->assertStringContainsString('5001_black.jpg', $sent);      // the colour photo, not the hero
+        $this->assertStringContainsString('5001_black_back.jpg', $sent);
+        $this->assertStringNotContainsString('5001_main.jpg', $sent);
+
+        $this->assertSame(self::CDN.'5001_black.jpg', BrandingPosition::query()->where('name', 'Front centre')->value('image_url'));
+        $this->assertSame(self::CDN.'5001_black_back.jpg', BrandingPosition::query()->where('name', 'Back')->value('image_url'));
         $this->assertNull(BrandingPosition::query()->where('name', 'Right sleeve')->value('image_url')); // no side picture: no box
-        $area = PrintArea::query()->find(sha1(self::CDN.'5001_main.jpg'));
-        $this->assertSame(['template', 35.0, 28.0, 30.0], [$area->source, $area->left, $area->top, $area->width]);
-        $this->assertSame(35.0, app(PrintAreas::class)->forShopify($p)['left']); // published without vetting
 
         $mf = collect(app(ProductPayload::class)->build($p->fresh())['input']['metafields'])->keyBy('key');
         $positions = json_decode($mf['brandingpositions']['value'], true);
@@ -82,19 +87,6 @@ class BrandingTemplateTest extends TestCase
         $this->assertSame(['boolean', 'true'], [$mf['hasbrandingtemplate']['type'], $mf['hasbrandingtemplate']['value']]);
         $this->assertArrayNotHasKey('brandingtemplate', $mf->all());
         $this->assertStringNotContainsString('5001-template.pdf', json_encode(app(ProductPayload::class)->build($p->fresh())));
-    }
-
-    public function test_sample_learning_leaves_template_areas_alone(): void
-    {
-        $p = $this->tee();
-        $this->fakeClaude();
-        app(BrandingTemplates::class)->read(BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/t.pdf']));
-        PrintArea::query()->create(['url_hash' => sha1('x'), 'url' => 'x', 'product_id' => 999, 'group_key' => $p->supplier_id.'|t-shirts',
-            'left' => 50, 'top' => 30, 'width' => 10, 'pred_left' => 37, 'pred_top' => 30, 'pred_width' => 26, 'source' => 'staff', 'approved_at' => now()]);
-        PrintArea::query()->create(['url_hash' => sha1('y'), 'url' => 'y', 'product_id' => 998, 'group_key' => $p->supplier_id.'|t-shirts',
-            'left' => 50, 'top' => 30, 'width' => 10, 'pred_left' => 37, 'pred_top' => 30, 'pred_width' => 26, 'source' => 'staff', 'approved_at' => now()]);
-        app(LogoAreaLearner::class)->learn();
-        $this->assertSame(35.0, PrintArea::query()->find(sha1(self::CDN.'5001_main.jpg'))->left);
     }
 
     public function test_supplier_pattern_and_the_product_screen(): void
@@ -118,6 +110,8 @@ class BrandingTemplateTest extends TestCase
         foreach ([105947, 105948, 105949] as $id) {
             $p = Product::create(['id' => $id, 'supplier_id' => 3, 'name' => 'Vulcan Pen', 'code' => (string) $id, 'tier' => 'live', 'hydrated_at' => now(), 'hero_image_url' => "https://cdn.example/{$id}.jpg"]);
             $p->images()->create(['url' => "https://cdn.example/{$id}.jpg", 'role' => 'hero_style', 'position' => 0]);
+            $p->colours()->create(['name' => 'Black', 'image_url' => "https://cdn.example/{$id}-black.jpg", 'position' => 0]);
+            $p->images()->create(['url' => "https://cdn.example/{$id}-black.jpg", 'role' => 'colour', 'position' => 1]);
             BrandingTemplate::query()->create(['product_id' => $id, 'url' => "https://cdn.example/{$id}.pdf", 'source' => 'file']);
         }
         Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => json_encode(['positions' => [

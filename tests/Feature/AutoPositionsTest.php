@@ -113,7 +113,7 @@ class AutoPositionsTest extends TestCase
         $back = collect($positions['Back']['method_areas'])->keyBy('method');
         $this->assertSame([280, 350], $back['screen']['max_mm']);
         $this->assertSame([80, 100], $back['embroidery']['max_mm']); // a print area isn't an embroidery size: capped at 100 × 100
-        $this->assertSame('https://res.cloudinary.com/promodata/as-colour/5001_back.jpg', $positions['Back']['image']);
+        $this->assertNull($positions['Back']['image'] ?? null); // no colour photo of the back: the product page shows a guide card
         // Methods with no size (screen print here has none of its own on the front) are still offered.
         $this->assertContains('Embroidery', $positions['Front']['methods']);
     }
@@ -128,7 +128,7 @@ class AutoPositionsTest extends TestCase
 
         $positions = app(PositionResolver::class)->forShopify($p);
         $this->assertSame(['Front panel', 'template'], [$positions[0]['name'], $positions[0]['source']]);
-        $this->assertSame(30.0, app(PrintAreas::class)->forShopify($p)['left']);
+        $this->assertArrayNotHasKey('left', $positions[0]); // no colour photo: positions and sizes only, no box (guide card)
 
         $user = $this->staff('sales');
         app(PrintAreas::class)->approve($p, 20, 25, 30, $user->id);

@@ -93,3 +93,12 @@ folder or zip with `catalogue:import-templates` (as for Dex, Trends and Logo Lin
 Legend Life (57), 5 Nov: 317 technical drawings (280 from the 3 Nov page read, 38 found at Legend
 Life's standard file address for products whose page wasn't reached; 3 of those are line drawings named
 "_LD"). About 270 range products, mostly garments, have no technical drawing on the site.
+
+## Which photo the print areas are placed on (Scott, 5 Nov 2026)
+
+Mockups are only drawn on colour photos (Scott, 2 Nov; kept on 5 Nov: "keep the rule"), so Claude places
+each print area on a **colour photo**, never the hero or a style photo, which are framed differently:
+front = a colour's own photo (one that also has a second photo, if any does), back = that colour's
+other photo, as the product page uses. Suppliers shoot every colour the same way, so one placement serves
+all colours. A product with no colour photo gets its positions, methods and sizes from the template but
+no box: guide cards on the product page (e.g. the Forya Bamboo Pen, 8442).
