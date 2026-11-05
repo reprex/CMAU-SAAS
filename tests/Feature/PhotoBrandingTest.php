@@ -129,4 +129,13 @@ class PhotoBrandingTest extends TestCase
         $this->assertSame(self::CDN.'navy.jpg', BrandingPosition::query()->where('product_id', $p->id)->value('image_url'));
         $this->assertSame(3, PhotoBranding::query()->count()); // checked before the read
     }
+
+    public function test_only_failed_templates_are_queued_again(): void
+    {
+        $p = $this->pen();
+        BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/a.pdf', 'source' => 'promodata', 'status' => 'failed', 'message' => 'Claude reply was not usable: reply cut off (too long)']);
+        BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/b.pdf', 'source' => 'promodata', 'status' => 'read']);
+        $this->artisan('catalogue:read-templates', ['--retry-failed' => true])->expectsOutputToContain('1 failed templates')->assertSuccessful();
+        $this->assertSame(['new', 'read'], BrandingTemplate::query()->orderBy('url')->pluck('status')->all());
+    }
 }

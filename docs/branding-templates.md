@@ -112,6 +112,10 @@ when no chosen position has a mockup do they show guide cards. A position
 whose print area isn't visible on the photo, or that Claude isn't confident about, also gets the guide
 card.
 
+Reply length (5 Nov 2026): Sonnet's replies can be long, so a read allows up to 16,000 output tokens
+(`TEMPLATE_MAX_TOKENS`); at 4,000, 6 of the first 45 were cut off. `catalogue:read-templates --retry-failed`
+queues only the failed templates again.
+
 ## Photos with example branding (Scott, 5 Nov 2026)
 
 "A colour photo that is also the hero counts as a colour photo, but only if there is no example branding
