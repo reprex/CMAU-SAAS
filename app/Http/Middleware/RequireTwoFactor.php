@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Auth\DeviceTrust;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +28,11 @@ class RequireTwoFactor
             return redirect()->route('two-factor.setup');
         }
         if ($request->session()->get('two_factor_passed') !== $user->id) {
-            return redirect()->route('two-factor.challenge');
+            // A device trusted in the last 30 days skips the code (the password was still needed for this session).
+            if (! DeviceTrust::passes($request, $user)) {
+                return redirect()->route('two-factor.challenge');
+            }
+            $request->session()->put('two_factor_passed', $user->id);
         }
 
         return $next($request);

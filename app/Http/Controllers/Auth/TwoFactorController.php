@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Auth\DeviceTrust;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
@@ -61,6 +62,9 @@ class TwoFactorController extends Controller
         $this->verify($request, (string) $request->user()->two_factor_secret);
         $request->session()->regenerate();
         $request->session()->put('two_factor_passed', $request->user()->id);
+        if ($request->boolean('trust')) {
+            DeviceTrust::remember($request, $request->user());
+        }
 
         return redirect()->intended(url('/'));
     }

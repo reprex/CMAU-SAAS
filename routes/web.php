@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ShopifyPublishingController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasskeyController;
 use App\Http\Controllers\Auth\SetupController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\BrandingTemplateController;
@@ -106,6 +107,8 @@ Route::post('/setup', [SetupController::class, 'store']);
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
+    Route::get('/login/passkey/options', [PasskeyController::class, 'loginOptions'])->name('passkey.login.options');
+    Route::post('/login/passkey', [PasskeyController::class, 'login'])->name('passkey.login');
 });
 
 Route::middleware('auth')->group(function () {
@@ -120,6 +123,11 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'two-factor', 'division'])->group(function () {
     Route::get('/', [DivisionController::class, 'home']);
+    Route::get('/security', [PasskeyController::class, 'security'])->name('security');
+    Route::get('/security/passkeys/options', [PasskeyController::class, 'registerOptions'])->name('passkeys.options');
+    Route::post('/security/passkeys', [PasskeyController::class, 'register'])->name('passkeys.store');
+    Route::delete('/security/passkeys/{passkey}', [PasskeyController::class, 'destroy'])->name('passkeys.destroy');
+    Route::delete('/security/devices/{device}', [PasskeyController::class, 'forgetDevice'])->name('devices.destroy');
 
     // Divisions and the shared modules (docs/divisions.md).
     Route::get('/division/{division}', [DivisionController::class, 'switch'])->name('division.switch');

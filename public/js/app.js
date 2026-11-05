@@ -274,7 +274,7 @@ document.addEventListener('change', (e) => {
 
 // Selects marked data-autosubmit submit their form when changed (e.g. Add a whole supplier).
 document.addEventListener('change', (e) => {
-  const sel = e.target.closest('select[data-autosubmit]');
+  const sel = e.target.closest('select[data-autosubmit], input[data-autosubmit]');
   if (sel && sel.form) sel.form.submit();
 });
 
