@@ -78,27 +78,37 @@ class TemplateFiles
     public function importUrl(Product $product, string $url, array &$out): void
     {
         $name = $this->safe($product->code.' '.preg_replace('/^'.preg_quote((string) $product->code, '/').'[_ -]*/i', '', rawurldecode(basename((string) parse_url($url, PHP_URL_PATH)))));
+        // Streamed to a temporary file, never held in memory (a supplier's file can be 150 MB); a file over the
+        // limit is skipped before it downloads (it couldn't be read for positions or attached to an email anyway).
+        $max = self::MAX_FETCH_MB * 1048576;
+        $tmp = tempnam(sys_get_temp_dir(), 'tpl');
         try {
-            $r = Http::timeout(60)->withHeaders(['User-Agent' => 'CrowdMerch SaaS (branding templates)'])->get($url);
+            $r = Http::timeout(120)->withHeaders(['User-Agent' => 'CrowdMerch SaaS (branding templates)'])
+                ->withOptions(['sink' => $tmp, 'on_headers' => function ($response) use ($max) {
+                    if ((int) $response->getHeaderLine('Content-Length') > $max) {
+                        throw new \RuntimeException('over '.self::MAX_FETCH_MB.' MB');
+                    }
+                }])->get($url);
         } catch (Throwable $e) {
-            $out['unmatched'][] = $name.' (could not be fetched: '.mb_substr($e->getMessage(), 0, 80).')';
+            @unlink($tmp);
+            $out['unmatched'][] = $name.(str_contains($e->getMessage(), ' MB') ? ' (file over '.self::MAX_FETCH_MB.' MB: skipped)' : ' (could not be fetched: '.mb_substr($e->getMessage(), 0, 80).')');
 
             return;
         }
-        if (! $r->successful() || ! str_starts_with($r->body(), '%PDF')) {
-            $out['unmatched'][] = $name.' (not a PDF at the address: '.$r->status().')';
+        $bytes = (int) @filesize($tmp);
+        $head = (string) @file_get_contents($tmp, false, null, 0, 5);
+        if (! $r->successful() || $head !== '%PDF-' || $bytes > $max) {
+            @unlink($tmp);
+            $out['unmatched'][] = $name.($bytes > $max ? ' (file over '.self::MAX_FETCH_MB.' MB: skipped)' : ' (not a PDF at the address: '.$r->status().')');
 
             return;
         }
-        $body = $r->body();
-        $this->importOne($name, strlen($body), function () use ($body) {
-            $h = fopen('php://temp', 'r+b');
-            fwrite($h, $body);
-            rewind($h);
-
-            return $h;
-        }, (int) $product->supplier_id, $out, null, $product);
+        $this->importOne($name, $bytes, fn () => fopen($tmp, 'rb'), (int) $product->supplier_id, $out, null, $product);
+        @unlink($tmp);
     }
+
+    /** Largest template fetched from a supplier's website. */
+    public const MAX_FETCH_MB = 25;
 
     private function importOne(string $name, int $bytes, callable $open, ?int $supplierId, array &$out, ?callable $say, ?Product $product = null): void
     {
