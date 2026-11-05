@@ -26,18 +26,18 @@ class VetScreenTest extends TestCase
         PriceOption::create(['product_id' => 1, 'option_id' => '1-mysterywidget', 'code' => 'mysterywidget', 'kind' => 'PDADEC', 'description' => 'Mystery Widget', 'price_string' => '1:1', 'position' => 0]);
         DecTypeCode::query()->create(['code' => 'mysterywidget', 'type_code' => null, 'full_description' => 'Mystery Widget', 'first_supplier_id' => 3]);
         DecTypeCode::query()->create(['code' => 'giftbox', 'type_code' => 10, 'full_description' => 'Gift Box']);
-        Cache::forever('vet:classify', ['at' => now()->toIso8601String(), 'mixed' => [], 'disagree' => [
-            ['code' => 'giftbox', 'supplier_id' => 3, 'description' => 'Gift Box', 'current' => 10, 'derived' => 11, 'why' => 'supplier pages: packaging option', 'products' => 4, 'on_range' => 4],
+        Cache::forever('vet:classify', ['at' => now()->toIso8601String(), 'left' => [
+            ['code' => 'widgetbag', 'supplier_id' => 3, 'description' => 'Widget Bag', 'current' => null, 'derived' => null, 'why' => null, 'products' => 4, 'on_range' => 4],
         ]]);
         BrandingTemplate::query()->create(['product_id' => 1, 'url' => 'file:3/x.pdf', 'filename' => '105947 Vulcan Pen.pdf', 'status' => 'failed', 'message' => 'Claude: 529 overloaded']);
         $this->staff('admin');
 
         $this->get(route('vet.index'))->assertOk()
-            ->assertSeeInOrder(['New products from suppliers', 'New Bottle', 'Decoration types', 'Gift Box', 'Trends says 11', 'Mystery Widget', 'Branding templates that could not be read', 'Claude: 529 overloaded', 'Read again', 'Price check', 'For information', 'Mockups'])
-            ->assertSee('Vet <span class="pill warn small">4</span>', false); // new product, two types, one template
+            ->assertSeeInOrder(['New products from suppliers', 'New Bottle', 'Decoration types', 'Widget Bag', 'Claude adds one',  'Branding templates that could not be read', 'Claude: 529 overloaded', 'Read again', 'Price check', 'For information', 'Mockups'])
+            ->assertSee('Vet <span class="pill warn small">3</span>', false); // new product, one untyped wording, one template
 
-        DecTypeCode::query()->whereKey('giftbox')->update(['type_code' => 11]); // settled under Decoration types
+        Cache::forever('vet:classify', ['left' => []]); // the next nightly run found a rule for it
         Cache::forget('vet:count');
-        $this->get(route('vet.index'))->assertOk()->assertDontSee('Trends says 11');
+        $this->get(route('vet.index'))->assertOk()->assertDontSee('Widget Bag');
     }
 }

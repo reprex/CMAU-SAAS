@@ -55,21 +55,19 @@
   <div class="row between"><h2 style="margin:0">{{ $s['title'] }} <span class="muted small">{{ number_format($s['count']) }}</span></h2>
     <a class="small" href="{{ $s['more'] }}">Decoration types</a></div>
   <p class="small muted" style="margin:4px 0 8px">{{ $s['why'] }}@if($s['at']) Last run {{ \Illuminate\Support\Carbon::parse($s['at'])->diffForHumans() }}.@endif</p>
-  @php($rows = collect($s['disagree'])->map(fn ($d) => ['code' => $d['code'], 'description' => $d['description'], 'note' => 'Set '.$d['current'].' ('.strtolower($types[$d['current']] ?? '').'); '.($d['supplier'] ?? 'the supplier').' says '.$d['derived'].' ('.strtolower($types[$d['derived']] ?? '').'): '.$d['why'], 'suggest' => $d['derived'], 'on_range' => $d['on_range']])
-      ->merge(collect($s['left'])->map(fn ($l) => ['code' => $l['code'], 'description' => $l['description'], 'note' => ($l['supplier'] ? $l['supplier'].': ' : '').'no rule yet', 'suggest' => null, 'on_range' => $l['on_range']])))
+  @php($rows = collect($s['left'])->map(fn ($l) => ['code' => $l['code'], 'description' => $l['description'], 'note' => ($l['supplier'] ? $l['supplier'].': ' : '').(($l['shared'] ?? false) ? 'no type (pages not read yet)' : 'no rule yet: Claude adds one from the supplier\'s pages'), 'shared' => $l['shared'] ?? false, 'on_range' => $l['on_range']]))
   @if($rows->isNotEmpty())
     <table class="list small"><thead><tr><th>Wording</th><th>Why it's here</th><th class="num">On the range</th><th>Type</th></tr></thead><tbody>
     @foreach($rows as $r)
       <tr><td><b>{{ $r['description'] }}</b></td><td class="muted">{{ $r['note'] }}</td><td class="num">{{ number_format($r['on_range']) }}</td>
-        <td>@if($isAdmin)
+        <td>@if($isAdmin && $r['shared'])
           <form method="post" action="{{ route('admin.dectypes.update', $r['code']) }}" class="row" style="gap:4px">@csrf @method('PUT')
-            <select name="type_code" aria-label="Type for {{ $r['description'] }}">@foreach($types as $t => $label)<option value="{{ $t }}" @selected($r['suggest'] === $t)>{{ $t }} {{ $label }}</option>@endforeach</select>
+            <select name="type_code" aria-label="Type for {{ $r['description'] }}">@foreach($types as $t => $label)<option value="{{ $t }}">{{ $t }} {{ $label }}</option>@endforeach</select>
             <button class="btn small">Save</button></form>
         @endif</td></tr>
     @endforeach
     </tbody></table>
   @endif
-  @if($s['mixed'])<p class="small" style="margin:8px 0 0"><span class="muted">Two suppliers' pages type these differently:</span> {{ implode(', ', array_slice($s['mixed'], 0, 20)) }}</p>@endif
 </section>
 
 {{-- Templates --}}

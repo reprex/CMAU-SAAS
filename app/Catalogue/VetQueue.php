@@ -9,6 +9,7 @@ use App\Models\PricePattern;
 use App\Models\Product;
 use App\Models\RangeSuggestion;
 use App\Models\Supplier;
+use App\Pricing\AutoClassifier;
 use App\Pricing\PricePatterns;
 use App\Shopify\PublishHealth;
 use Illuminate\Support\Facades\Cache;
@@ -69,21 +70,22 @@ class VetQueue
 
     private function types($names): array
     {
-        $cached = Cache::get('vet:classify', ['disagree' => [], 'mixed' => []]);
-        $current = DecTypeCode::query()->whereIn('code', collect($cached['disagree'])->pluck('code')->merge($cached['mixed']))->pluck('type_code', 'code');
-        // A disagreement staff have since settled drops off.
-        $disagree = collect($cached['disagree'])->filter(fn ($d) => isset($current[$d['code']]) && (int) $current[$d['code']] !== (int) $d['derived'])->values();
-        $left = DecTypeCode::query()->whereNull('type_code')
-            ->joinSub(PriceOption::query()->whereIn('product_id', Product::query()->where('tier', Product::TIER_LIVE)->where('discontinued', false)->select('id'))
-                ->selectRaw('code, count(distinct product_id) as live_n')->groupBy('code'), 'lu', 'lu.code', '=', 'dec_type_codes.code')
-            ->orderByDesc('lu.live_n')->limit(30)->get(['dec_type_codes.code', 'full_description', 'first_supplier_id', 'lu.live_n']);
-        $mixed = collect($cached['mixed'])->filter(fn ($c) => ($current[$c] ?? null) === null)->values();
+        // Suppliers whose pages we've read are typed per supplier, nightly; what no reading covers is cached.
+        $cached = Cache::get('vet:classify', ['left' => []]);
+        $read = app(AutoClassifier::class)->suppliers();
+        $covered = collect($cached['left'] ?? [])->map(fn ($l) => ['code' => $l['code'], 'description' => $l['description'], 'supplier' => $names[$l['supplier_id']] ?? null, 'on_range' => (int) $l['on_range']]);
+        // Other suppliers still use TOD's shared table: wording on the range with no type there.
+        $others = DecTypeCode::query()->whereNull('type_code')
+            ->joinSub(PriceOption::query()->join('products as p', 'p.id', '=', 'price_options.product_id')
+                ->where('p.tier', Product::TIER_LIVE)->where('p.discontinued', false)->whereNotIn('p.supplier_id', $read)
+                ->selectRaw('price_options.code, count(distinct p.id) as live_n, min(p.supplier_id) as sid')->groupBy('price_options.code'), 'lu', 'lu.code', '=', 'dec_type_codes.code')
+            ->orderByDesc('lu.live_n')->limit(30)->get(['dec_type_codes.code', 'full_description', 'lu.sid', 'lu.live_n'])
+            ->map(fn ($l) => ['code' => $l->code, 'description' => $l->full_description, 'supplier' => $names[$l->sid] ?? null, 'on_range' => (int) $l->live_n, 'shared' => true]);
+        $left = $covered->take(30)->concat($others)->values();
 
-        return ['title' => 'Decoration types', 'action' => true, 'count' => $disagree->count() + $left->count() + $mixed->count(),
-            'why' => 'Types are set nightly from the supplier pages and rules. Listed: a type already set that the supplier\'s pages disagree with, and wording no rule covers yet (on the range).',
-            'disagree' => $disagree->map(fn ($d) => $d + ['supplier' => $names[$d['supplier_id']] ?? null])->all(),
-            'left' => $left->map(fn ($l) => ['code' => $l->code, 'description' => $l->full_description, 'supplier' => $names[$l->first_supplier_id] ?? null, 'on_range' => (int) $l->live_n])->all(),
-            'mixed' => $mixed->all(), 'at' => $cached['at'] ?? null, 'more' => route('admin.dectypes.index', ['show' => 'live'])];
+        return ['title' => 'Decoration types', 'action' => true, 'count' => $covered->count() + $others->count(),
+            'why' => 'Each supplier\'s types are set nightly from its own pages and rules, for that supplier only. Listed: wording on the range no reading covers yet (Claude adds a rule from the supplier\'s pages), and for suppliers whose pages aren\'t read yet, wording with no type.',
+            'disagree' => [], 'left' => $left->all(), 'mixed' => [], 'at' => $cached['at'] ?? null, 'more' => route('admin.dectypes.index', ['show' => 'live'])];
     }
 
     private function templates(): array

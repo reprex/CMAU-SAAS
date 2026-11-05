@@ -7,6 +7,7 @@ use App\Catalogue\ProductOptions;
 use App\Models\DecTypeCode;
 use App\Models\PriceOption;
 use App\Models\Product;
+use App\Models\SupplierDecType;
 use Illuminate\Support\Collection;
 
 /**
@@ -24,8 +25,9 @@ use Illuminate\Support\Collection;
  *   6. a description that names a branding method, or a transfer or print under a supplier's own name
  *      (Colourflex, DigiFlex), and isn't a charge on top (setup, sample, surcharge, additional…) is 10.
  *
- * Only descriptions with no type are filled in. A type staff already set that disagrees is listed,
- * never changed, and a description two suppliers would type differently is left for staff.
+ * Types are saved per supplier (supplier_dec_types), never in TOD's shared table, so one supplier's
+ * reading never changes another's (Scott, 5 Nov 2026: the shared DecTypeCode table was only ever a way to
+ * keep manual maintenance down). A type staff set for the supplier is left alone.
  */
 class AutoClassifier
 {
@@ -66,24 +68,17 @@ class AutoClassifier
                 count(distinct case when p.tier = ? and p.discontinued = 0 then p.id end) as on_range', [Product::TIER_LIVE])
             ->get();
         $current = DecTypeCode::query()->whereIn('code', $rows->pluck('code')->unique())->pluck('type_code', 'code');
-        // Wording other suppliers' products use too: a type is shared, so one supplier's own rule must not set it.
-        $shared = [];
-        foreach ($rows->pluck('code')->unique()->chunk(500) as $chunk) {
-            PriceOption::query()->join('products as p', 'p.id', '=', 'price_options.product_id')
-                ->whereIn('price_options.code', $chunk->all())->whereNotIn('p.supplier_id', $supplierIds)
-                ->whereIn('p.tier', [Product::TIER_ACTIVE, Product::TIER_LIVE])->distinct()->pluck('price_options.code')
-                ->each(function ($c) use (&$shared) {
-                    $shared[(string) $c] = true;
-                });
-        }
+        $own = SupplierDecType::query()->whereIn('supplier_id', $supplierIds)->get(['supplier_id', 'code', 'type_code', 'staff'])
+            ->keyBy(fn ($t) => $t->supplier_id.'|'.$t->code);
 
-        return $rows->map(function ($r) use ($current, $shared) {
+        return $rows->map(function ($r) use ($current, $own) {
             [$type, $why] = $this->derive((int) $r->supplier_id, (string) $r->code, (string) $r->description, (string) $r->kind, (string) $r->cost_string);
 
             return [
                 'code' => (string) $r->code, 'supplier_id' => (int) $r->supplier_id, 'description' => (string) $r->description,
-                'current' => isset($current[$r->code]) ? (int) $current[$r->code] : null, 'derived' => $type, 'why' => $why,
-                'products' => (int) $r->products, 'on_range' => (int) $r->on_range, 'shared' => isset($shared[(string) $r->code]),
+                'current' => ($o = $own[$r->supplier_id.'|'.$r->code] ?? null) ? (int) $o->type_code : (isset($current[$r->code]) ? (int) $current[$r->code] : null),
+                'staff' => (bool) ($o?->staff), 'derived' => $type, 'why' => $why,
+                'products' => (int) $r->products, 'on_range' => (int) $r->on_range,
             ];
         })->values();
     }
@@ -136,47 +131,30 @@ class AutoClassifier
     }
 
     /**
-     * Group the plan by description: what to fill in, what disagrees with staff, what is left.
+     * What to save, per supplier: every wording a reading types (saved for that supplier only, so the same
+     * wording can be branding for one supplier and hidden for another), whether it changes what pricing
+     * uses now, and what no reading covers.
      *
      * @param  Collection<int, array<string, mixed>>  $plan
-     * @return array{fill: array<string, array{type: int, why: string, description: string}>, disagree: list<array<string, mixed>>, mixed: list<string>, left: list<array<string, mixed>>}
+     * @return array{set: list<array<string, mixed>>, changes: list<array<string, mixed>>, left: list<array<string, mixed>>}
      */
     public function sort(Collection $plan): array
     {
-        $out = ['fill' => [], 'disagree' => [], 'mixed' => [], 'left' => [], 'shared' => []];
-        foreach ($plan->groupBy('code') as $code => $rows) {
-            // Wording other suppliers use too: only a general reading (a method named, a blank price) may type it,
-            // never one supplier's own pages or pricing rule (Logo Line's TOD rule hides "1 Col 1 Pos Pad Print",
-            // which other suppliers sell as branding).
-            if ($rows->first()['shared'] ?? false) {
-                $specific = $rows->filter(fn ($r) => $r['derived'] !== null && self::supplierSpecific((string) $r['why']));
-                if ($specific->isNotEmpty()) {
-                    if ($specific->contains(fn ($r) => $r['current'] !== $r['derived'])) {
-                        $out['shared'][] = (string) $code;
-                    }
-                    $rows = $rows->map(fn ($r) => self::supplierSpecific((string) $r['why']) ? ['derived' => null, 'why' => null] + $r : $r);
-                }
+        $out = ['set' => [], 'changes' => [], 'left' => []];
+        foreach ($plan as $row) {
+            if ($row['staff']) {
+                continue; // staff set this supplier's type: left alone
             }
-            $types = $rows->pluck('derived')->filter(fn ($t) => $t !== null)->unique()->values();
-            $current = $rows->first()['current'];
-            if ($types->count() > 1) {
-                $out['mixed'][] = (string) $code;
-
-                continue;
-            }
-            $type = $types->first();
-            if ($type === null) {
-                if ($current === null) {
-                    array_push($out['left'], ...$rows->all());
+            if ($row['derived'] === null) {
+                if ($row['current'] === null) {
+                    $out['left'][] = $row;
                 }
 
                 continue;
             }
-            $row = $rows->firstWhere('derived', $type);
-            if ($current === null) {
-                $out['fill'][(string) $code] = ['type' => (int) $type, 'why' => (string) $row['why'], 'description' => (string) $row['description']];
-            } elseif ($current !== $type) {
-                $out['disagree'][] = $row;
+            $out['set'][] = $row;
+            if ($row['current'] !== $row['derived']) {
+                $out['changes'][] = $row;
             }
         }
 
