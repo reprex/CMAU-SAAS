@@ -24,6 +24,13 @@ Rules:
 - Only descriptions with no type are filled in. A type already set that disagrees with the supplier is
   listed, never changed: change it under Admin › Decoration types if the supplier is right.
 - Wording two suppliers would type differently is left for staff.
+- Wording other suppliers' products use too is never typed by one supplier's own pages or pricing rule (a
+  type is shared: Logo Line's TOD rule hides "1 Col 1 Pos Pad Print", which others sell as branding);
+  that supplier's products follow its rule when priced anyway. Only the general readings (a method
+  named, a blank price) type shared wording.
+- `--apply --replace` also changes a type already set where the supplier's own pages or pricing rule say
+  otherwise (never shared wording); the output groups the disagreements by supplier and reason first.
+- A production time a supplier doesn't offer (Dex 28 days, offshore) is hidden, add-on lines included.
 - Saving reprices every product that uses the description (queued, worked through by the minute cron).
 - Nightly at 03:45: `catalogue:classify --apply --show=0`. New wording from Promodata is typed the
   next morning.

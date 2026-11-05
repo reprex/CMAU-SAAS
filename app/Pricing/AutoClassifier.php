@@ -66,14 +66,24 @@ class AutoClassifier
                 count(distinct case when p.tier = ? and p.discontinued = 0 then p.id end) as on_range', [Product::TIER_LIVE])
             ->get();
         $current = DecTypeCode::query()->whereIn('code', $rows->pluck('code')->unique())->pluck('type_code', 'code');
+        // Wording other suppliers' products use too: a type is shared, so one supplier's own rule must not set it.
+        $shared = [];
+        foreach ($rows->pluck('code')->unique()->chunk(500) as $chunk) {
+            PriceOption::query()->join('products as p', 'p.id', '=', 'price_options.product_id')
+                ->whereIn('price_options.code', $chunk->all())->whereNotIn('p.supplier_id', $supplierIds)
+                ->whereIn('p.tier', [Product::TIER_ACTIVE, Product::TIER_LIVE])->distinct()->pluck('price_options.code')
+                ->each(function ($c) use (&$shared) {
+                    $shared[(string) $c] = true;
+                });
+        }
 
-        return $rows->map(function ($r) use ($current) {
+        return $rows->map(function ($r) use ($current, $shared) {
             [$type, $why] = $this->derive((int) $r->supplier_id, (string) $r->code, (string) $r->description, (string) $r->kind, (string) $r->cost_string);
 
             return [
                 'code' => (string) $r->code, 'supplier_id' => (int) $r->supplier_id, 'description' => (string) $r->description,
                 'current' => isset($current[$r->code]) ? (int) $current[$r->code] : null, 'derived' => $type, 'why' => $why,
-                'products' => (int) $r->products, 'on_range' => (int) $r->on_range,
+                'products' => (int) $r->products, 'on_range' => (int) $r->on_range, 'shared' => isset($shared[(string) $r->code]),
             ];
         })->values();
     }
@@ -87,6 +97,11 @@ class AutoClassifier
         }
         $file = $this->options->templateFor($supplierId);
         if ($file) {
+            // A production time the supplier doesn't offer locally (Dex 28 days, offshore): hidden, even for an add-on line.
+            if (isset($file['speed']) && $this->options->speedKey($file, $description) === null
+                && preg_match('/^\s*\d+\s*(?:days?|wks?|weeks?)\b|offshore|indent/i', $description)) {
+                return [DecTypeCode::HIDDEN, 'supplier pages: production time not offered'];
+            }
             foreach ($file['lines'] ?? [] as $line) {
                 if (preg_match('/'.$line['match'].'/', $code)) {
                     return ($line['branding_line'] ?? false)
@@ -97,9 +112,6 @@ class AutoClassifier
             if (isset($file['speed'])) {
                 if ($this->options->speedKey($file, $description) !== null) {
                     return [$kind === PriceOption::KIND_UNDECORATED ? DecTypeCode::UNDECORATED : DecTypeCode::DECORATION, 'supplier pages: production time'];
-                }
-                if (preg_match('/^\s*\d+\s*(?:days?|wks?|weeks?)\b|offshore|indent/i', $description)) {
-                    return [DecTypeCode::HIDDEN, 'supplier pages: production time not offered'];
                 }
             }
             $desc = mb_strtolower($description);
@@ -131,8 +143,20 @@ class AutoClassifier
      */
     public function sort(Collection $plan): array
     {
-        $out = ['fill' => [], 'disagree' => [], 'mixed' => [], 'left' => []];
+        $out = ['fill' => [], 'disagree' => [], 'mixed' => [], 'left' => [], 'shared' => []];
         foreach ($plan->groupBy('code') as $code => $rows) {
+            // Wording other suppliers use too: only a general reading (a method named, a blank price) may type it,
+            // never one supplier's own pages or pricing rule (Logo Line's TOD rule hides "1 Col 1 Pos Pad Print",
+            // which other suppliers sell as branding).
+            if ($rows->first()['shared'] ?? false) {
+                $specific = $rows->filter(fn ($r) => $r['derived'] !== null && self::supplierSpecific((string) $r['why']));
+                if ($specific->isNotEmpty()) {
+                    if ($specific->contains(fn ($r) => $r['current'] !== $r['derived'])) {
+                        $out['shared'][] = (string) $code;
+                    }
+                    $rows = $rows->map(fn ($r) => self::supplierSpecific((string) $r['why']) ? ['derived' => null, 'why' => null] + $r : $r);
+                }
+            }
             $types = $rows->pluck('derived')->filter(fn ($t) => $t !== null)->unique()->values();
             $current = $rows->first()['current'];
             if ($types->count() > 1) {
@@ -157,5 +181,11 @@ class AutoClassifier
         }
 
         return $out;
+    }
+
+    /** Typed from one supplier's own pages or pricing rule (not a general reading of the wording). */
+    public static function supplierSpecific(string $why): bool
+    {
+        return str_starts_with($why, 'supplier pages') || $why === 'supplier pricing rule';
     }
 }

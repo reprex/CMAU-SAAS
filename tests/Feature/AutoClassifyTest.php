@@ -50,4 +50,28 @@ class AutoClassifyTest extends TestCase
         $this->assertSame([12, 10, 23, 11], [$t['localblankstock'], $t['7daysprintpercolpos'], $t['28daysprintpercolpos'], $t['7daysdataupload']]);
         Queue::assertPushed(RepriceProduct::class, 2);
     }
+
+    public function test_one_suppliers_rule_never_sets_wording_other_suppliers_share(): void
+    {
+        $this->supplier(2, 'Logo Line');
+        $this->supplier(88, 'AS Colour');
+        $this->lines(2, 300, [['1 Col 1 Pos Pad Print', 'PDADEC', 10], ['1 Col 1 Pos Pad Print on Hip Flask', 'PDADEC', 10]]); // TOD rule: hidden
+        Product::create(['id' => 301, 'supplier_id' => 88, 'name' => 'Other', 'code' => 'O', 'tier' => 'live']);
+        PriceOption::create(['product_id' => 301, 'option_id' => '301-1col1pospadprint', 'code' => '1col1pospadprint', 'kind' => 'PDADEC', 'type_code' => 10, 'description' => '1 Col 1 Pos Pad Print', 'price_string' => '50:1', 'position' => 0]);
+        Queue::fake();
+
+        $this->artisan('catalogue:classify', ['--supplier' => [2], '--apply' => true, '--replace' => true])->expectsOutputToContain('other suppliers use too')->assertSuccessful();
+        $t = DecTypeCode::query()->pluck('type_code', 'code');
+        $this->assertSame([10, 23], [$t['1col1pospadprint'], $t['1col1pospadprintonhipflask']]); // shared kept; Logo Line's own wording follows its rule
+    }
+
+    public function test_dex_add_ons_at_a_time_dex_does_not_offer_are_hidden(): void
+    {
+        $this->supplier(19, 'Dex');
+        $this->lines(19, 400, [['28 Days Digital Crystal Label (Per Set)', 'PDADEC', null], ['12 Days Digital Crystal Label (Per Set)', 'PDADEC', null]]);
+        Queue::fake();
+        $this->artisan('catalogue:classify', ['--supplier' => [19], '--apply' => true])->assertSuccessful();
+        $t = DecTypeCode::query()->pluck('type_code', 'code');
+        $this->assertSame([23, 11], [$t['28daysdigitalcrystallabelperset'], $t['12daysdigitalcrystallabelperset']]);
+    }
 }
