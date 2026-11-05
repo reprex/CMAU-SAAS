@@ -138,4 +138,12 @@ class PhotoBrandingTest extends TestCase
         $this->artisan('catalogue:read-templates', ['--retry-failed' => true])->expectsOutputToContain('1 failed templates')->assertSuccessful();
         $this->assertSame(['new', 'read'], BrandingTemplate::query()->orderBy('url')->pluck('status')->all());
     }
+
+    public function test_status_at_a_glance(): void
+    {
+        $p = $this->pen();
+        BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/a.pdf', 'source' => 'promodata', 'status' => 'new']);
+        BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/b.pdf', 'source' => 'promodata', 'status' => 'failed', 'message' => 'reply cut off']);
+        $this->artisan('saas:status')->expectsOutputToContain('Templates: ')->expectsOutputToContain('Failed 8443: reply cut off')->expectsOutputToContain('Photos checked: 0')->assertSuccessful();
+    }
 }
