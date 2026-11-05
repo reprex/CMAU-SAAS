@@ -36,10 +36,14 @@ Christmas–New Year shutdown (and any other closure). Automated where possible;
   freight use the delivery side's.
 - **Shutdowns per supplier** (new: supplier closures, from–to, source, confirmed): read from each supplier's
   distributor site or notices (Claude in Scott's Chrome, signed in, each October); Promodata where it says.
-  Until a supplier's dates are confirmed, a standard closure is assumed (to be set with Scott) and the
-  supplier is listed on the Vet screen as "Christmas shutdown not confirmed".
-- Supplier notices don't reach scott@replicat.com.au (searched 5 Nov 2026: none found); if they go to a
-  CrowdMerch mailbox, that mailbox could be scanned too.
+  Until a supplier's dates are confirmed, a standard closure is assumed and the supplier is listed on the Vet
+  screen as "Christmas shutdown not confirmed". **Standard closure (Scott):** closed for the last 2 full working
+  days before Christmas Day, reopening the first Monday after 5 January. Some suppliers work straight through,
+  and the reopening date really needs finding out per supplier.
+- **Where to find it:** each live-range supplier's distributor login has it somewhere; working out where, per
+  supplier, is part of setting up that supplier (recorded in its rules file so the yearly re-read is automatic).
+- **Never poll Scott's email** for notices (Scott, 5 Nov 2026). Shutdown notices go to his address; he passes
+  on any that are relevant.
 
 ## Where it shows
 1. **Product page (PDP):** prominent, and recalculated as branding options are chosen.
@@ -61,6 +65,4 @@ Dex: the chosen production speed instead.
    shows it on the PDP, search and checkout; `custom.leadtimedays` stays as is.
 
 ## Open questions for Scott
-- The standard Christmas closure to assume until a supplier confirms (e.g. 24 Dec to the first Monday after 5 Jan?).
-- Which mailbox supplier notices (shutdowns, lead-time changes) go to.
 - When the Christmas stretch ends (assumed: through the Christmas shutdown, until production restarts in January).
