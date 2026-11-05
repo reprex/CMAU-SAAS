@@ -9,6 +9,7 @@ use App\Models\BrandingTemplate;
 use App\Models\PhotoBranding;
 use App\Models\Product;
 use App\Shopify\ProductPayload;
+use App\Support\ClaudeLimit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\QuoteFixtures;
@@ -170,7 +171,7 @@ class PhotoBrandingTest extends TestCase
         $this->artisan('catalogue:read-templates', ['--limit' => 5])->assertSuccessful();
         $this->assertSame('new', $t->fresh()->status);                     // back in the queue, not failed
         $this->assertSame(0, PhotoBranding::query()->count());              // no photo recorded as "could not load"
-        $this->assertTrue(\App\Support\ClaudeLimit::paused());
+        $this->assertTrue(ClaudeLimit::paused());
         $this->artisan('saas:status')->expectsOutputToContain('Paused (Claude API limit)')->assertSuccessful();
 
         Http::fake();

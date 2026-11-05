@@ -73,7 +73,7 @@
 {{-- Templates --}}
 @php($s = $sections['templates'])
 <section id="templates" class="card" style="{{ $s['count'] ? 'border-left:4px solid var(--warn,#c77700)' : '' }}">
-  <h2 style="margin:0">{{ $s['title'] }} <span class="muted small">{{ number_format($s['count']) }}</span></h2>
+  <div class="row between"><h2 style="margin:0">{{ $s['title'] }} <span class="muted small">{{ number_format($s['count']) }}</span></h2><a class="small" href="{{ route('range.template-reads') }}">Review what was read</a></div>
   <p class="small muted" style="margin:4px 0 8px">{{ $s['why'] }} @if($s['waiting']){{ number_format($s['waiting']) }} more are waiting to be read (about 20 a minute).@endif</p>
   @foreach($s['rows'] as $r)
     <div class="row small" style="gap:8px;margin:2px 0"><a href="{{ route('range.show', $r['product_id']) }}"><b>{{ $r['name'] }}</b></a> <span class="muted">{{ $r['file'] }} · {{ $r['message'] }}</span>
