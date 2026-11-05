@@ -17,6 +17,15 @@ should lift quote-to-order and general conversion on crowdmerch.com.au. To be re
   need Scott's login) only where Promodata is missing or too general. AS Colour and JB's: use the lead
   times of the decoration they are branded with (Melbourne Merch's methods).
 
+## Figures (Scott, 5 Nov 2026)
+- **Trends:** ships from New Zealand straight to the client: **4 working days** transit, on top of production.
+  Trends publishes every decoration's lead time on its site and keeps them accurate: poll those pages for the
+  Trends range (rather than Promodata). The page is trends.nz/lead-times; it can't be read from the server's
+  side without a browser (probably the distributor login), so it is read in Scott's Chrome, signed in.
+- **Each extra decoration: +1 working day** (normally none, but one as standard to be safe).
+- **Christmas stretch: +2 working days from the end of October** for most items. Not added where the supplier
+  sells a stated speed (Dex same day, 3 day, 7 day…).
+
 ## Where it shows
 1. **Product page (PDP):** prominent, and recalculated as branding options are chosen.
 2. **Search:** find products that can be delivered by a given date.
@@ -37,6 +46,4 @@ Dex: the chosen production speed instead.
    shows it on the PDP, search and checkout; `custom.leadtimedays` stays as is.
 
 ## Open questions for Scott
-- Trends: ships from NZ direct to the client? Usual transit days?
-- Extra days per additional decoration, per supplier or one rule?
-- When the Christmas stretch starts and by how much (per supplier where they publish it).
+- When the Christmas stretch ends (assumed: through the Christmas shutdown, until production restarts in January).
