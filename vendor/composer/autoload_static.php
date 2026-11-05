@@ -606,6 +606,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Console\\Commands\\CatalogueRestoreHeroesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueRestoreHeroesCommand.php',
         'App\\Console\\Commands\\CatalogueTagImagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueTagImagesCommand.php',
         'App\\Console\\Commands\\HolidaysImportCommand' => __DIR__ . '/../..' . '/app/Console/Commands/HolidaysImportCommand.php',
+        'App\\Console\\Commands\\LeadTimeReportCommand' => __DIR__ . '/../..' . '/app/Console/Commands/LeadTimeReportCommand.php',
         'App\\Console\\Commands\\PositionsReportCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PositionsReportCommand.php',
         'App\\Console\\Commands\\PricingPatternsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingPatternsCommand.php',
         'App\\Console\\Commands\\PricingRecalculateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingRecalculateCommand.php',

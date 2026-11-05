@@ -63,6 +63,7 @@ return array(
     'App\\Console\\Commands\\CatalogueRestoreHeroesCommand' => $baseDir . '/app/Console/Commands/CatalogueRestoreHeroesCommand.php',
     'App\\Console\\Commands\\CatalogueTagImagesCommand' => $baseDir . '/app/Console/Commands/CatalogueTagImagesCommand.php',
     'App\\Console\\Commands\\HolidaysImportCommand' => $baseDir . '/app/Console/Commands/HolidaysImportCommand.php',
+    'App\\Console\\Commands\\LeadTimeReportCommand' => $baseDir . '/app/Console/Commands/LeadTimeReportCommand.php',
     'App\\Console\\Commands\\PositionsReportCommand' => $baseDir . '/app/Console/Commands/PositionsReportCommand.php',
     'App\\Console\\Commands\\PricingPatternsCommand' => $baseDir . '/app/Console/Commands/PricingPatternsCommand.php',
     'App\\Console\\Commands\\PricingRecalculateCommand' => $baseDir . '/app/Console/Commands/PricingRecalculateCommand.php',
