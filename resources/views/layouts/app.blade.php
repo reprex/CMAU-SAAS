@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>@yield('title', 'Quotes') · {{ \App\Support\Divisions::name(\App\Support\Divisions::viewing()) }} · Replicat SaaS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -54,6 +55,7 @@
     @endif
     <div class="me">
       {{ $me->name }} · {{ $me->levelLabel() }}<br>
+      <a href="{{ route('security') }}">Sign-in &amp; security</a> ·
       <form method="post" action="{{ route('logout') }}" class="inline">@csrf<button type="submit">Sign out</button></form>
     </div>
   </nav>

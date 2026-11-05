@@ -3,7 +3,7 @@
         'name' => 'reprex/cmau-saas',
         'pretty_version' => 'dev-release',
         'version' => 'dev-release',
-        'reference' => '5b51906d080f857b660672fd360f9338f78a3f6a',
+        'reference' => '7b821e734c03b65c7c30c64a82364bb138fdefff',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -430,6 +430,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'lbuchs/webauthn' => array(
+            'pretty_version' => 'v2.2.0',
+            'version' => '2.2.0.0',
+            'reference' => '20adb4a240c3997bd8cac7dc4dde38ab0bea0ed1',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../lbuchs/webauthn',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'league/commonmark' => array(
             'pretty_version' => '2.10.4',
             'version' => '2.10.4.0',
@@ -768,7 +777,7 @@
         'reprex/cmau-saas' => array(
             'pretty_version' => 'dev-release',
             'version' => 'dev-release',
-            'reference' => '5b51906d080f857b660672fd360f9338f78a3f6a',
+            'reference' => '7b821e734c03b65c7c30c64a82364bb138fdefff',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -15,6 +15,7 @@
         "dompdf/dompdf": "^3.1",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
+        "lbuchs/webauthn": "^2.2",
         "opis/json-schema": "^2.6",
         "pragmarx/google2fa": "^8.0"
     },

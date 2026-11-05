@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
+class ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d
 {
     public static $files = array (
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
@@ -44,6 +44,10 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'v' =>
         array (
             'voku\\' => 5,
+        ),
+        'l' =>
+        array (
+            'lbuchs\\WebAuthn\\' => 16,
         ),
         'T' =>
         array (
@@ -187,6 +191,10 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'voku\\' =>
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
+        ),
+        'lbuchs\\WebAuthn\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/lbuchs/webauthn/src',
         ),
         'TijsVerkoyen\\CssToInlineStyles\\' =>
         array (
@@ -550,6 +558,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
 
     public static $classMap = array (
         'AllowDynamicProperties' => __DIR__ . '/..' . '/symfony/polyfill-php82/Resources/stubs/AllowDynamicProperties.php',
+        'App\\Auth\\DeviceTrust' => __DIR__ . '/../..' . '/app/Auth/DeviceTrust.php',
         'App\\Catalogue\\Backdrop' => __DIR__ . '/../..' . '/app/Catalogue/Backdrop.php',
         'App\\Catalogue\\BrandingTemplates' => __DIR__ . '/../..' . '/app/Catalogue/BrandingTemplates.php',
         'App\\Catalogue\\CatalogueWriter' => __DIR__ . '/../..' . '/app/Catalogue/CatalogueWriter.php',
@@ -641,6 +650,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Http\\Controllers\\Admin\\SupplierController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/SupplierController.php',
         'App\\Http\\Controllers\\Admin\\UserController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/UserController.php',
         'App\\Http\\Controllers\\Auth\\LoginController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/LoginController.php',
+        'App\\Http\\Controllers\\Auth\\PasskeyController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/PasskeyController.php',
         'App\\Http\\Controllers\\Auth\\SetupController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/SetupController.php',
         'App\\Http\\Controllers\\Auth\\TwoFactorController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/TwoFactorController.php',
         'App\\Http\\Controllers\\BrandingTemplateController' => __DIR__ . '/../..' . '/app/Http/Controllers/BrandingTemplateController.php',
@@ -700,6 +710,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Models\\CurationRequest' => __DIR__ . '/../..' . '/app/Models/CurationRequest.php',
         'App\\Models\\DecTypeCode' => __DIR__ . '/../..' . '/app/Models/DecTypeCode.php',
         'App\\Models\\ImageCheck' => __DIR__ . '/../..' . '/app/Models/ImageCheck.php',
+        'App\\Models\\Passkey' => __DIR__ . '/../..' . '/app/Models/Passkey.php',
         'App\\Models\\PendingEmail' => __DIR__ . '/../..' . '/app/Models/PendingEmail.php',
         'App\\Models\\PhotoBranding' => __DIR__ . '/../..' . '/app/Models/PhotoBranding.php',
         'App\\Models\\PositionRule' => __DIR__ . '/../..' . '/app/Models/PositionRule.php',
@@ -731,6 +742,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Models\\SupplierDecType' => __DIR__ . '/../..' . '/app/Models/SupplierDecType.php',
         'App\\Models\\SupplierFreightRate' => __DIR__ . '/../..' . '/app/Models/SupplierFreightRate.php',
         'App\\Models\\SyncRun' => __DIR__ . '/../..' . '/app/Models/SyncRun.php',
+        'App\\Models\\TrustedDevice' => __DIR__ . '/../..' . '/app/Models/TrustedDevice.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Models\\WebsiteOrder' => __DIR__ . '/../..' . '/app/Models/WebsiteOrder.php',
         'App\\Models\\WebsiteOrderChange' => __DIR__ . '/../..' . '/app/Models/WebsiteOrderChange.php',
@@ -6150,15 +6162,29 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'Time\\TimeException' => __DIR__ . '/..' . '/symfony/polyfill-time/Resources/stubs/Time/TimeException.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
+        'lbuchs\\WebAuthn\\Attestation\\AttestationObject' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/AttestationObject.php',
+        'lbuchs\\WebAuthn\\Attestation\\AuthenticatorData' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/AuthenticatorData.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\AndroidKey' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/AndroidKey.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\AndroidSafetyNet' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/AndroidSafetyNet.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\Apple' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/Apple.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\FormatBase' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/FormatBase.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\None' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/None.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\Packed' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/Packed.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\Tpm' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/Tpm.php',
+        'lbuchs\\WebAuthn\\Attestation\\Format\\U2f' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Attestation/Format/U2f.php',
+        'lbuchs\\WebAuthn\\Binary\\ByteBuffer' => __DIR__ . '/..' . '/lbuchs/webauthn/src/Binary/ByteBuffer.php',
+        'lbuchs\\WebAuthn\\CBOR\\CborDecoder' => __DIR__ . '/..' . '/lbuchs/webauthn/src/CBOR/CborDecoder.php',
+        'lbuchs\\WebAuthn\\WebAuthn' => __DIR__ . '/..' . '/lbuchs/webauthn/src/WebAuthn.php',
+        'lbuchs\\WebAuthn\\WebAuthnException' => __DIR__ . '/..' . '/lbuchs/webauthn/src/WebAuthnException.php',
         'voku\\helper\\ASCII' => __DIR__ . '/..' . '/voku/portable-ascii/src/voku/helper/ASCII.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d::$classMap;
 
         }, null, ClassLoader::class);
     }

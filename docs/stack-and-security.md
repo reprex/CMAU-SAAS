@@ -62,3 +62,13 @@ Full steps: `docs/deploy.md`.
 - The database server is MariaDB 10.11.19 (`10.11.19-MariaDB-cll-lve`).
 - The server's default charset is **latin1**. The `saasreplicat584_saas` database and every table must be created as `utf8mb4` / `utf8mb4_unicode_ci`: Laravel's connection config sets this, and the first migration checks it.
 - phpMyAdmin itself runs on PHP 8.4.27, the upstream release that fixes CVE-2026-109618 and CVE-2026-109619.
+
+## Sign-in (Scott, 6 Nov 2026)
+- **Phone:** a passkey (Face ID or the phone's passcode), offered on the sign-in page on phones only. User
+  verification is required, so it counts as both factors. Added on the phone under Sign-in & security after a
+  normal sign-in; the SaaS keeps only the public key (`passkeys`). WebAuthn via `lbuchs/webauthn`.
+- **Computer:** email, password, then the 6-digit code. "Trust this device for 30 days" (ticked by default)
+  skips the code on that browser for 30 days; the password is still asked whenever the session ends. A random
+  token in an encrypted, HttpOnly, Secure cookie; only its hash is stored (`trusted_devices`).
+- Sign-in & security lists both, with Remove / Stop trusting. An admin's "reset two-factor" also removes the
+  user's passkeys and trusted devices.

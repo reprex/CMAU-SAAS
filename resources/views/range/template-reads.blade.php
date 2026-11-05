@@ -7,8 +7,8 @@
   <p class="muted" style="margin:0">What Claude read from each supplier template, newest first ({{ number_format($total) }} read). Each print area is drawn on the photo it was placed on: <b style="color:#0a7f3f">green</b> the logo's corners (it follows angle and curve), <b style="color:#b45309">orange</b> a plain box. A position with no photo of its side shows its size only (the website shows a guide card).</p>
 </div>
 <form method="get" class="row" style="gap:8px;margin:12px 0">
-  <select name="supplier" onchange="this.form.submit()"><option value="">All suppliers</option>@foreach($suppliers as $id => $name)<option value="{{ $id }}" @selected($supplier === $id)>{{ $name }}</option>@endforeach</select>
-  <label class="small"><input type="checkbox" name="only" value="boxes" @checked(request('only') === 'boxes') onchange="this.form.submit()"> Only with a print area on a photo</label>
+  <select name="supplier" data-autosubmit><option value="">All suppliers</option>@foreach($suppliers as $id => $name)<option value="{{ $id }}" @selected($supplier === $id)>{{ $name }}</option>@endforeach</select>
+  <label class="small"><input type="checkbox" name="only" value="boxes" @checked(request('only') === 'boxes') data-autosubmit> Only with a print area on a photo</label>
 </form>
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
 @foreach($templates as $t)

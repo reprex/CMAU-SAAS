@@ -6,6 +6,7 @@
 <form method="post" action="{{ route('two-factor.challenge') }}" style="display:flex;flex-direction:column;gap:12px">
   @csrf
   <label class="f">6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" required autofocus></label>
+  <label class="row small"><input type="checkbox" name="trust" value="1" checked> Trust this device for 30 days (don't ask for a code here again until then)</label>
   <button class="btn primary" type="submit">Continue</button>
 </form>
 <form method="post" action="{{ route('logout') }}">@csrf<button class="btn link" type="submit">Sign out</button></form>

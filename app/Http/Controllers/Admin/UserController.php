@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Passkey;
+use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Support\Divisions;
 use Illuminate\Http\Request;
@@ -77,6 +79,8 @@ class UserController extends Controller
     public function resetTwoFactor(Request $request, User $user)
     {
         $user->forceFill(['two_factor_secret' => null, 'two_factor_confirmed_at' => null])->save();
+        TrustedDevice::query()->where('user_id', $user->id)->delete(); // trusted devices and passkeys go too
+        Passkey::query()->where('user_id', $user->id)->delete();
         AuditLog::record('user.two_factor_reset', $user);
 
         return back()->with('status', "{$user->name} will set up two-factor sign-in again at their next login.");
