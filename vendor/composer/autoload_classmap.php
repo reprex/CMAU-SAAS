@@ -73,6 +73,7 @@ return array(
     'App\\Console\\Commands\\PromodataSyncStepCommand' => $baseDir . '/app/Console/Commands/PromodataSyncStepCommand.php',
     'App\\Console\\Commands\\QuotesImportDraftsCommand' => $baseDir . '/app/Console/Commands/QuotesImportDraftsCommand.php',
     'App\\Console\\Commands\\RangeChangesCommand' => $baseDir . '/app/Console/Commands/RangeChangesCommand.php',
+    'App\\Console\\Commands\\SaasStatusCommand' => $baseDir . '/app/Console/Commands/SaasStatusCommand.php',
     'App\\Console\\Commands\\SearchTryCommand' => $baseDir . '/app/Console/Commands/SearchTryCommand.php',
     'App\\Console\\Commands\\ShopifyAutoPublishCommand' => $baseDir . '/app/Console/Commands/ShopifyAutoPublishCommand.php',
     'App\\Console\\Commands\\ShopifyCollectionsCommand' => $baseDir . '/app/Console/Commands/ShopifyCollectionsCommand.php',

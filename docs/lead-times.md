@@ -17,6 +17,34 @@ should lift quote-to-order and general conversion on crowdmerch.com.au. To be re
   need Scott's login) only where Promodata is missing or too general. AS Colour and JB's: use the lead
   times of the decoration they are branded with (Melbourne Merch's methods).
 
+## Figures (Scott, 5 Nov 2026)
+- **Trends:** ships from New Zealand straight to the client: **4 working days** transit, on top of production.
+  Trends publishes every decoration's lead time on its site and keeps them accurate: poll those pages for the
+  Trends range (rather than Promodata). The page is trends.nz/lead-times; it can't be read from the server's
+  side without a browser (probably the distributor login), so it is read in Scott's Chrome, signed in.
+- **Each extra decoration: +1 working day** (normally none, but one as standard to be safe).
+- **Christmas stretch: +2 working days from the end of October** for most items. Not added where the supplier
+  sells a stated speed (Dex same day, 3 day, 7 day…).
+
+## Holidays and factory shutdowns (Scott, 5 Nov 2026)
+Every working-day count skips the public holidays of where the work happens, and each supplier's own
+Christmas–New Year shutdown (and any other closure). Automated where possible; what isn't goes on the Vet screen.
+- **Public holidays:** Australian states are already in `public_holidays` (to the end of 2027, from the
+  seeded list; `holidays:import`). Add **New Zealand** (Trends' production). Automate: a yearly fetch from a
+  public holidays source for each AU state and NZ, so next year's dates are in before they are needed.
+- **Production days use the factory's calendar** (supplier's state, or NZ for Trends); transit and
+  freight use the delivery side's.
+- **Shutdowns per supplier** (new: supplier closures, from–to, source, confirmed): read from each supplier's
+  distributor site or notices (Claude in Scott's Chrome, signed in, each October); Promodata where it says.
+  Until a supplier's dates are confirmed, a standard closure is assumed and the supplier is listed on the Vet
+  screen as "Christmas shutdown not confirmed". **Standard closure (Scott):** closed for the last 2 full working
+  days before Christmas Day, reopening the first Monday after 5 January. Some suppliers work straight through,
+  and the reopening date really needs finding out per supplier.
+- **Where to find it:** each live-range supplier's distributor login has it somewhere; working out where, per
+  supplier, is part of setting up that supplier (recorded in its rules file so the yearly re-read is automatic).
+- **Never poll Scott's email** for notices (Scott, 5 Nov 2026). Shutdown notices go to his address; he passes
+  on any that are relevant.
+
 ## Where it shows
 1. **Product page (PDP):** prominent, and recalculated as branding options are chosen.
 2. **Search:** find products that can be delivered by a given date.
@@ -37,6 +65,4 @@ Dex: the chosen production speed instead.
    shows it on the PDP, search and checkout; `custom.leadtimedays` stays as is.
 
 ## Open questions for Scott
-- Trends: ships from NZ direct to the client? Usual transit days?
-- Extra days per additional decoration, per supplier or one rule?
-- When the Christmas stretch starts and by how much (per supplier where they publish it).
+- When the Christmas stretch ends (assumed: through the Christmas shutdown, until production restarts in January).
