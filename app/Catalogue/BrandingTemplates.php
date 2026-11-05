@@ -232,7 +232,8 @@ class BrandingTemplates
         .'confidence is "high" only when the picture shows that side of the product the same way as the template, so the box is where the print really goes; otherwise "low". '
         .'Reply with JSON only: {"positions":[{"name":string,"view":"front"|"back"|"side"|"top","max_width_mm":number|null,"max_height_mm":number|null,'
         .'"methods":[{"name":string,"max_width_mm":number|null,"max_height_mm":number|null}],"box":{"left":n,"top":n,"width":n}|null,"quad":[[x,y],[x,y],[x,y],[x,y]]|null,"surface":"flat"|"cylinder_v"|"cylinder_h"|"dome","confidence":"high"|"low"}]}. '
-        .'If it is not a branding template, reply {"positions":[]}.';
+        .'If it is not a branding template, reply {"positions":[]}. '
+        .'Reply with the JSON object only: no explanation, no working, no code fence.';
 
     /** @param  array<string, mixed>  $job */
     private function apply(array $job, $r): int

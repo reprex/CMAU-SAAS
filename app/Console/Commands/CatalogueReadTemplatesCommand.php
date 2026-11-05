@@ -23,13 +23,20 @@ class CatalogueReadTemplatesCommand extends Command
         {--parallel=1 : Send this many to Claude at once}
         {--seconds=0 : Stop after this many seconds (0: no limit)}
         {--supplier= : Only this supplier\'s products}
-        {--reread : Mark every template already read (or failed) to be read again by the minute cron, then stop}';
+        {--reread : Mark every template already read (or failed) to be read again by the minute cron, then stop}
+        {--retry-failed : Mark only the failed templates to be read again by the minute cron, then stop}';
 
     protected $description = 'Find and read supplier branding templates';
 
     public function handle(BrandingTemplates $templates): int
     {
         if (! config('images.check.enabled') && ! $this->option('product') && ! $this->option('all')) {
+            return self::SUCCESS;
+        }
+        if ($this->option('retry-failed')) {
+            $n = BrandingTemplate::query()->where('status', 'failed')->update(['status' => 'new']);
+            $this->info("{$n} failed templates will be read again by the minute cron.");
+
             return self::SUCCESS;
         }
         if ($this->option('reread')) {
