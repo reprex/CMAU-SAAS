@@ -111,3 +111,32 @@ prior to production." while the others on the same product show their mockups (S
 when no chosen position has a mockup do they show guide cards. A position
 whose print area isn't visible on the photo, or that Claude isn't confident about, also gets the guide
 card.
+
+## Photos with example branding (Scott, 5 Nov 2026)
+
+"A colour photo that is also the hero counts as a colour photo, but only if there is no example branding
+(text / logos) on the image. The same goes for any colour images that contain example branding: these
+need to be either excluded or the image branding quickly removed for the branding mockup."
+
+- **Which photos:** each colour's own photo (front; one that is also the hero counts) and that colour's
+  first other photo (back), exactly as the product page picks them (`PhotoBrandings::photos`). Never a
+  style photo, and never the hero standing in for a colour with no photo of its own.
+- **The check:** Claude (Haiku, `images.branding`) looks at each photo once (16 a request, 5 requests at
+  once) and says: no branding, small (one compact mark) or large; where it is (box, percent of the photo);
+  and whether the surface around it is plain. Stored in `photo_brandings`, keyed by the photo's URL.
+  `catalogue:check-branding` runs every minute (12 products a run) on products that can get a mockup at
+  all (a template read, a staff logo area, or a garment with a size chart), and template reads check their
+  product's photos first. Its own daily limit, `PHOTO_BRANDING_PER_DAY` (20,000 photos).
+- **Use or skip** (`PhotoBrandings::verdict`, sent per colour and side as `custom.mockupphotos`):
+  - no branding: `"ok"`;
+  - small branding on a plain surface inside a print area on that side (6 points' leeway): its box, and
+    the product page paints that patch with the surrounding colour and shading before drawing the logo;
+  - large, textured, outside every print area, or a photo Claude couldn't load: `"skip"`, and the position
+    gets the guide card or the no-image note.
+  - **A photo not checked yet is never used for a mockup** (left out of `custom.mockupphotos`). A product
+    published before the check ran has no `custom.mockupphotos` and shows mockups as before (never on the
+    hero) until it is republished.
+- The template reader places print areas only on a usable photo, so a product whose only colour photo is
+  the hero (the Flurr pen, 8443) gets its box once that photo is cleared.
+- The Vet screen's Mockups section shows how many photos were checked, how many had branding and how many
+  aren't used. No action is needed there.

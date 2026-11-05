@@ -4,6 +4,7 @@ namespace App\Catalogue;
 
 use App\Models\BrandingTemplate;
 use App\Models\DecTypeCode;
+use App\Models\PhotoBranding;
 use App\Models\PriceOption;
 use App\Models\PricePattern;
 use App\Models\Product;
@@ -145,6 +146,8 @@ class VetQueue
             'why' => 'A logo is drawn on the photo only where it can be trusted: a template read, a staff position, or a garment with the supplier\'s size chart. The rest show a guide card.',
             'summary' => $m, 'by_supplier' => collect($m['guide_by_supplier'] ?? [])->sortDesc()->mapWithKeys(fn ($n, $sid) => [$names[$sid] ?? "Supplier {$sid}" => $n])->all(),
             'garments' => Product::query()->whereKey($m['garment_no_chart'] ?? [])->limit(20)->get(['id', 'name', 'code'])->all(),
+            'photos' => ['checked' => PhotoBranding::query()->count(), 'branded' => PhotoBranding::query()->where('branding', '!=', PhotoBrandings::NONE)->count(),
+                'unusable' => PhotoBranding::query()->where(fn ($q) => $q->whereNull('branding')->orWhere('branding', PhotoBrandings::LARGE)->orWhere('plain', false))->count()],
             'at' => $r['at'] ?? null, 'more' => route('range.positions')];
     }
 }

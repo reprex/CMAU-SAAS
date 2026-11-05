@@ -6,6 +6,7 @@ use App\Catalogue\BrandingTemplates;
 use App\Catalogue\GarmentSizes;
 use App\Catalogue\ImageTagger;
 use App\Catalogue\OurCodes;
+use App\Catalogue\PhotoBrandings;
 use App\Catalogue\PositionResolver;
 use App\Catalogue\PrintAreas;
 use App\Catalogue\ProductOptions;
@@ -155,6 +156,8 @@ class ProductPayload
             $area ? $this->mf('custom', 'printarea', 'json', json_encode($area)) : null,
             // Template, else Promodata's decoration print areas, else the type default (docs/logo-preview.md).
             ($positions = $this->positions->forShopify($product)) ? $this->mf('custom', 'brandingpositions', 'json', json_encode($positions)) : null,
+            // Which colour photos can carry a mockup (example branding checked; docs/branding-templates.md). Additive.
+            ($photos = $this->sizing(fn () => app(PhotoBrandings::class)->forShopify($product, $positions ?: []))) ? $this->mf('custom', 'mockupphotos', 'json', json_encode($photos, JSON_UNESCAPED_UNICODE)) : null,
             // No template link on our pages (Scott, 3 Nov 2026): only whether one is available; it goes with the quote or invoice email.
             app(TemplateFiles::class)->has($product) ? $this->mf('custom', 'hasbrandingtemplate', 'boolean', 'true') : null,
             // The size chart's chest width for the mockup, e.g. "L:56" (docs/logo-preview.md); none means the theme uses a typical width.

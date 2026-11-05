@@ -91,17 +91,20 @@ class BrandingTemplates
      */
     public function pictureFor(Product $product, string $view): ?string
     {
-        $tags = $this->images->tags($product->loadMissing(['images', 'colours', 'override']));
-        $colours = $tags->where('role', ImageTagger::COLOUR)->filter(fn ($t) => filled($t['colour'] ?? null))->values();
-        if ($colours->isEmpty()) {
+        // Each colour's own photo (one that is also the hero counts) and its first other photo, as the product page
+        // picks them; only photos checked for example branding and clean or fixable (Scott, 5 Nov 2026).
+        $branding = app(PhotoBrandings::class);
+        $photos = collect($branding->photos($product))->filter(fn ($p) => $branding->usable($p['url']));
+        $fronts = $photos->where('view', 'front')->values();
+        if ($fronts->isEmpty()) {
             return null;
         }
-        $others = $tags->where('role', ImageTagger::OTHER_COLOUR)->filter(fn ($t) => filled($t['colour'] ?? null))->groupBy('colour');
-        $pick = $colours->first(fn ($t) => isset($others[$t['colour']])) ?? $colours->first();
+        $backs = $photos->where('view', 'back')->keyBy('colour');
+        $pick = $fronts->first(fn ($p) => isset($backs[$p['colour']])) ?? $fronts->first();
 
         return match ($view) {
             'front' => $pick['url'],
-            'back' => ($others[$pick['colour']] ?? collect())->first()['url'] ?? null,
+            'back' => $backs[$pick['colour']]['url'] ?? null,
             default => null,
         };
     }
@@ -121,6 +124,10 @@ class BrandingTemplates
     {
         $out = [];
         $jobs = [];
+        $templates = collect($templates);
+        // Their photos checked for example branding first, in parallel (each photo once).
+        rescue(fn () => app(PhotoBrandings::class)->checkMany(Product::query()->with(['images', 'colours', 'override'])
+            ->whereIn('id', $templates->pluck('product_id')->unique())->get(), $parallel), [], false);
         foreach ($templates as $t) {
             $job = $this->prepare($t);
             if ($job === null) {
@@ -172,6 +179,7 @@ class BrandingTemplates
         if ((int) Cache::get($dayKey, 0) >= (int) config('images.templates.per_day', 5000) || blank(config('search.anthropic.key'))) {
             return null;
         }
+        rescue(fn () => app(PhotoBrandings::class)->ensureChecked($product), 0, false); // photos checked before they are used
         $front = $this->pictureFor($product, 'front');
         $back = $this->pictureFor($product, 'back');
         $isPdf = (bool) preg_match('/\.pdf(\?|$)/i', (string) ($template->file_path ?: $template->url));
