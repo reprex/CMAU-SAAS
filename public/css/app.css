@@ -18,6 +18,8 @@ h3 { margin: 0; font-size: 15px; font-weight: 600; }
 .nav a.on { background: #3A352D; color: #fff; font-weight: 600; }
 .nav .group { padding: 16px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #B9B0A1; }
 .nav .me { margin-top: auto; padding: 12px; font-size: 12px; color: #B9B0A1; }
+.navlinks { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.navtoggle, .navbtn { display: none; }
 .nav .me button { background: none; border: 0; color: #E3DCD0; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; }
 main { flex: 1; min-width: 0; padding: 26px 30px 60px; display: flex; flex-direction: column; gap: 18px; }
 .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
@@ -92,7 +94,23 @@ details[open] > summary { margin-bottom: 10px; }
 .results button:hover { background: #FBF7EF; }
 .guest { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .guest .card { width: 100%; max-width: 400px; }
-@media (max-width: 760px) { .shell { flex-direction: column; } .nav { flex: none; flex-direction: row; flex-wrap: wrap; } .nav .brand, .nav .group, .nav .me { display: none; } main { padding: 18px 16px 40px; } .lines td.l { padding-left: 16px; } }
+/* Phones (Scott, 6 Nov 2026): the menu folds behind a Menu button (Sign out is in it), the page never scrolls
+   sideways (wide tables scroll inside their own box), and inputs are 16px so iPhone Safari doesn't zoom in. */
+@media (max-width: 760px) {
+  html, body { overflow-x: hidden; }
+  .shell { flex-direction: column; }
+  .nav { flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 12px; position: sticky; top: 0; z-index: 20; }
+  .nav .brand { display: block; padding: 0 8px 0 4px; flex: 1 1 auto; } .nav .brand span { display: none; }
+  .navbtn { display: inline-block; padding: 8px 14px; border: 1px solid #5A5246; border-radius: 6px; color: #fff; font-weight: 600; cursor: pointer; }
+  .navlinks { display: none; order: 4; flex: 1 1 100%; flex-direction: column; padding-top: 8px; max-height: 75vh; overflow-y: auto; }
+  .navtoggle:checked ~ .navlinks { display: flex; }
+  .nav .group { display: block; } .nav .me { display: block; order: -1; font-size: 14px; padding: 4px 12px 12px; border-bottom: 1px solid #3A352D; margin-bottom: 6px; }
+  .nav .me a, .nav .me button { color: #fff; }
+  main { padding: 18px 16px 40px; max-width: 100vw; }
+  main table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+  input, select, textarea { font-size: 16px; }
+  .lines td.l { padding-left: 16px; }
+}
 .transfer > summary { font-weight: 500; }
 
 /* Range curation */
@@ -115,4 +133,4 @@ td.breaks { word-break: break-all; max-width: 260px; }
 /* Division switcher (docs/divisions.md) */
 .nav .divs { display: flex; gap: 2px; padding: 0 0 12px; margin: 0 0 6px; border-bottom: 1px solid #3A352D; }
 .nav .divs a { flex: 1 1 0; text-align: center; padding: 6px 4px; font-size: 12px; border-radius: 6px; }
-@media (max-width: 760px) { .nav .divs { flex: 1 1 100%; border: 0; padding: 0; margin: 0; } }
+@media (max-width: 760px) { .nav .divs { flex: 1 1 100%; order: 3; border: 0; padding: 8px 0 0; margin: 0; } }

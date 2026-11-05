@@ -24,6 +24,9 @@
         @endforeach
       </div>
     @endif
+    <input type="checkbox" id="navtoggle" class="navtoggle" aria-hidden="true">
+    <label for="navtoggle" class="navbtn">Menu</label>
+    <div class="navlinks">
     @if($viewing === 'crowdmerch' && $me->canView('crowdmerch'))
       <a href="{{ route('quotes.index') }}" class="{{ request()->routeIs('quotes.*') ? 'on' : '' }}">Quotes</a>
       <a href="{{ route('website-orders.index') }}" class="{{ request()->routeIs('website-orders.*') ? 'on' : '' }}">Website orders</a>
@@ -57,6 +60,7 @@
       {{ $me->name }} · {{ $me->levelLabel() }}<br>
       <a href="{{ route('security') }}">Sign-in &amp; security</a> ·
       <form method="post" action="{{ route('logout') }}" class="inline">@csrf<button type="submit">Sign out</button></form>
+    </div>
     </div>
   </nav>
   <main>
