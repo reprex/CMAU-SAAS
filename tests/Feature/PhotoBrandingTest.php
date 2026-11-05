@@ -159,4 +159,22 @@ class PhotoBrandingTest extends TestCase
         $this->assertSame('failed', $stuck->fresh()->status);
         $this->assertSame('read', $next->fresh()->status);
     }
+
+    public function test_an_api_limit_pauses_everything_and_marks_nothing_failed(): void
+    {
+        $p = $this->pen();
+        $t = BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/p1.pdf', 'source' => 'promodata', 'status' => 'new']);
+        Http::fake(['api.anthropic.com/*' => Http::response(['type' => 'error', 'error' => ['type' => 'invalid_request_error',
+            'message' => 'You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC.']], 400)]);
+
+        $this->artisan('catalogue:read-templates', ['--limit' => 5])->assertSuccessful();
+        $this->assertSame('new', $t->fresh()->status);                     // back in the queue, not failed
+        $this->assertSame(0, PhotoBranding::query()->count());              // no photo recorded as "could not load"
+        $this->assertTrue(\App\Support\ClaudeLimit::paused());
+        $this->artisan('saas:status')->expectsOutputToContain('Paused (Claude API limit)')->assertSuccessful();
+
+        Http::fake();
+        $this->artisan('catalogue:read-templates', ['--limit' => 5])->assertSuccessful();
+        Http::assertNothingSent();                                          // while paused, nothing is tried
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Catalogue;
 
 use App\Models\PhotoBranding;
 use App\Models\Product;
+use App\Support\ClaudeLimit;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -43,7 +44,7 @@ class PhotoBrandings
 
     public function canCheck(): bool
     {
-        return $this->enabled() && (int) Cache::get($this->dayKey(), 0) < (int) config('images.branding.per_day', 20000);
+        return $this->enabled() && ! ClaudeLimit::paused() && (int) Cache::get($this->dayKey(), 0) < (int) config('images.branding.per_day', 20000);
     }
 
     /**
@@ -267,6 +268,11 @@ class PhotoBrandings
             return 0; // timed out: tried again next run
         }
         if (! $r->successful()) {
+            if (ClaudeLimit::is($r->status(), (string) $r->json('error.message'))) {
+                ClaudeLimit::hit((string) $r->json('error.message')); // a limit, not the photo: nothing recorded, tried again later
+
+                return 0;
+            }
             if ($r->status() === 400 && count($urls) === 1) {
                 // A photo Claude can't load (gone, too big): recorded, and never used for mockups.
                 $this->store($product, $urls[0], ['branding' => null, 'note' => 'Could not load: '.mb_substr((string) $r->json('error.message'), 0, 80)]);
@@ -276,6 +282,9 @@ class PhotoBrandings
             $n = 0;
             if ($r->status() === 400) {
                 foreach ($urls as $url) { // one bad photo spoils the request: try each on its own
+                    if (ClaudeLimit::paused()) {
+                        break;
+                    }
                     $n += rescue(fn () => $this->save($product, [$url], $this->request([$url])), 0, false);
                 }
             }

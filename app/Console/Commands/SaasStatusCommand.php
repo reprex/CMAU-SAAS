@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Catalogue\PhotoBrandings;
 use App\Models\BrandingTemplate;
 use App\Models\PhotoBranding;
+use App\Support\ClaudeLimit;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
@@ -20,6 +21,9 @@ class SaasStatusCommand extends Command
 
     public function handle(): int
     {
+        if ($pause = ClaudeLimit::pause()) {
+            $this->warn('Paused (Claude API limit), trying again '.Carbon::parse($pause['until'])->timezone(config('app.timezone'))->format('g:i a').': '.mb_strimwidth($pause['why'], 0, 120, '…'));
+        }
         $t = BrandingTemplate::query()->selectRaw('status, count(*) n')->groupBy('status')->pluck('n', 'status');
         $left = (int) ($t['new'] ?? 0);
         $this->info('Templates: '.$t->map(fn ($n, $s) => "{$s} ".number_format($n))->implode(' · '));

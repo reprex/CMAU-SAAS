@@ -6,6 +6,7 @@ use App\Models\BrandingPosition;
 use App\Models\BrandingTemplate;
 use App\Models\PrintArea;
 use App\Models\Product;
+use App\Support\ClaudeLimit;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -191,7 +192,7 @@ class BrandingTemplates
     /** Is there a Claude key, and room under today's limit? */
     public function canRead(): bool
     {
-        return filled(config('search.anthropic.key')) && (int) Cache::get('template-read:'.now()->format('Ymd'), 0) < (int) config('images.templates.per_day', 5000);
+        return filled(config('search.anthropic.key')) && ! ClaudeLimit::paused() && (int) Cache::get('template-read:'.now()->format('Ymd'), 0) < (int) config('images.templates.per_day', 5000);
     }
 
     /** The request for one template, or null when it can't be read now (status says why). @return array<string, mixed>|null */
@@ -269,7 +270,14 @@ class BrandingTemplates
             return 0;
         }
         if (! $r->successful()) {
-            $template->update(['status' => 'failed', 'message' => 'Claude: '.$r->status().' '.mb_substr((string) $r->json('error.message'), 0, 200)]);
+            $why = (string) $r->json('error.message');
+            if (ClaudeLimit::is($r->status(), $why)) {
+                ClaudeLimit::hit($why); // a spend or rate limit: back in the queue, everything waits an hour
+                $template->update(['status' => 'new', 'message' => 'Waiting: Claude API limit']);
+
+                return 0;
+            }
+            $template->update(['status' => 'failed', 'message' => 'Claude: '.$r->status().' '.mb_substr($why, 0, 200)]);
 
             return 0;
         }
