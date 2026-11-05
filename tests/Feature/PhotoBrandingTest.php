@@ -146,4 +146,17 @@ class PhotoBrandingTest extends TestCase
         BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/b.pdf', 'source' => 'promodata', 'status' => 'failed', 'message' => 'reply cut off']);
         $this->artisan('saas:status')->expectsOutputToContain('Templates: ')->expectsOutputToContain('Failed 8443: reply cut off')->expectsOutputToContain('Photos checked: 0')->assertSuccessful();
     }
+
+    public function test_a_template_that_stopped_the_reader_is_set_aside_and_the_queue_moves_on(): void
+    {
+        $p = $this->pen();
+        $stuck = BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/big.pdf', 'source' => 'promodata', 'status' => 'reading']);
+        BrandingTemplate::query()->whereKey($stuck->id)->update(['updated_at' => now()->subMinutes(20)]);
+        $next = BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/next.pdf', 'source' => 'promodata', 'status' => 'new']);
+        $this->fakeClaude([], [['name' => 'Barrel', 'view' => 'front', 'max_width_mm' => 50, 'max_height_mm' => 8, 'methods' => [], 'box' => null, 'confidence' => 'low']]);
+
+        $this->artisan('catalogue:read-templates', ['--limit' => 5])->expectsOutputToContain('set aside as failed')->assertSuccessful();
+        $this->assertSame('failed', $stuck->fresh()->status);
+        $this->assertSame('read', $next->fresh()->status);
+    }
 }

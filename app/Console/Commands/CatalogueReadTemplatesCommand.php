@@ -33,6 +33,10 @@ class CatalogueReadTemplatesCommand extends Command
         if (! config('images.check.enabled') && ! $this->option('product') && ! $this->option('all')) {
             return self::SUCCESS;
         }
+        @ini_set('memory_limit', '1024M'); // a template PDF goes to Claude whole (up to 20 MB, more as base64)
+        if ($n = BrandingTemplates::releaseStuck()) {
+            $this->warn("{$n} templates that stopped an earlier run were set aside as failed.");
+        }
         if ($this->option('retry-failed')) {
             $n = BrandingTemplate::query()->where('status', 'failed')->update(['status' => 'new']);
             $this->info("{$n} failed templates will be read again by the minute cron.");

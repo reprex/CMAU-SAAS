@@ -123,20 +123,35 @@ class BrandingTemplates
     public function readMany(iterable $templates, int $parallel = 1): array
     {
         $out = [];
-        $jobs = [];
         $templates = collect($templates);
         // Their photos checked for example branding first, in parallel (each photo once).
         rescue(fn () => app(PhotoBrandings::class)->checkMany(Product::query()->with(['images', 'colours', 'override'])
             ->whereIn('id', $templates->pluck('product_id')->unique())->get(), $parallel), [], false);
-        foreach ($templates as $t) {
-            $job = $this->prepare($t);
-            if ($job === null) {
-                $out[$t->id] = 0;
-            } else {
-                $jobs[] = $job;
+        // A few at a time, each file loaded only for its own batch (a template PDF can be 20 MB: holding all of a
+        // run's files at once ran the server out of memory, 5 Nov 2026). Each is marked "reading" first, so one
+        // that stops the reader is set aside as failed by the next run (releaseStuck) instead of blocking the queue.
+        foreach ($templates->chunk(max(1, $parallel)) as $batch) {
+            $chunk = [];
+            foreach ($batch as $t) {
+                $t->update(['status' => 'reading', 'message' => null]);
+                try {
+                    $job = $this->prepare($t);
+                } catch (Throwable $e) {
+                    $t->update(['status' => 'failed', 'message' => 'Could not prepare: '.mb_substr($e->getMessage(), 0, 400)]);
+                    $job = null;
+                }
+                if ($job === null) {
+                    if ($t->fresh()?->status === 'reading') {
+                        $t->update(['status' => 'new']); // not read this time (no key, or today's limit): back in the queue
+                    }
+                    $out[$t->id] = 0;
+                } else {
+                    $chunk[] = $job;
+                }
             }
-        }
-        foreach (array_chunk($jobs, max(1, $parallel)) as $chunk) {
+            if ($chunk === []) {
+                continue;
+            }
             $send = fn ($r) => $r->withHeaders(['x-api-key' => config('search.anthropic.key'), 'anthropic-version' => '2023-06-01'])
                 ->timeout((int) config('images.templates.timeout', 90));
             $responses = count($chunk) === 1
@@ -151,9 +166,17 @@ class BrandingTemplates
                     $out[$job['template']->id] = 0;
                 }
             }
+            unset($chunk, $responses);
         }
 
         return $out;
+    }
+
+    /** Templates left "reading" by a run that stopped (out of memory, timed out): set aside as failed. */
+    public static function releaseStuck(int $minutes = 10): int
+    {
+        return BrandingTemplate::query()->where('status', 'reading')->where('updated_at', '<', now()->subMinutes($minutes))
+            ->update(['status' => 'failed', 'message' => 'The reader stopped on this template (probably too large to read); Read again to retry']);
     }
 
     private function send($request, array $body)
