@@ -26,6 +26,21 @@ should lift quote-to-order and general conversion on crowdmerch.com.au. To be re
 - **Christmas stretch: +2 working days from the end of October** for most items. Not added where the supplier
   sells a stated speed (Dex same day, 3 day, 7 day…).
 
+## Holidays and factory shutdowns (Scott, 5 Nov 2026)
+Every working-day count skips the public holidays of where the work happens, and each supplier's own
+Christmas–New Year shutdown (and any other closure). Automated where possible; what isn't goes on the Vet screen.
+- **Public holidays:** Australian states are already in `public_holidays` (to the end of 2027, from the
+  seeded list; `holidays:import`). Add **New Zealand** (Trends' production). Automate: a yearly fetch from a
+  public holidays source for each AU state and NZ, so next year's dates are in before they are needed.
+- **Production days use the factory's calendar** (supplier's state, or NZ for Trends); transit and
+  freight use the delivery side's.
+- **Shutdowns per supplier** (new: supplier closures, from–to, source, confirmed): read from each supplier's
+  distributor site or notices (Claude in Scott's Chrome, signed in, each October); Promodata where it says.
+  Until a supplier's dates are confirmed, a standard closure is assumed (to be set with Scott) and the
+  supplier is listed on the Vet screen as "Christmas shutdown not confirmed".
+- Supplier notices don't reach scott@replicat.com.au (searched 5 Nov 2026: none found); if they go to a
+  CrowdMerch mailbox, that mailbox could be scanned too.
+
 ## Where it shows
 1. **Product page (PDP):** prominent, and recalculated as branding options are chosen.
 2. **Search:** find products that can be delivered by a given date.
@@ -46,4 +61,6 @@ Dex: the chosen production speed instead.
    shows it on the PDP, search and checkout; `custom.leadtimedays` stays as is.
 
 ## Open questions for Scott
+- The standard Christmas closure to assume until a supplier confirms (e.g. 24 Dec to the first Monday after 5 Jan?).
+- Which mailbox supplier notices (shutdowns, lead-time changes) go to.
 - When the Christmas stretch ends (assumed: through the Christmas shutdown, until production restarts in January).
