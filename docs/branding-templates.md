@@ -102,3 +102,10 @@ front = a colour's own photo (one that also has a second photo, if any does), ba
 other photo, as the product page uses. Suppliers shoot every colour the same way, so one placement serves
 all colours. A product with no colour photo gets its positions, methods and sizes from the template but
 no box: guide cards on the product page (e.g. the Forya Bamboo Pen, 8442).
+
+Per position (Scott, 5 Nov 2026): Promodata often has a colour photo of the front only. Each position is
+mocked up only on a colour photo of its own side: the front on the chosen colour's photo, the back on
+that colour's second photo; a position on a side with no colour photo (back with no second photo, side,
+top) gets the guide card, while the others on the same product still show their mockups. A position
+whose print area isn't visible on the photo, or that Claude isn't confident about, also gets the guide
+card.
