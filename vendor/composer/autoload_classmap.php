@@ -129,6 +129,7 @@ return array(
     'App\\Http\\Controllers\\RelatedStyleController' => $baseDir . '/app/Http/Controllers/RelatedStyleController.php',
     'App\\Http\\Controllers\\StaffConnectController' => $baseDir . '/app/Http/Controllers/StaffConnectController.php',
     'App\\Http\\Controllers\\SubstituteController' => $baseDir . '/app/Http/Controllers/SubstituteController.php',
+    'App\\Http\\Controllers\\TemplateReviewController' => $baseDir . '/app/Http/Controllers/TemplateReviewController.php',
     'App\\Http\\Controllers\\VetController' => $baseDir . '/app/Http/Controllers/VetController.php',
     'App\\Http\\Controllers\\WebsiteOrderController' => $baseDir . '/app/Http/Controllers/WebsiteOrderController.php',
     'App\\Http\\Middleware\\RequireRole' => $baseDir . '/app/Http/Middleware/RequireRole.php',

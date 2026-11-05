@@ -672,6 +672,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Http\\Controllers\\RelatedStyleController' => __DIR__ . '/../..' . '/app/Http/Controllers/RelatedStyleController.php',
         'App\\Http\\Controllers\\StaffConnectController' => __DIR__ . '/../..' . '/app/Http/Controllers/StaffConnectController.php',
         'App\\Http\\Controllers\\SubstituteController' => __DIR__ . '/../..' . '/app/Http/Controllers/SubstituteController.php',
+        'App\\Http\\Controllers\\TemplateReviewController' => __DIR__ . '/../..' . '/app/Http/Controllers/TemplateReviewController.php',
         'App\\Http\\Controllers\\VetController' => __DIR__ . '/../..' . '/app/Http/Controllers/VetController.php',
         'App\\Http\\Controllers\\WebsiteOrderController' => __DIR__ . '/../..' . '/app/Http/Controllers/WebsiteOrderController.php',
         'App\\Http\\Middleware\\RequireRole' => __DIR__ . '/../..' . '/app/Http/Middleware/RequireRole.php',
