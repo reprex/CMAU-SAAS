@@ -236,6 +236,7 @@ return array(
     'App\\Staff\\StaffPasses' => $baseDir . '/app/Staff/StaffPasses.php',
     'App\\Staff\\StaffQuotes' => $baseDir . '/app/Staff/StaffQuotes.php',
     'App\\Stock\\PromodataStock' => $baseDir . '/app/Stock/PromodataStock.php',
+    'App\\Support\\ClaudeLimit' => $baseDir . '/app/Support/ClaudeLimit.php',
     'App\\Support\\Divisions' => $baseDir . '/app/Support/Divisions.php',
     'App\\Support\\PhpVersionGuard' => $baseDir . '/app/Support/PhpVersionGuard.php',
     'App\\Tod\\TodPricingComparer' => $baseDir . '/app/Tod/TodPricingComparer.php',

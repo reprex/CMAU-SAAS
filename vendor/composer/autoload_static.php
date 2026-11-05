@@ -779,6 +779,7 @@ class ComposerStaticInit534aa7921ac0884d6c2b48d9ec454967
         'App\\Staff\\StaffPasses' => __DIR__ . '/../..' . '/app/Staff/StaffPasses.php',
         'App\\Staff\\StaffQuotes' => __DIR__ . '/../..' . '/app/Staff/StaffQuotes.php',
         'App\\Stock\\PromodataStock' => __DIR__ . '/../..' . '/app/Stock/PromodataStock.php',
+        'App\\Support\\ClaudeLimit' => __DIR__ . '/../..' . '/app/Support/ClaudeLimit.php',
         'App\\Support\\Divisions' => __DIR__ . '/../..' . '/app/Support/Divisions.php',
         'App\\Support\\PhpVersionGuard' => __DIR__ . '/../..' . '/app/Support/PhpVersionGuard.php',
         'App\\Tod\\TodPricingComparer' => __DIR__ . '/../..' . '/app/Tod/TodPricingComparer.php',
