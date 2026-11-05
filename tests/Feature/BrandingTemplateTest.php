@@ -148,4 +148,16 @@ class BrandingTemplateTest extends TestCase
         $this->travel(1)->minutes(); // read again with newer reading rules
         $this->artisan('catalogue:read-templates', ['--all' => true, '--again' => true, '--supplier' => 3])->expectsOutputToContain('Read 3 templates')->assertSuccessful();
     }
+
+    public function test_a_reply_with_words_around_the_json_is_still_read_and_a_bad_one_says_why(): void
+    {
+        $p = $this->tee();
+        Http::fake(['api.anthropic.com/*' => Http::sequence()
+            ->push(['content' => [['type' => 'text', 'text' => "Here are the positions:\n```json\n".json_encode(['positions' => [['name' => 'Front', 'view' => 'front', 'methods' => []]]])."\n```\nLet me know."]]])
+            ->push(['stop_reason' => 'max_tokens', 'content' => [['type' => 'text', 'text' => '{"positions":[{"name":"Fro']]])]);
+        $this->assertSame(1, app(BrandingTemplates::class)->read(BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/a.pdf'])));
+        $t = BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/b.pdf']);
+        $this->assertSame(0, app(BrandingTemplates::class)->read($t));
+        $this->assertSame('Claude reply was not usable: reply cut off (too long)', $t->fresh()->message);
+    }
 }

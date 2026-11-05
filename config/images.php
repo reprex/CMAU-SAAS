@@ -25,6 +25,6 @@ return [
         'model' => env('ANTHROPIC_TEMPLATE_MODEL', 'claude-sonnet-5-5'),
         'timeout' => 90,
         'per_day' => (int) env('TEMPLATE_READS_PER_DAY', 5000),
-        'max_tokens' => 1800,
+        'max_tokens' => 4000, // up to 12 positions, each with methods, a box and four corners
     ],
 ];

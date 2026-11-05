@@ -231,9 +231,14 @@ class BrandingTemplates
 
             return 0;
         }
-        $json = json_decode(trim(preg_replace('/^```(?:json)?|```$/m', '', (string) collect($r->json('content', []))->where('type', 'text')->pluck('text')->implode(''))), true);
+        $text = (string) collect($r->json('content', []))->where('type', 'text')->pluck('text')->implode('');
+        // The JSON may come with words or a code fence around it: take the outermost {...}.
+        $start = strpos($text, '{');
+        $end = strrpos($text, '}');
+        $json = $start !== false && $end > $start ? json_decode(substr($text, $start, $end - $start + 1), true) : null;
         if (! is_array($json['positions'] ?? null)) {
-            $template->update(['status' => 'failed', 'message' => 'Claude reply was not usable']);
+            $why = $r->json('stop_reason') === 'max_tokens' ? 'reply cut off (too long)' : 'not JSON: '.mb_substr(trim(preg_replace('/\s+/', ' ', $text)), 0, 160);
+            $template->update(['status' => 'failed', 'message' => 'Claude reply was not usable: '.$why]);
 
             return 0;
         }
