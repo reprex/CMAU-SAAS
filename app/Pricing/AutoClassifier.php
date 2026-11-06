@@ -62,6 +62,8 @@ class AutoClassifier
         $rows = PriceOption::query()->join('products as p', 'p.id', '=', 'price_options.product_id')
             ->whereIn('p.supplier_id', $supplierIds)->whereIn('p.tier', [Product::TIER_ACTIVE, Product::TIER_LIVE])
             ->where('price_options.kind', '!=', PriceOption::KIND_EXTERNAL)->where('price_options.placeholder', false)
+            // Products priced by an external price don't use their own lines (size/colour differences): not listed.
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('price_options as ext')->whereColumn('ext.product_id', 'p.id')->where('ext.kind', PriceOption::KIND_EXTERNAL))
             ->groupBy('price_options.code', 'p.supplier_id')
             ->selectRaw('price_options.code, p.supplier_id, min(price_options.description) as description, min(price_options.kind) as kind,
                 max(price_options.cost_string) as cost_string, count(distinct price_options.product_id) as products,
