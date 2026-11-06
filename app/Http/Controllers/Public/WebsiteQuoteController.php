@@ -333,6 +333,7 @@ class WebsiteQuoteController extends Controller
         }
 
         return $this->reply($request, ['success' => true, 'quoteNumber' => $quote->number, 'cart' => $quote->cart_state, 'logos' => $logos,
+            'delivery' => $quote->freight_source === 'carrier' ? ['country' => $quote->delivery_country ?: 'AU', 'postcode' => $quote->delivery_postcode] : null,
             'contact' => ['name' => $quote->client_name, 'organisation' => $quote->client_company, 'email' => $quote->client_email, 'phone' => $quote->client_phone]]);
     }
 

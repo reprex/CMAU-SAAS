@@ -60,7 +60,7 @@ class QuotePdf
         $included = collect();
         foreach ($quote->items as $i) {
             if ($i->setupPrice() > 0) {
-                $included->push(['label' => ($i->decoration_name ? 'Setup: '.$i->decoration_name : 'Setup').' ('.$i->name.')', 'amount' => $i->setupPrice(), 'tbc' => false]);
+                $included->push(['label' => ($i->decoration_name ? 'Setup: '.$i->decoration_name : 'Setup').($quote->source === 'website' ? '' : ' ('.$i->name.')'), 'amount' => $i->setupPrice(), 'tbc' => false]);
             }
         }
         foreach ($quote->extras->where('kind', 'service') as $x) {

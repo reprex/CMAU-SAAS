@@ -10,11 +10,11 @@
 .fig { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 20px; line-height: 1.1; }
 .inc td { border-bottom: 1px solid #E4E1DB; padding: 5px 0; }
 .totals { background: #D4651F; color: #FFFFFF; }
-.pic { width: 100%; height: 230px; background: #F4F3F0; text-align: center; }
-.pic img { max-width: 96%; max-height: 222px; margin-top: 4px; }
-.pic.art img { max-height: 160px; margin-top: 35px; }
-.small-pic { height: 170px; }
-.small-pic img { max-height: 162px; }
+.pic { width: 100%; height: 165px; background: #F4F3F0; text-align: center; }
+.pic img { max-width: 96%; max-height: 157px; margin-top: 4px; }
+.pic.art img { max-height: 120px; margin-top: 22px; }
+.small-pic { height: 125px; }
+.small-pic img { max-height: 117px; }
 .lines td { border-bottom: 1px solid #E4E1DB; padding: 5px 0; }
 .thumb-s { width: 84px; height: 84px; background: #F4F3F0; text-align: center; }
 .thumb-s img { max-width: 78px; max-height: 78px; margin-top: 3px; }
@@ -57,8 +57,7 @@
   </tr></table>
   <div class="small muted" style="margin-top: 6px">{{ count($pictures['mockups']) ? 'Displayed branding mockups are approximate only, we provide a full factory proof for approval prior to production.' : 'We will send a full factory proof of your branding for approval before production.' }}</div>
   @if($main)
-    <div class="iname" style="margin-top: 10px; font-size: 20px">{{ $main->name }}</div>
-    <div class="muted">{{ collect([$main->ourCode() ? 'Code '.$main->ourCode() : null, $main->colour])->filter()->implode(' · ') }}</div>
+    <div class="muted" style="margin-top: 8px">{{ collect([$main->ourCode() ? 'Code '.$main->ourCode() : null, $main->colour])->filter()->implode(' · ') }}</div>
     @foreach ($items->filter(fn ($r) => count($r['sizes'])) as $row)
       @if(! $loop->first)<div class="small" style="margin-top: 6px"><b>{{ $row['item']->name }}</b> <span class="muted">{{ $row['item']->ourCode() ? 'Code '.$row['item']->ourCode() : '' }}</span></div>@endif
       @foreach ($row['sizes'] as $colour => $sizes)
@@ -149,7 +148,7 @@
 </table>
 @endif
 
-<table style="margin-top: 18px; page-break-inside: avoid">
+<table style="margin-top: 12px; page-break-inside: avoid">
   <tr>
     <td style="padding-right: 30px">
       @if($timing)<div class="label orange">Timing</div><div class="soft" style="margin: 3px 0 12px">{{ $timing }}</div>@endif
@@ -184,20 +183,19 @@
           @endforeach
         </table>
       @endif
-      <table class="totals"><tr><td style="padding: 16px 18px">
+      <table class="totals"><tr><td style="padding: 12px 16px">
         <table>
           <tr><td style="color: #FFFFFF">Subtotal ex GST</td><td class="right" style="color: #FFFFFF">{{ $m($quote->subtotal) }}</td></tr>
           <tr><td style="color: #FFFFFF; padding-bottom: 8px">{{ $quote->gst_free_export ? 'GST (not charged on exports)' : 'GST' }}</td><td class="right" style="color: #FFFFFF; padding-bottom: 8px">{{ $m($quote->gst) }}</td></tr>
         </table>
         <div style="border-top: 1px solid #EBB591; padding-top: 8px; text-align: right">
           <div class="label" style="color: #FFFFFF">{{ $quote->gst_free_export ? 'Total, no GST' : 'Total inc GST' }}</div>
-          <div class="os" style="font-weight: 600; font-size: 36px; line-height: 1; color: #FFFFFF">${{ $m($quote->total) }}</div>
+          <div class="os" style="font-weight: 600; font-size: 30px; line-height: 1; color: #FFFFFF">${{ $m($quote->total) }}</div>
         </div>
       </td></tr></table>
       @if($anyTbc)<div class="muted small" style="margin-top: 5px">Delivery marked TBC is not in this total yet; we will confirm it.</div>@endif
       @if($quote->freight_source === 'none')<div class="muted small" style="margin-top: 5px">Delivery is not included. Ask us if you'd like it added.</div>@endif
-      @if($deliveryEstimated)<div class="muted small" style="margin-top: 5px">Delivery is an estimate, subject to confirming the exact product mix and weights.</div>@endif
-      @if($quote->gst_free_export)<div class="muted small" style="margin-top: 5px">Delivering outside Australia: no Australian GST is charged (GST-free export). Any local duties and taxes are payable by you to the carrier before delivery.</div>@endif
+      @if($deliveryEstimated || $quote->gst_free_export)<div class="muted small" style="margin-top: 5px">{{ collect([$deliveryEstimated ? 'Delivery is an estimate, subject to confirming the exact product mix and weights.' : null, $quote->gst_free_export ? 'Outside Australia: no Australian GST (GST-free export); local duties and taxes are payable by you to the carrier before delivery.' : null])->filter()->implode(' ') }}</div>@endif
     </td>
   </tr>
 </table>
