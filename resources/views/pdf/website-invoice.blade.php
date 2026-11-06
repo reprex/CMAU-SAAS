@@ -1,3 +1,5 @@
+@php($logos = $logos ?? [])
+@php($payment = $payment ?? '')
 @php($m = fn ($v) => number_format((float) $v, 2))
 @php($o = $order)
 <!doctype html>
@@ -59,7 +61,7 @@
         <div class="{{ $loop->first ? 'iname' : 'iname2' }}">{{ $first->product_name }}</div>
         <div class="muted small">Code {{ $o->ourCodeFor($first) }} · {{ number_format($lines->sum('qty')) }} units</div>
         @foreach($lines->groupBy('colour') as $colour => $sizes)
-          <div style="margin-top: 3px"><span class="small muted">{{ $colour }}&nbsp;</span>@foreach($sizes as $s)<span class="chip"><span class="muted">{{ $s->size }}</span> <b>{{ $s->qty }}</b></span>@endforeach</div>
+          <div style="margin-top: 3px"><span class="small muted">{{ $colour }}&nbsp;</span>@foreach($sizes as $s)<span class="chip"><span class="muted">{{ $s->size }}</span> <b>{{ $s->qty }}</b>@if($s->sku) <span class="muted tiny">{{ $s->sku }}</span>@endif</span>@endforeach</div>
         @endforeach
         <div style="height: 6px"></div>
       @endforeach
