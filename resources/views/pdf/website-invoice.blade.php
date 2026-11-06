@@ -37,12 +37,6 @@
 <div class="muted" style="margin-top: 5px">{{ collect([$o->organisation ? 'Attention '.$o->contact_name : null, $o->phone, $o->email])->filter()->implode(' · ') }}</div>
 <div class="rule"></div>
 
-@if(! empty($o->alerts))
-  <div style="margin-top: 8px">
-    <div class="label orange">Before you pay</div>
-    @foreach($o->alerts as $alert)<div class="alert">{{ $alert['message'] }}</div>@endforeach
-  </div>
-@endif
 
 {{-- One product (with any related styles in the same run), everything from the checkout, on one page (Scott, 7 Nov 2026). --}}
 <table style="margin-top: 10px">
@@ -102,7 +96,19 @@
       @if($o->event_name || $o->event_date)<div class="small" style="margin: 0 0 6px">Event: {{ collect([$o->event_name, $o->event_date?->format('D j M Y'), $o->event_place])->filter()->implode(' · ') }}</div>@endif
       @if(! empty($o->eta_breakdown['stages']))
         <table class="stage tiny" style="margin-bottom: 8px">
-          @foreach($o->eta_breakdown['stages'] as $st)<tr><td>{{ $st['name'] }}</td><td class="right muted">{{ $st['days'] }} business day{{ $st['days'] === 1 ? '' : 's' }} · by {{ \Carbon\CarbonImmutable::parse($st['ends'])->format('D j M') }}</td></tr>@endforeach
+          {{-- Stock, branding and any Christmas rush as one production line; proof approval and delivery stay (Scott, 7 Nov 2026). --}}
+          @php($rows = [])
+          @foreach($o->eta_breakdown['stages'] as $st)
+            @php($key = in_array($st['key'] ?? '', ['stock', 'decoration', 'christmas'], true) ? 'production' : ($st['key'] ?? $st['name']))
+            @php($name = ['production' => 'Production', 'order_check' => 'Payment and proof approval'][$key] ?? $st['name'])
+            @if(isset($rows[$key]))
+              @php($rows[$key]['days'] += (int) $st['days'])
+              @php($rows[$key]['ends'] = $st['ends'])
+            @else
+              @php($rows[$key] = ['name' => $name, 'days' => (int) $st['days'], 'ends' => $st['ends']])
+            @endif
+          @endforeach
+          @foreach($rows as $st)<tr><td>{{ $st['name'] }}</td><td class="right muted">{{ $st['days'] }} business day{{ $st['days'] === 1 ? '' : 's' }} · by {{ \Carbon\CarbonImmutable::parse($st['ends'])->format('D j M') }}</td></tr>@endforeach
         </table>
       @endif
       <div class="label orange">What happens next</div>
@@ -111,7 +117,7 @@
         <li>{{ config('website.orders.proof_ack_text') }}</li>
         <li>We order the stock, brand it and send it to you.</li>
       </ol>
-      @if($o->export && ! collect($o->alerts ?? [])->contains('code', 'export'))<div class="alert">{{ config('website.orders.duty_note') }}</div>@endif
+      @if($o->export)<div class="alert">{{ config('website.orders.duty_note') }}</div>@endif
     </td>
     <td style="width: 300px">
       <table class="totals"><tr><td style="padding: 14px 16px">
@@ -124,7 +130,6 @@
           <div class="os" style="font-weight: 600; font-size: 32px; line-height: 1; color: #FFFFFF">${{ $m($o->total) }}</div>
         </div>
       </td></tr></table>
-      <div class="muted small" style="margin-top: 5px">AUD. Prices recalculated by CrowdMerch when the order was placed.</div>
     </td>
   </tr>
 </table>
