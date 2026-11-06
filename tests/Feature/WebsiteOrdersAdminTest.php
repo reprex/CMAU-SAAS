@@ -43,7 +43,7 @@ class WebsiteOrdersAdminTest extends TestCase
         $this->post(route('website-orders.send', [$order, $email]))->assertRedirect(route('website-orders.show', $order));
         Mail::assertSent(WebsiteInvoiceMail::class, fn ($m) => $m->hasTo('pat@example.com'));
         $mail = (new WebsiteInvoiceMail($order))->render();
-        foreach (['Invoice PDF attached.', 'Please pay in full to the bank account listed on the invoice.<br>On receipt of payment, we will prepare a digital proof', 'need to make changes prior to payment, please contact us via return email.', 'Scott Wilson'] as $text) {
+        foreach (['Invoice PDF attached.', 'Please pay in full to the bank account listed on the invoice.</p>', '<p>On receipt of payment, we will prepare a digital proof', 'need to make changes prior to payment, please contact us via return email.', 'Scott Wilson'] as $text) {
             $this->assertStringContainsString($text, $mail);
         }
         $this->assertSame('sent', $email->fresh()->status);
