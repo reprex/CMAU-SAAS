@@ -30,6 +30,8 @@ return [
         'logo_max_kb' => (int) env('WEBSITE_LOGO_MAX_KB', 20480),
         'logo_mimes' => ['png', 'jpg', 'jpeg', 'webp', 'svg', 'pdf', 'ai', 'eps'],
         'artwork_disk' => 'artwork',
+        // How to pay, printed on the invoice (bank name, BSB, account, reference: the invoice number). .env, multi-line with \n.
+        'payment_details' => str_replace('\\n', "\n", (string) env('INVOICE_PAYMENT_DETAILS', '')),
         'invoice_disk' => 'local',
 
         'proof_ack_text' => "Once you've paid, we will provide a digital proof for your approval before proceeding with production.",

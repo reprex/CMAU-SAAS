@@ -172,8 +172,19 @@ class QuotePdf
             return $this->render('pdf.website-samples-invoice', ['order' => $order, 'factories' => $order->factoryGroups()] + $this->common());
         }
 
+        $disk = Storage::disk(config('website.orders.artwork_disk'));
+        $logos = [];
+        foreach ($order->positions as $p) {
+            $path = (string) $p->logo_path;
+            if ($path !== '' && preg_match('/\.(png|jpe?g|gif|webp)$/i', $path) && $disk->exists($path) && ($src = $this->images->localDataUri($disk->path($path)))) {
+                $logos[] = ['src' => $src, 'position' => (string) $p->position];
+            }
+        }
+
         return $this->render('pdf.website-invoice', [
             'order' => $order,
+            'logos' => $logos,
+            'payment' => trim((string) config('website.orders.payment_details')),
             'image' => $this->images->dataUri($order->product?->hero_image_url),
             'styles' => $order->lines->groupBy('product_id'),
         ] + $this->common());
