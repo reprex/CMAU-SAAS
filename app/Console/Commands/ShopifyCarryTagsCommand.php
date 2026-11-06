@@ -91,7 +91,9 @@ class ShopifyCarryTagsCommand extends Command
             $n['on_range'] += $product->tier === Product::TIER_LIVE ? 1 : 0;
             $data = (array) ($product->override?->data ?? []);
             $before = $data;
-            $data['carried'] = $f['carried'];
+            // Merged, so several files can be applied in turn (e.g. TOD's July reload for the metafields, then a
+            // fresh export with tags only): what a file has wins, what it doesn't have is kept.
+            $data['carried'] = array_merge((array) ($data['carried'] ?? []), $f['carried']);
             if ($f['sort'] && $f['sort'] > 0 && $f['sort'] !== 99999) {
                 if (isset($data['master_sort_order']) && ! isset($data['master_sort_order_carried'])) {
                     $n['sort_kept']++; // a staff sort order wins
