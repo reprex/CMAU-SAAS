@@ -81,3 +81,10 @@ Full steps: `docs/deploy.md`.
   through the SaaS (temporary links). Nothing kept on cPanel. To build once Scott has created the app.
 - Upload limit: 20 MB per file (larger files by link, e.g. WeTransfer). PHP's upload_max_filesize ≥ 20M and
   post_max_size ≥ 128M in cPanel's MultiPHP INI Editor.
+
+## Email (Scott, 7 Nov 2026)
+- **One shared mailbox, hello@crowdmerch.com.au** (Microsoft 365, no licence needed). Quotes and instant quotes come from "Scott at CrowdMerch" (people reply to people); orders, invoices and proofs from "CrowdMerch". All from hello@, so replies land in the shared inbox. Never a noreply address. Later, when volume justifies it: orders@ for the transactional emails (one setting).
+- **Sent through Microsoft Graph** (`MAIL_MAILER=graph`, `App\Mail\Transport\GraphTransport`), not SMTP: Microsoft turns SMTP basic auth off by default for Microsoft 365 in late December 2026. An Entra app registration ("CrowdMerch SaaS mail", Microsoft Graph application permission Mail.Send, admin consent, a client secret) is limited to the one mailbox by an Exchange application access policy. Every email is saved to the mailbox's Sent Items (so no Bcc copy). Over ~3 MB (branding templates on a quote): a draft, attachments by upload session, then send.
+- **.env**: `MAIL_MAILER=graph`, `MSGRAPH_TENANT_ID`, `MSGRAPH_CLIENT_ID`, `MSGRAPH_CLIENT_SECRET`, `MSGRAPH_MAILBOX` and `MAIL_FROM_ADDRESS` = hello@crowdmerch.com.au, `MAIL_FROM_NAME=CrowdMerch`, `QUOTE_EMAIL=hello@crowdmerch.com.au` (reply-to on quotes). Test: `php artisan mail:test you@…`.
+- **Domain**: SPF `include:spf.protection.outlook.com` and DKIM switched on for crowdmerch.com.au (Microsoft Defender › Email authentication); DMARC at least `p=none` with reports.
+- Invoices name the legal entity: "A Replicat Pty Ltd business · ABN 32 110 523 950" (config/quotes.php).

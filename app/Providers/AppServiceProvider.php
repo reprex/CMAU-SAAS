@@ -8,10 +8,12 @@ use App\Checkout\Sms\LogSmsSender;
 use App\Checkout\Sms\SmsSender;
 use App\Freight\EstimateFreightDriver;
 use App\Freight\FreightDriver;
+use App\Mail\Transport\GraphTransport;
 use App\Sources\Promodata\PromodataClient;
 use App\Sources\Promodata\PromodataSource;
 use App\Sources\SupplierSource;
 use App\Support\PhpVersionGuard;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -49,6 +51,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Mail::extend('graph', fn (array $config) => new GraphTransport(
+            (string) ($config['tenant'] ?? ''), (string) ($config['client_id'] ?? ''), (string) ($config['client_secret'] ?? ''), (string) ($config['mailbox'] ?? ''),
+        ));
         if ($this->app->environment('production')) {
             PhpVersionGuard::check(config('catalogue.minimum_php_version'));
         }

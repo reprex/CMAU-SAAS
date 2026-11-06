@@ -78,7 +78,8 @@ class OutboundEmails
                 PendingEmail::KIND_QUOTE => new QuoteMail($email->quote),
             };
             $pending = Mail::to($email->recipient);
-            if (in_array($email->kind, [PendingEmail::KIND_INVOICE, PendingEmail::KIND_QUOTE], true) && config('mail.from.address')) {
+            // A copy to the shop's mailbox, unless Microsoft Graph already saves it to that mailbox's Sent Items.
+            if (in_array($email->kind, [PendingEmail::KIND_INVOICE, PendingEmail::KIND_QUOTE], true) && config('mail.from.address') && config('mail.default') !== 'graph') {
                 $pending->bcc(config('mail.from.address'));
             }
             $pending->send($mail);
