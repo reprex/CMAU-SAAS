@@ -121,7 +121,7 @@
           @foreach($rows as $st)<tr><td>{{ $st['name'] }}</td><td class="right muted">{{ $st['days'] }} business day{{ $st['days'] === 1 ? '' : 's' }} · by {{ \Carbon\CarbonImmutable::parse($st['ends'])->format('D j M') }}</td></tr>@endforeach
         </table>
       @endif
-      <div class="tiny muted" style="margin: -4px 0 8px">Production and delivery lead times are estimates only.</div>
+      <div class="tiny muted" style="margin: -4px 0 8px">Production and delivery lead times are estimates only, and delays out of our control may occur. However, we would not take on a project unless your required date fell comfortably within our expected turnaround.</div>
       <div class="label orange">What happens next</div>
       <ol class="soft" style="margin: 3px 0 10px; padding-left: 16px">
         <li>Pay this invoice by card or bank transfer{{ $payment ? ':' : '.' }}@if($payment)<div class="small" style="white-space: pre-line">{{ $payment }}</div>@endif</li>
