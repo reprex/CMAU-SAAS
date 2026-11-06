@@ -24,8 +24,8 @@ case "$1" in
   haiku50) $PHP artisan catalogue:read-templates --compare=claude-haiku-5-5 --limit=50 --parallel=5 ;;
   vm) $PHP artisan shopify:variant-match storage/app/private/live-export.csv ;;
   cp) f=$(ls -t storage/app/private/variant-match/*.csv 2>/dev/null | head -1); [ -z "$f" ] && { echo "Run st vm first."; exit 1; }
-      echo "Products going to Custom Print where live has colours: $(grep ',new,,,Custom Print,' "$f" | cut -d, -f1 | sort -u | wc -l)"
-      grep ',new,,,Custom Print,' "$f" | cut -d, -f1,2 | sort -u | head -40 ;;
+      echo "Products going to Custom Print where live has colours: $(grep -E ',new,,,"?Custom Print"?,' "$f" | cut -d, -f1 | sort -u | wc -l)"
+      grep -E ',new,,,"?Custom Print"?,' "$f" | cut -d, -f1,2 | sort -u | head -40 ;;
   apoff) $PHP artisan shopify:auto-publish off ;;
   apon) $PHP artisan shopify:auto-publish on ;;
   sw) $PHP artisan shopify:switch-store ;;
