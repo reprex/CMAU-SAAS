@@ -29,7 +29,7 @@
     <div class="label orange">Blind ship to</div>
     <div style="margin-top: 3px"><b>{{ $d['organisation'] ?: $d['name'] }}</b>@if($d['organisation'])<br>Attention {{ $d['name'] }}@endif<br>
       {{ trim(($d['unit'] ? $d['unit'].'/' : '').$d['street']) }}<br>{{ trim($d['suburb'].' '.($d['state'] ?? '').' '.$d['postcode']) }}@if(($d['country'] ?? 'AU') !== 'AU')<br>{{ \App\Freight\Countries::name($d['country']) }}@endif<br>Phone {{ $d['phone'] }}</div>
-    <div style="margin-top: 6px">Show sender as <b>CrowdMerch, {{ $brand['phone'] }}</b>.</div>
+    <div style="margin-top: 6px">Show sender as <b>Replicat / CrowdMerch, {{ $brand['phone'] }}</b>.</div>
     <div class="small" style="margin-top: 2px">Please do not put any supplier documentation or identification with the goods.</div>
   </td>
   <td style="vertical-align: top">
@@ -39,7 +39,7 @@
       @if($po->need_by)<tr><td>Client needs it by</td><td><b>{{ $po->need_by->format('D j M Y') }}</b></td></tr>@endif
       @if($po->event)<tr><td>For their event</td><td>{{ $po->event }}</td></tr>@endif
     </table>
-    <div class="small muted" style="margin-top: 4px">Please tell us straight away if this date is at risk.</div>
+    <div class="small muted" style="margin-top: 4px">Please let us know before proofing if this date is a problem.</div>
   </td>
 </tr></table>
 
