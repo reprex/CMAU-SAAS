@@ -56,6 +56,7 @@ Route::post('/webhooks/shopify/draft-orders', [ShopifyWebhookController::class, 
 Route::prefix('crowdmerch/homepage')->controller(WebsiteQuoteController::class)->group(function () {
     Route::options('{any}', 'preflight')->where('any', '.*');
     Route::post('createQuoteDraftOrder', 'createQuoteDraftOrder');
+    Route::post('quote-pdf', 'quotePdf');
     Route::post('addToWishlist', 'addToWishlist');
     Route::match(['GET', 'POST'], 'getDraftOrderItems', 'getDraftOrderItems');
     Route::post('removeDiscontinuedItem', 'removeDiscontinuedItem');

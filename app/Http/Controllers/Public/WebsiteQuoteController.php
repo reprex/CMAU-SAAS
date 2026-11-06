@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Catalogue\ImageTagger;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendInstantQuote;
 use App\Models\Product;
@@ -14,9 +15,12 @@ use App\Quotes\QuoteNumbers;
 use App\Quotes\WebsiteLinePricer;
 use App\Search\Turnstile;
 use App\Shopify\ShopifyAdmin;
+use App\Staff\StaffQuotes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -197,6 +201,88 @@ class WebsiteQuoteController extends Controller
         $removed = $wishlist ? $wishlist->items()->whereKey($id)->delete() : 0;
 
         return $this->reply($request, ['success' => $removed > 0, 'count' => $wishlist?->items()->count() ?? 0]);
+    }
+
+    /**
+     * The shopper's quote and mockup PDF (docs/quote-mockup-pdf.md; Scott, 7 Nov 2026): one product, priced
+     * by the SaaS exactly as the checkout prices it, with the mockup pictures the shopper made, their logos
+     * (kept privately with the quote), the similar products shown to them and the ones they hearted. Creates
+     * the quote in the quote desk (source website, status QUOTE) and emails the PDF when instant quotes are on.
+     */
+    public function quotePdf(Request $request, StaffQuotes $quotes)
+    {
+        if ($blocked = $this->guard($request, 'quote', (int) config('shopify.website_api.quotes_per_hour'))) {
+            return $blocked;
+        }
+        $cart = json_decode((string) $request->input('cart'), true);
+        $mimes = implode(',', config('website.orders.logo_mimes'));
+        $v = Validator::make(['cart' => $cart] + $request->only(['name', 'email', 'phone', 'need_by', 'organisation', 'similar', 'saved'])
+            + ['logos' => $request->file('logos', []), 'mockups' => $request->file('mockups', [])], [
+                'name' => 'required|string|max:120',
+                'email' => 'required|email:rfc|max:190',
+                'phone' => 'nullable|string|max:40',
+                'organisation' => 'nullable|string|max:160',
+                'need_by' => 'nullable|date',
+                'cart' => 'required|array',
+                'cart.product_id' => 'required|integer|min:1',
+                'cart.lines' => 'required|array|min:1|max:'.(int) config('website.orders.max_lines'),
+                'cart.lines.*.product_id' => 'required|integer|min:1',
+                'cart.lines.*.colour' => 'nullable|string|max:120',
+                'cart.lines.*.size' => 'nullable|string|max:60',
+                'cart.lines.*.qty' => 'required|integer|min:0|max:'.(int) config('website.orders.max_units'),
+                'cart.positions' => 'present|array|max:'.(int) config('website.orders.max_positions'),
+                'cart.positions.*.name' => 'required|string|max:60',
+                'cart.positions.*.decID' => 'required|string|max:190',
+                'cart.positions.*.colours' => 'nullable|integer|min:1|max:16',
+                'cart.positions.*.width_mm' => 'nullable|integer|min:5|max:1000',
+                'cart.options' => 'nullable|array|max:20',
+                'cart.options.*.id' => 'required|string|max:190',
+                'cart.options.*.n' => 'nullable|integer|min:1|max:20',
+                'similar' => 'nullable|array|max:8',
+                'similar.*' => 'integer|min:1',
+                'saved' => 'nullable|array|max:24',
+                'saved.*' => 'integer|min:1',
+                'logos' => 'array|max:8',
+                'logos.*' => "file|mimes:{$mimes}|max:".(int) config('website.orders.logo_max_kb'),
+                'mockups' => 'array|max:4',
+                'mockups.*' => 'file|mimes:jpg,jpeg,png,webp|max:3072',
+            ]);
+        if ($v->fails()) {
+            return $this->reply($request, ['success' => false, 'message' => 'Please check your details.', 'errors' => $v->errors()], 422);
+        }
+        $cart['lines'] = array_values(array_map(fn ($l) => [
+            'product_id' => (int) $l['product_id'], 'colour' => trim((string) ($l['colour'] ?? '')) ?: ImageTagger::CUSTOM_PRINT,
+            'size' => trim((string) ($l['size'] ?? '')) ?: 'One size', 'qty' => (int) $l['qty'],
+        ], array_filter($cart['lines'], fn ($l) => (int) $l['qty'] > 0)));
+        if ($cart['lines'] === []) {
+            return $this->reply($request, ['success' => false, 'message' => 'Choose a quantity first.'], 422);
+        }
+        $client = ['name' => $request->input('name'), 'organisation' => $request->input('organisation'), 'email' => $request->input('email'), 'phone' => $request->input('phone')];
+        try {
+            $r = $quotes->build(null, $cart, $client, null, (array) $request->file('logos', []),
+                $request->filled('need_by') ? 'Needed by '.$request->input('need_by') : null, 'website');
+        } catch (Throwable $e) {
+            if (! $e instanceof \RuntimeException) {
+                report($e);
+            }
+
+            return $this->reply($request, ['success' => false, 'message' => $e instanceof \RuntimeException ? $e->getMessage() : 'Sorry, we could not make your quote just now. Please try again or call 1300 727 685.'], 422);
+        }
+        $quote = $r['quote'];
+        $disk = Storage::disk(config('website.orders.artwork_disk'));
+        $mockups = [];
+        foreach ((array) $request->file('mockups', []) as $i => $file) {
+            $path = 'quote-artwork/'.$quote->number.'/mockup-'.($i + 1).'-'.Str::random(8).'.'.(strtolower($file->getClientOriginalExtension() ?: 'jpg'));
+            $disk->putFileAs(dirname($path), $file, basename($path));
+            $mockups[] = ['path' => $path, 'view' => $i === 0 ? 'front' : 'back'];
+        }
+        $ids = fn ($key, $max) => array_values(array_slice(array_unique(array_filter(array_map('intval', (array) $request->input($key, [])), fn ($id) => $id !== (int) $cart['product_id'])), 0, $max));
+        $quote->forceFill(['mockups' => $mockups ?: null, 'similar_products' => $ids('similar', 4) ?: null, 'saved_products' => $ids('saved', 12) ?: null])->save();
+        if (config('shopify.website_api.email_instant_quote')) {
+            SendInstantQuote::dispatch($quote->id);
+        }
+
+        return $this->reply($request, ['success' => true, 'quoteNumber' => $quote->number, 'emailed' => (bool) config('shopify.website_api.email_instant_quote'), 'issues' => array_column($r['issues'], 'message')]);
     }
 
     public function preflight(Request $request)
