@@ -12,6 +12,7 @@
 #   st apoff / st apon   automatic publishing off / on
 #   st sw       switch-store report (read-only);  st swgo  switch-store --apply
 #   st mfd      metafield definitions;  st cols  collections --sync;  st pub50  publish 50 and stop
+#   st menus    store menus (report);  st menusgo  create or replace the menus
 #   st health   publishing status
 cd "$HOME/saas-app" || exit 1
 PHP=/usr/local/bin/ea-php84
@@ -36,6 +37,8 @@ case "$1" in
   swgo) $PHP artisan shopify:switch-store --apply ;;
   mfd) $PHP artisan shopify:metafield-definitions ;;
   cols) $PHP artisan shopify:collections --sync ;;
+  menus) $PHP artisan shopify:menus ;;
+  menusgo) $PHP artisan shopify:menus --apply ;;
   pub50) $PHP artisan shopify:publish --limit=50 ;;
   health) $PHP artisan saas:status; $PHP artisan shopify:range-report 2>/dev/null | head -30 ;;
   *) printf '%s\n' "st          status: templates, photo checks, last error" "st fails    the failed templates and why" \
@@ -45,6 +48,6 @@ case "$1" in
        "st vm       variant-match report (live-export.csv)" "st cp       Custom Print where live has colours" "st cpwhy    why they have no colours" \
        "st apoff    automatic publishing off" "st apon     automatic publishing on" \
        "st sw       switch-store report" "st swgo     switch-store --apply" \
-       "st mfd      metafield definitions" "st cols     collections --sync" "st pub50    publish 50 products" \
+       "st mfd      metafield definitions" "st cols     collections --sync" "st menus    store menus (report)" "st menusgo  write the store menus" "st pub50    publish 50 products" \
        "st mail ADDRESS  send a test email (after .env changes)" "st freight  price a test delivery (MachShip VIC, FedEx NZ)" "st po       suppliers missing purchase order details" "st health   status and range report" "st help     this list" ;;
 esac
