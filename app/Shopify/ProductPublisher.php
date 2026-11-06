@@ -247,8 +247,14 @@ class ProductPublisher
             throw new \RuntimeException('Shopify returned no product id');
         }
         if ($files !== null) {
-            // Media come back in the order the files were sent.
-            foreach (array_values($result['product']['media']['nodes'] ?? []) as $i => $node) {
+            // Media come back in the order the files were sent. A product found by its handle on a
+            // store we have no ids for (the live store after shopify:switch-store) may carry older
+            // pictures too: those come first, so the ones just sent are the last count($files).
+            $nodes = array_values($result['product']['media']['nodes'] ?? []);
+            if (count($nodes) > count($files)) {
+                $nodes = array_slice($nodes, -count($files));
+            }
+            foreach ($nodes as $i => $node) {
                 if (isset($files[$i], $node['id'])) {
                     DB::table('shopify_media')->updateOrInsert(
                         ['product_id' => $product->id, 'url_hash' => sha1($files[$i])],

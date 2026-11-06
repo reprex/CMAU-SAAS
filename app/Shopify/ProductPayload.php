@@ -74,6 +74,30 @@ class ProductPayload
         return $label;
     }
 
+    /** A variant's SKU, as TOD made it (APPAColStringID): APPAID, a hyphen, the colour in lower case letters and digits. */
+    public static function sku(int $productId, string $label): string
+    {
+        return $productId.'-'.Str::of($label)->lower()->replaceMatches('/[^a-z0-9]+/', '')->toString();
+    }
+
+    /**
+     * The colour variants build() sends, without building the rest (docs/publisher.md, variant match).
+     *
+     * @return list<array{label: string, sku: string}>
+     */
+    public function variants(Product $product): array
+    {
+        $out = [];
+        $used = [];
+        $pos = 0;
+        foreach ($this->images->forShopify($product)['colours'] as $name => $c) {
+            $label = self::optionName((string) $name, ++$pos, $used);
+            $out[] = ['label' => $label, 'sku' => self::sku($product->id, $label)];
+        }
+
+        return $out;
+    }
+
     /**
      * @param  array<string, string>  $mediaIds  image url => existing Shopify media gid (kept, not re-uploaded)
      * @return array{input: array<string, mixed>, files: list<string>}
@@ -100,7 +124,7 @@ class ProductPayload
             $label = self::optionName((string) $name, $pos + 1, $used);
             $v = [
                 'optionValues' => [['optionName' => 'Color', 'name' => $label]],
-                'inventoryItem' => ['sku' => $product->id.'-'.Str::of($label)->lower()->replaceMatches('/[^a-z0-9]+/', '')->toString()],
+                'inventoryItem' => ['sku' => self::sku($product->id, $label)],
                 'position' => ++$pos,
                 'metafields' => array_values(array_filter([
                     $moq ? $this->mf('custom', 'productmoq', 'number_integer', (string) $moq) : null,

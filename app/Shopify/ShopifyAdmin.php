@@ -158,8 +158,10 @@ class ShopifyAdmin
      */
     public function graphql(string $query, array $variables = []): array
     {
-        if (str_starts_with(ltrim($query), 'mutation')) {
+        $mutation = str_starts_with(ltrim($query), 'mutation');
+        if ($mutation) {
             $this->assertWritable();
+            app(StoreBinding::class)->assertMatches();
         } elseif (! $this->configured()) {
             throw new RuntimeException('Shopify is not set up (SHOPIFY_SHOP_DOMAIN with SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET).');
         }
@@ -168,6 +170,9 @@ class ShopifyAdmin
             ->throw()->json();
         if (! empty($json['errors'])) {
             throw new RuntimeException('Shopify GraphQL error: '.mb_substr(json_encode($json['errors']), 0, 500));
+        }
+        if ($mutation) {
+            app(StoreBinding::class)->bindIfUnset();
         }
 
         return $json['data'] ?? [];
@@ -184,6 +189,7 @@ class ShopifyAdmin
     public function graphqlMany(string $query, array $variablesByKey): array
     {
         $this->assertWritable();
+        app(StoreBinding::class)->assertMatches();
         $url = 'https://'.config('shopify.store').'/admin/api/'.config('shopify.api_version').'/graphql.json';
         $headers = ['X-Shopify-Access-Token' => $this->accessToken()];
         $out = [];
@@ -217,6 +223,9 @@ class ShopifyAdmin
                 }
             }
             $todo = $again;
+        }
+        if (collect($out)->contains(fn ($o) => is_array($o))) {
+            app(StoreBinding::class)->bindIfUnset();
         }
 
         return $out;
