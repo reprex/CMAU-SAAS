@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendInstantQuote;
+use App\Mail\InstantQuoteMail;
 use App\Models\BrandingTemplate;
 use App\Models\Product;
 use App\Models\Quote;
@@ -188,6 +189,16 @@ class WebsiteQuotePdfTest extends TestCase
         $this->assertStringNotContainsString('AS Colour', $m[0]);
         $this->get($url)->assertOk()->assertHeader('Content-Disposition');
         $this->get(preg_replace('/signature=[^&]+/', 'signature=nope', $url))->assertForbidden();
+    }
+
+    public function test_the_quote_email_is_a_short_note_with_the_signature(): void
+    {
+        $q = $this->quoteFrom($this->send());
+
+        $html = (new InstantQuoteMail($q))->render();
+        foreach (['Hi Alex,', 'Please find the quote PDF attached.', 'detailed pricing, order instructions, mock-ups, and branding templates', 'follow the links in the quote document', 'Scott Wilson', 'font-family:Arial'] as $text) {
+            $this->assertStringContainsString($text, $html);
+        }
     }
 
     public function test_an_unknown_country_is_refused(): void

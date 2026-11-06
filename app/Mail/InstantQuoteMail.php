@@ -24,7 +24,7 @@ class InstantQuoteMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'mail.instant-quote', with: ['templates' => $this->templates()]);
+        return new Content(html: 'mail.html.instant-quote', text: 'mail.instant-quote', with: ['templates' => $this->templates()]);
     }
 
     public function attachments(): array

@@ -1,21 +1,12 @@
-Hi {{ $quote->client_name ? explode(' ', $quote->client_name)[0] : 'there' }},
+Hi {{ $quote->client_name ? explode(' ', trim($quote->client_name))[0] : 'there' }},
 
-Thanks for your quote request. Your instant quote {{ $quote->number }} is attached: ${{ number_format((float) $quote->total, 2) }} {{ $quote->gst_free_export ? 'with no GST (export)' : 'inc GST' }}.
-@if($quote->gst_free_export)
-As it's going outside Australia, no Australian GST is charged. Any local duties and taxes are payable by you to the carrier before delivery.
-@endif
-@include('mail.partials.templates')
+Please find the quote PDF attached.
 
-Prices are subject to sighting your artwork. To go ahead, or to change anything, just reply to this email or call {{ config('quotes.pdf.phone') }}.
+It contains everything you need, including detailed pricing, order instructions, mock-ups, and branding templates. If you need anything else, please reply to this email or follow the links in the quote document.
 
-@if($quote->checkoutUrl())
-Or complete the online checkout, with your cart ready to go: {{ $quote->checkoutUrl() }}
+Kind Regards
 
-@elseif($quote->shopify_invoice_url)
-You can also complete your order online: {{ $quote->shopify_invoice_url }}
-
-@endif
-Kind regards,
-{{ config('quotes.pdf.signed_by') }}
-{{ config('quotes.pdf.signed_title') }}
-{{ config('quotes.pdf.website') }}
+Scott Wilson
+Owner / Director
+Phone: +61 3 8456 7515, 1300 727 685, 0400 383 330
+www.replicat.com.au · www.crowdmerch.com.au
