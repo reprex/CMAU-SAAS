@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Shopify\StoreBinding;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -39,7 +40,8 @@ class ShopifySwitchStoreCommand extends Command
         $this->line('With --apply:');
         $this->line('  1. '.($from ? "Keep {$from}'s ids aside (to restore if you switch back)" : 'Nothing to keep aside').'; clear them here.');
         $this->line('  2. '.(array_sum($back) ? "Restore the ids kept earlier for {$to}: {$back['products']} products, {$back['media']} pictures, {$back['collections']} collections." : "Start {$to} with no ids: each product is found by its handle (APPAID) when published and updated in place; products not on the store are created."));
-        $this->line('  3. Turn automatic publishing OFF. Nothing is sent to Shopify by this command.');
+        $this->line('  3. Keep automatic publishing OFF (it must be off, 2 minutes before --apply). Nothing is sent to Shopify by this command.');
+        $this->line('  4. '.(array_sum($back) ? 'Products keep their restored ids.' : 'Before its first publish, each product is looked up on the store by its handle: its id and pictures are taken over (pictures matched by file name, the rest kept).'));
         $this->line('  Then: shopify:metafield-definitions, shopify:collections --sync, shopify:publish --limit=50 (check), shopify:auto-publish on.');
         if (! $this->option('apply')) {
             $this->warn('Report only. Run again with --apply to switch.');
@@ -47,6 +49,11 @@ class ShopifySwitchStoreCommand extends Command
             return self::SUCCESS;
         }
 
+        if (Cache::get('shopify:auto_publish')) {
+            $this->error('Automatic publishing is on. Run shopify:auto-publish off, wait 2 minutes for a run in progress to finish, then --apply.');
+
+            return self::FAILURE;
+        }
         try {
             $r = $binding->switchToConfigured();
         } catch (Throwable $e) {

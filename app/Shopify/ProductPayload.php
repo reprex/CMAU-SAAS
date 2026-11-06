@@ -166,7 +166,7 @@ class ProductPayload
             $price !== null ? $this->mf('custom', 'collectiondisplayprice', 'number_decimal', $price) : null,
             $this->mf('custom', 'mastersortorder', 'number_integer', (string) ((int) $product->overrideValue('master_sort_order') ?: 99999)),
             $this->mf('custom', 'tagcategory', 'single_line_text_field', $carried['tagcategory'] ?? 'any,'.RangeCollections::slug($category)),
-            $this->mf('custom', 'tagsubcategory', 'single_line_text_field', 'any,'.($subTag ?? '')),
+            $this->mf('custom', 'tagsubcategory', 'single_line_text_field', $carried['tagsubcategory'] ?? 'any,'.($subTag ?? '')),
             $this->mf('custom', 'tagcolourgroup', 'single_line_text_field', 'any,'.implode(',', $families)),
             $this->mf('custom', 'tagbrandingoption', 'single_line_text_field', 'any,'.implode(',', array_unique($branding))),
             $this->mf('custom', 'tagspecial', 'single_line_text_field', $carried['tagspecial'] ?? 'any,'),

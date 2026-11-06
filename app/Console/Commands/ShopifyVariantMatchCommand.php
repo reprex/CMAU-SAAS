@@ -33,6 +33,8 @@ class ShopifyVariantMatchCommand extends Command
         $live = [];
         $titles = [];
         $status = [];
+        $optionName = [];
+        ini_set('memory_limit', '1024M'); // a full .xlsx export is read into memory
         try {
             foreach (SheetReader::rows($path, (string) $this->option('sheet')) as $r) {
                 $handle = trim((string) ($r['Handle'] ?? ''));
@@ -44,6 +46,9 @@ class ShopifyVariantMatchCommand extends Command
                 }
                 if (filled($r['Status'] ?? null)) {
                     $status[$handle] ??= mb_strtolower((string) $r['Status']);
+                }
+                if (filled($r['Option1 Name'] ?? null)) {
+                    $optionName[$handle] ??= (string) $r['Option1 Name'];
                 }
                 $value = trim((string) ($r['Option1 Value'] ?? ''));
                 if ($value === '' && ! filled($r['Variant SKU'] ?? null)) {
@@ -67,7 +72,7 @@ class ShopifyVariantMatchCommand extends Command
         $range = Product::query()->with(['images', 'colours', 'override'])->where('tier', Product::TIER_LIVE)->where('discontinued', false)->orderBy('id');
         $onRange = [];
         $rows = [];
-        $count = ['products_both' => 0, 'products_new' => 0, 'products_live_only' => 0, 'products_live_only_archived' => 0,
+        $count = ['products_both' => 0, 'products_new' => 0, 'products_live_only' => 0, 'products_live_only_archived' => 0, 'archived_on_live' => 0, 'option_name' => 0, 'possible_duplicates' => 0,
             'same' => 0, 'renamed' => 0, 'dropped' => 0, 'new' => 0, 'sku_differs' => 0, 'products_all_same' => 0, 'new_product_variants' => 0];
         $examples = [];
         $add = function (string $group, string $text) use (&$examples) {
@@ -77,12 +82,16 @@ class ShopifyVariantMatchCommand extends Command
             }
         };
 
-        $range->chunk(200, function ($products) use ($payload, &$live, &$onRange, &$rows, &$count, $add) {
+        $newCodes = [];
+        $range->chunk(200, function ($products) use ($payload, &$live, &$onRange, &$rows, &$count, &$newCodes, $status, $optionName, $add) {
             foreach ($products as $product) {
                 $h = (string) $product->id;
                 $onRange[$h] = true;
                 $ours = $payload->variants($product);
                 if (! array_key_exists($h, $live)) {
+                    if ($product->supplier_id && $product->code) {
+                        $newCodes[mb_strtolower($product->supplier_id.'-'.$product->code)] = $h;
+                    }
                     $count['products_new']++;
                     $count['new_product_variants'] += count($ours);
                     foreach ($ours as $v) {
@@ -93,6 +102,14 @@ class ShopifyVariantMatchCommand extends Command
                     continue;
                 }
                 $count['products_both']++;
+                if (($status[$h] ?? '') === 'archived') {
+                    $count['archived_on_live']++;
+                    $add('archived on live, on the SaaS range: published as Active', $h.' '.$product->name);
+                }
+                if (isset($optionName[$h]) && strcasecmp($optionName[$h], 'Color') !== 0) {
+                    $count['option_name']++;
+                    $add('option not named Color on live: every variant would be replaced', "{$h}: \"{$optionName[$h]}\"");
+                }
                 $theirs = $live[$h];
                 $byExact = [];
                 $byLoose = [];
@@ -145,6 +162,11 @@ class ShopifyVariantMatchCommand extends Command
             if (isset($onRange[$h])) {
                 continue;
             }
+            // The same product under another handle (e.g. "2568-1"): publishing would create a second copy.
+            if (preg_match('/\[(\d+-[^\]]+)\]\s*$/', (string) ($titles[$h] ?? ''), $m) && isset($newCodes[mb_strtolower($m[1])])) {
+                $count['possible_duplicates']++;
+                $add('possible duplicates (same code, other handle)', "live {$h} = SaaS {$newCodes[mb_strtolower($m[1])]} [{$m[1]}]");
+            }
             $archived = ($status[$h] ?? '') === 'archived';
             $count[$archived ? 'products_live_only_archived' : 'products_live_only']++;
             if (! $archived) {
@@ -172,6 +194,9 @@ class ShopifyVariantMatchCommand extends Command
             ['On the SaaS range, not on live (created)', $n($count['products_new']).' ('.$n($count['new_product_variants']).' variants)'],
             ['On live (active or draft), not on the SaaS range', $n($count['products_live_only'])],
             ['On live (archived), not on the SaaS range', $n($count['products_live_only_archived'])],
+            ['On both, archived on live (would be made Active)', $n($count['archived_on_live'])],
+            ['On both, option not named Color on live', $n($count['option_name'])],
+            ['Same code under another handle (would duplicate)', $n($count['possible_duplicates'])],
         ]);
         $this->info('Colour variants of products on both');
         $this->table(['', 'Variants'], [

@@ -68,7 +68,11 @@ class ShopifySwitchStoreTest extends TestCase
         Http::fake();
         $this->goLive();
 
+        $this->artisan('shopify:switch-store --apply')->expectsOutputToContain('auto-publish off')->assertFailed();
+        $this->assertSame(self::DEV, app(StoreBinding::class)->bound());
+        Cache::forever('shopify:auto_publish', false);
         $this->artisan('shopify:switch-store --apply')->assertSuccessful();
+        $this->assertTrue(StoreBinding::adopting());
 
         Http::assertNothingSent();
         $b = app(StoreBinding::class);
@@ -86,6 +90,7 @@ class ShopifySwitchStoreTest extends TestCase
         $this->assertSame('gid://shopify/MediaImage/1', DB::table('shopify_media')->value('media_gid'));
         $this->assertSame('gid://shopify/Collection/5', DB::table('shopify_collections')->value('shopify_gid'));
         $this->assertSame(['products' => 0, 'media' => 0, 'collections' => 0], $b->archived(self::DEV));
+        $this->assertFalse(StoreBinding::adopting(), 'switching back restores ids: no lookups');
         $this->assertSame(0, $b->archived(self::LIVE)['products'], 'nothing was published to live');
     }
 

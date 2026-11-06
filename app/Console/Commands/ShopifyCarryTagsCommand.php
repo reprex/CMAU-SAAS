@@ -29,6 +29,7 @@ class ShopifyCarryTagsCommand extends Command
     /** Metafield key in the export => key under the product's carried overrides. */
     public const FIELDS = [
         'custom.tagcategory' => 'tagcategory',
+        'custom.tagsubcategory' => 'tagsubcategory',
         'custom.tagspecial' => 'tagspecial',
         'custom.tagcollection' => 'tagcollection',
         'custom.essentialssubcat' => 'essentialssubcat',
@@ -40,6 +41,7 @@ class ShopifyCarryTagsCommand extends Command
 
     public function handle(): int
     {
+        ini_set('memory_limit', '1024M'); // a full .xlsx export is read into memory
         $found = [];
         try {
             foreach (SheetReader::rows((string) $this->argument('file'), (string) $this->option('sheet')) as $r) {

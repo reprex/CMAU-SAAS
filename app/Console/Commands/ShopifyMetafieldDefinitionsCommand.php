@@ -13,7 +13,7 @@ use Throwable;
  */
 class ShopifyMetafieldDefinitionsCommand extends Command
 {
-    protected $signature = 'shopify:metafield-definitions';
+    protected $signature = 'shopify:metafield-definitions {--remove-old : Also delete the definitions the SaaS no longer uses, with every product\'s value}';
 
     protected $description = 'Create metafield definitions for the publisher\'s new fields';
 
@@ -62,6 +62,11 @@ class ShopifyMetafieldDefinitionsCommand extends Command
         }
 
         foreach (self::REMOVED as [$owner, $ns, $key]) {
+            if (! $this->option('remove-old')) {
+                $this->line(sprintf('%-16s %s.%s: no longer used; left as it is (--remove-old deletes it and every product\'s value)', $owner, $ns, $key));
+
+                continue;
+            }
             try {
                 $id = $shopify->graphql('query($o: MetafieldOwnerType!, $ns: String!, $k: String!) { metafieldDefinitions(first: 1, ownerType: $o, namespace: $ns, key: $k) { nodes { id } } }',
                     ['o' => $owner, 'ns' => $ns, 'k' => $key])['metafieldDefinitions']['nodes'][0]['id'] ?? null;

@@ -67,19 +67,22 @@ class ShopifyVariantMatchTest extends TestCase
             ['43446', '', '', 'Red', '43446-red', '113'],
             ['999', 'Old Mug [1-M1]', 'Active', 'White', '999-white', '201'],
             ['998', 'Gone Cap [1-C1]', 'Archived', 'Red', '998-red', '202'],
+            ['50001-1', 'New Mug [88-M9]', 'Active', 'White', '50001-1-white', '301'],
         ]);
+        $this->catalogueProduct(50001, 88, 'New Mug', 'M9');
 
         $this->artisan('shopify:variant-match', ['file' => $file])
             ->expectsOutputToContain('"Navy/White" -> "Navy / White"')
             ->expectsOutputToContain('43446: "Red"')
             ->expectsOutputToContain('999 Old Mug')
+            ->expectsOutputToContain('live 50001-1 = SaaS 50001 [88-M9]')
             ->assertSuccessful();
 
         Http::assertNothingSent();
         $out = collect(Storage::disk('local')->files('variant-match'))->first();
         $rows = iterator_to_array(SheetReader::rows(Storage::disk('local')->path($out)));
         $by = collect($rows)->groupBy('result')->map->count()->all();
-        $this->assertSame(['same' => 1, 'renamed' => 1, 'new' => 1, 'dropped' => 1, 'live only' => 1, 'live only (archived)' => 1], $by);
+        $this->assertEqualsCanonicalizing(['same' => 1, 'renamed' => 1, 'new' => 1, 'dropped' => 1, 'live only' => 2, 'live only (archived)' => 1, 'new product' => 1], $by);
         $this->assertSame('111', collect($rows)->firstWhere('saas colour', 'Black')['live variant id']);
     }
 
