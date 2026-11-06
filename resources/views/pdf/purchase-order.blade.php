@@ -30,7 +30,7 @@
     <div style="margin-top: 3px"><b>{{ $d['organisation'] ?: $d['name'] }}</b>@if($d['organisation'])<br>Attention {{ $d['name'] }}@endif<br>
       {{ trim(($d['unit'] ? $d['unit'].'/' : '').$d['street']) }}<br>{{ trim($d['suburb'].' '.($d['state'] ?? '').' '.$d['postcode']) }}@if(($d['country'] ?? 'AU') !== 'AU')<br>{{ \App\Freight\Countries::name($d['country']) }}@endif<br>Phone {{ $d['phone'] }}</div>
     <div style="margin-top: 6px">Show sender as <b>Replicat / CrowdMerch, {{ $brand['phone'] }}</b>.</div>
-    <div class="small" style="margin-top: 2px">Please do not put any supplier documentation or identification with the goods.</div>
+    <div class="small" style="margin-top: 2px">Please do not put any supplier identification or docs with the shipment.</div>
   </td>
   <td style="vertical-align: top">
     <div class="label orange">Deadline</div>

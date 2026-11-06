@@ -2,7 +2,7 @@ Hi {{ $po->supplier?->orders_contact ? explode(' ', $po->supplier->orders_contac
 
 Please find our purchase order {{ $po->number }} attached.
 
-Please blind ship to the address on the PO: show the sender as Replicat / CrowdMerch, {{ config('quotes.pdf.phone') }}, and please do not put any supplier documentation or identification with the goods.
+Please blind ship to the address on the PO: show the sender as Replicat / CrowdMerch, {{ config('quotes.pdf.phone') }}, and please do not put any supplier identification or docs with the shipment.
 @if($po->despatch_by)
 Despatch by: {{ $po->despatch_by->format('l j F Y') }}
 @endif
