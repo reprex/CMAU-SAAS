@@ -44,6 +44,7 @@ return array(
     'App\\Checkout\\DecorationMethods' => $baseDir . '/app/Checkout/DecorationMethods.php',
     'App\\Checkout\\DeliveryEstimator' => $baseDir . '/app/Checkout/DeliveryEstimator.php',
     'App\\Checkout\\InvoiceFiles' => $baseDir . '/app/Checkout/InvoiceFiles.php',
+    'App\\Checkout\\LeadTimes' => $baseDir . '/app/Checkout/LeadTimes.php',
     'App\\Checkout\\OrderCreator' => $baseDir . '/app/Checkout/OrderCreator.php',
     'App\\Checkout\\OutboundEmails' => $baseDir . '/app/Checkout/OutboundEmails.php',
     'App\\Checkout\\SamplesPricer' => $baseDir . '/app/Checkout/SamplesPricer.php',

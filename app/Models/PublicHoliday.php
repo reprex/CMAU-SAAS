@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 /** A public holiday in one state; business days skip them (docs/website-checkout.md). */
 class PublicHoliday extends Model
 {
-    public const STATES = ['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
+    public const STATES = ['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT', 'NZ']; // NZ: New Zealand (Trends)
 
     protected $guarded = [];
 

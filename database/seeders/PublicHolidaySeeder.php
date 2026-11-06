@@ -93,6 +93,15 @@ class PublicHolidaySeeder extends Seeder
             '2027-04-26' => 'Anzac Day (observed)', '2027-05-03' => 'May Day', '2027-06-14' => "King's Birthday", '2027-08-02' => 'Picnic Day',
             '2027-12-25' => 'Christmas Day', '2027-12-26' => 'Boxing Day', '2027-12-27' => 'Christmas Day (additional day)', '2027-12-28' => 'Boxing Day (additional day)',
         ],
+        // New Zealand (Trends makes and ships from Auckland; docs/lead-times.md). National holidays from
+        // the 2026 and 2027 lists (Kiwi Calendar, checked 6 Nov 2026) plus Auckland Anniversary Day.
+        'NZ' => [
+            '2026-12-25' => 'Christmas Day', '2026-12-26' => 'Boxing Day', '2026-12-28' => 'Boxing Day (observed)',
+            '2027-01-01' => "New Year's Day", '2027-01-04' => "Day after New Year's Day (observed)", '2027-02-01' => 'Auckland Anniversary Day',
+            '2027-02-08' => 'Waitangi Day (observed)', '2027-03-26' => 'Good Friday', '2027-03-29' => 'Easter Monday',
+            '2027-04-26' => 'Anzac Day (observed)', '2027-06-07' => "King's Birthday", '2027-06-25' => 'Matariki', '2027-10-25' => 'Labour Day',
+            '2027-12-27' => 'Christmas Day (observed)', '2027-12-28' => 'Boxing Day (observed)',
+        ],
     ];
 
     public function run(): void

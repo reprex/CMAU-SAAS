@@ -8,6 +8,7 @@ use App\Models\PublicHoliday;
 use App\Models\QuoteExtra;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /** Admin only: supplier standard freight (and later, the other supplier settings). */
@@ -42,8 +43,10 @@ class SupplierController extends Controller
     public function edit(Supplier $supplier)
     {
         $supplier->load(['freightRates.changedBy']);
+        $closures = DB::table('supplier_closures')->where('supplier_id', $supplier->id)->orderBy('closed_from')->get()
+            ->map(fn ($c) => trim($c->closed_from.' to '.$c->closed_to.' '.$c->note))->implode("\n");
 
-        return view('admin.suppliers.edit', compact('supplier'));
+        return view('admin.suppliers.edit', compact('supplier', 'closures'));
     }
 
     public function update(Request $request, Supplier $supplier)
@@ -65,7 +68,14 @@ class SupplierController extends Controller
             'offers_samples' => 'boolean',
             'sample_freight' => 'nullable|numeric|min:0|max:9999',
             'sample_lead_days' => 'nullable|integer|min:0|max:60',
+            // Lead times v1 (docs/lead-times.md).
+            'transit_days' => 'nullable|integer|min:0|max:30',
+            'ships_from' => ['nullable', Rule::in(['NZ'])],
         ]);
+        $closures = $this->closures((string) $request->input('closures', ''));
+        if ($closures === null) {
+            return back()->withInput()->withErrors(['closures' => 'Write each closure as "2026-12-18 to 2027-01-11 Christmas shutdown" (first and last day closed).']);
+        }
         $data['offers_samples'] = $request->boolean('offers_samples');
         $data['state'] = $data['state'] ?? $supplier->state ?? config('website.lead_times.default_state');
         $data['payment_terms'] = $data['payment_terms'] ?? $supplier->payment_terms ?? config('website.payment_terms.default');
@@ -74,6 +84,10 @@ class SupplierController extends Controller
 
         $before = $supplier->only(array_keys($data));
         $supplier->update($data);
+        DB::table('supplier_closures')->where('supplier_id', $supplier->id)->delete();
+        foreach ($closures as $c) {
+            DB::table('supplier_closures')->insert($c + ['supplier_id' => $supplier->id, 'source' => 'Admin › Suppliers ('.$request->user()->name.')', 'created_at' => now(), 'updated_at' => now()]);
+        }
 
         $supplier->freightRates()->create([
             'freight_cost' => $supplier->freight_cost,
@@ -87,5 +101,29 @@ class SupplierController extends Controller
         AuditLog::record('supplier.freight_updated', $supplier, ['before' => $before, 'after' => $supplier->only(array_keys($data))]);
 
         return redirect()->route('admin.suppliers.edit', $supplier)->with('status', 'Freight saved. New quotes and recalculated quotes use it from now on.');
+    }
+
+    /** "2026-12-18 to 2027-01-11 Christmas shutdown" per line; null when a line can't be read. */
+    private function closures(string $text): ?array
+    {
+        $out = [];
+        foreach (preg_split('/\R/', $text) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            if (! preg_match('/^(\d{4}-\d{2}-\d{2})\s*(?:to|-|–)\s*(\d{4}-\d{2}-\d{2})\s*(.*)$/u', $line, $m) || $m[2] < $m[1]) {
+                return null;
+            }
+            foreach ([$m[1], $m[2]] as $d) {
+                [$y, $mo, $da] = array_map('intval', explode('-', $d));
+                if (! checkdate($mo, $da, $y)) {
+                    return null;
+                }
+            }
+            $out[] = ['closed_from' => $m[1], 'closed_to' => $m[2], 'note' => mb_substr(trim($m[3]), 0, 255) ?: null];
+        }
+
+        return $out;
     }
 }

@@ -595,6 +595,7 @@ class ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d
         'App\\Checkout\\DecorationMethods' => __DIR__ . '/../..' . '/app/Checkout/DecorationMethods.php',
         'App\\Checkout\\DeliveryEstimator' => __DIR__ . '/../..' . '/app/Checkout/DeliveryEstimator.php',
         'App\\Checkout\\InvoiceFiles' => __DIR__ . '/../..' . '/app/Checkout/InvoiceFiles.php',
+        'App\\Checkout\\LeadTimes' => __DIR__ . '/../..' . '/app/Checkout/LeadTimes.php',
         'App\\Checkout\\OrderCreator' => __DIR__ . '/../..' . '/app/Checkout/OrderCreator.php',
         'App\\Checkout\\OutboundEmails' => __DIR__ . '/../..' . '/app/Checkout/OutboundEmails.php',
         'App\\Checkout\\SamplesPricer' => __DIR__ . '/../..' . '/app/Checkout/SamplesPricer.php',

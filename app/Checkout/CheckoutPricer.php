@@ -41,6 +41,7 @@ class CheckoutPricer
         private readonly FreightDriver $freight,
         private readonly PackData $packs,
         private readonly DeliveryEstimator $estimator,
+        private readonly LeadTimes $leadTimes,
     ) {}
 
     /**
@@ -202,10 +203,20 @@ class CheckoutPricer
         if (collect($positions)->contains(fn ($p) => $p['method'] === null)) {
             $slowest = collect(config('website.lead_times.decoration'))->sort()->keys()->last();
         }
+        // Lead times v1 (docs/lead-times.md): Promodata's time per decoration, + a day per extra position,
+        // the Christmas rush, overseas transit (Trends from NZ) and the supplier's closures.
+        $deco = $this->leadTimes->decorationDays(array_map(fn ($p) => ['decoration_option_id' => $p['decoration_option_id'] ?? null, 'method' => $p['method']], $positions));
+        $lead = [
+            'decoration_days' => $positions !== [] ? $deco['days'] : null,
+            'christmas_days' => $this->leadTimes->christmasDays($today),
+            'transit_days' => (int) ($supplier?->transit_days ?? 0),
+            'ships_from' => $supplier?->ships_from,
+            'closed' => $this->leadTimes->closedDays($supplier, $today, $today->addDays(120)),
+        ];
         $estimates = [];
         foreach ($freight['options'] ?? [] as $o) {
             // No supplier name: the estimate is shown to the client ("Stock from the supplier").
-            $estimates[$o['id']] = $this->estimator->estimate($state, '', $speedDays !== null ? 0 : $stockDays, $slowest, $o, $today, $speedDays);
+            $estimates[$o['id']] = $this->estimator->estimate($state, '', $speedDays !== null ? 0 : $stockDays, $slowest, $o, $today, $speedDays, $lead);
         }
         foreach ($freight['options'] ?? [] as $k => $o) {
             $freight['options'][$k]['delivery_date'] = $estimates[$o['id']]['delivery_date'];

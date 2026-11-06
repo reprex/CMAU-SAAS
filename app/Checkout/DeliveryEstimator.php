@@ -18,18 +18,37 @@ class DeliveryEstimator
      * @param  array{id: string, name: string, days: array{0: int, 1: int}}  $service
      * @return array<string, mixed>
      */
-    /** $productionDays: a production time the customer chose (Dex), which covers stock and branding together. */
-    public function estimate(string $state, string $supplierName, int $stockDays, string $method, array $service, ?CarbonImmutable $start = null, ?int $productionDays = null): array
+    /**
+     * $productionDays: a production time the customer chose (Dex), which covers stock and branding together.
+     * $lead (lead times v1, docs/lead-times.md), all optional:
+     *  - decoration_days: the branding stage worked out by LeadTimes (Promodata per decoration, + a day per extra position)
+     *  - christmas_days: the Christmas rush (not added with $productionDays)
+     *  - transit_days / ships_from: overseas to the client (Trends: 4 from NZ)
+     *  - closed: the supplier's closed days (Y-m-d => true), skipped by the stock and branding stages
+     *  - delivery_state: the holidays transit and freight skip (default: the configured state)
+     *
+     * @param  array<string, mixed>  $lead
+     */
+    public function estimate(string $state, string $supplierName, int $stockDays, string $method, array $service, ?CarbonImmutable $start = null, ?int $productionDays = null, array $lead = []): array
     {
         $start = ($start ?? CarbonImmutable::now(config('app.timezone')))->startOfDay();
         $methods = config('website.methods');
-        $make = $productionDays ?? (int) (config('website.lead_times.decoration.'.$method) ?? max(config('website.lead_times.decoration')));
+        $make = $productionDays ?? (int) ($lead['decoration_days'] ?? config('website.lead_times.decoration.'.$method) ?? max(config('website.lead_times.decoration')));
+        $closed = (array) ($lead['closed'] ?? []);
+        $delivery = (string) ($lead['delivery_state'] ?? ($state === 'NZ' ? config('website.lead_times.default_state') : $state));
         $stages = [
             ['key' => 'order_check', 'name' => 'Order check and invoice', 'days' => (int) config('website.lead_times.order_check')],
-            ['key' => 'stock', 'name' => 'Stock from '.($supplierName ?: 'the supplier'), 'days' => $stockDays],
-            ['key' => 'decoration', 'name' => $productionDays !== null ? 'Production ('.($productionDays ?: 'same day').($productionDays ? ' working '.($productionDays === 1 ? 'day' : 'days') : '').')' : ($methods[$method]['name'] ?? 'Branding').' decoration', 'method' => $method, 'days' => $make],
-            ['key' => 'freight', 'name' => $service['name'], 'service' => $service['id'], 'days' => (int) max($service['days'])],
+            ['key' => 'stock', 'name' => 'Stock from '.($supplierName ?: 'the supplier'), 'days' => $stockDays, 'closed' => $closed],
+            ['key' => 'decoration', 'name' => $productionDays !== null ? 'Production ('.($productionDays ?: 'same day').($productionDays ? ' working '.($productionDays === 1 ? 'day' : 'days') : '').')' : ($methods[$method]['name'] ?? 'Branding').' decoration', 'method' => $method, 'days' => $make, 'closed' => $closed],
         ];
+        if ($productionDays === null && (int) ($lead['christmas_days'] ?? 0) > 0) {
+            $stages[] = ['key' => 'christmas', 'name' => 'Christmas rush (factories at capacity)', 'days' => (int) $lead['christmas_days'], 'closed' => $closed];
+        }
+        if ((int) ($lead['transit_days'] ?? 0) > 0) {
+            $from = ['NZ' => 'New Zealand'][$lead['ships_from'] ?? ''] ?? 'overseas';
+            $stages[] = ['key' => 'transit', 'name' => 'Shipping from '.$from, 'days' => (int) $lead['transit_days'], 'state' => $delivery];
+        }
+        $stages[] = ['key' => 'freight', 'name' => $service['name'], 'service' => $service['id'], 'days' => (int) max($service['days']), 'state' => $delivery];
 
         return $this->stages($state, $stages, $start);
     }
@@ -45,8 +64,14 @@ class DeliveryEstimator
     {
         $start = ($start ?? CarbonImmutable::now(config('app.timezone')))->startOfDay();
         $d = $start;
+        $closures = 0;
         foreach ($stages as $i => $stage) {
-            $d = $this->days->add($d, (int) $stage['days'], $state);
+            $before = $d;
+            $d = $this->days->add($d, (int) $stage['days'], (string) ($stage['state'] ?? $state), (array) ($stage['closed'] ?? []));
+            if (! empty($stage['closed'])) {
+                $closures += count(array_filter(array_keys($stage['closed']), fn ($k) => $k > $before->toDateString() && $k <= $d->toDateString()));
+            }
+            unset($stages[$i]['closed'], $stages[$i]['state']);
             $stages[$i]['ends'] = $d->toDateString();
         }
 
@@ -57,6 +82,7 @@ class DeliveryEstimator
             'business_days' => array_sum(array_column($stages, 'days')),
             'delivery_date' => $d->toDateString(),
             'holidays_skipped' => $this->days->skipped($start, $d, $state),
+            'closed_days_skipped' => $closures,
         ];
     }
 

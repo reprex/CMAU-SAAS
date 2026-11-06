@@ -29,13 +29,18 @@ class BusinessDays
         return ! $day->isWeekend() && ! isset($this->holidays($state)[$day->toDateString()]);
     }
 
-    /** The date $days business days after $from (from itself does not count). */
-    public function add(CarbonImmutable $from, int $days, string $state): CarbonImmutable
+    /**
+     * The date $days business days after $from (from itself does not count), skipping any $closed
+     * days too (a supplier's closures, e.g. the Christmas shutdown).
+     *
+     * @param  array<string, true>  $closed  Y-m-d => true
+     */
+    public function add(CarbonImmutable $from, int $days, string $state, array $closed = []): CarbonImmutable
     {
         $d = $from->startOfDay();
         while ($days > 0) {
             $d = $d->addDay();
-            if ($this->isBusinessDay($d, $state)) {
+            if ($this->isBusinessDay($d, $state) && ! isset($closed[$d->toDateString()])) {
                 $days--;
             }
         }
