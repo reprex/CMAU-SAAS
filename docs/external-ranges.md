@@ -18,7 +18,7 @@ Must be on CMAU before the site goes live. All five are important.
 - Sheets: products (code, name, description, category, dimensions, materials); colours and their images;
   prices (quantity breaks, setup) for blank and each branding option; options (capacity, plating, sizes…);
   branding positions and sizes; lead time (production days, ships from, transit); template file names.
-- **Images:** public URLs only. Images supplied as files are uploaded to our public image store first.
+- **Images:** public URLs only. Images supplied as files are uploaded to the **Shopify CDN** (Shopify Files) and the SaaS keeps only the link (Scott, 5 Nov 2026).
 - **Suppliers** added in the SaaS with their codes; the supplier's name is never shown to clients.
 - **Made-to-order ranges** (pins, coins, medals, USB, cards) are priced by a grid (size, plating or capacity,
   quantity) rather than a fixed product list: each becomes a small set of products with options.

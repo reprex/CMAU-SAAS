@@ -72,3 +72,12 @@ Full steps: `docs/deploy.md`.
   token in an encrypted, HttpOnly, Secure cookie; only its hash is stored (`trusted_devices`).
 - Sign-in & security lists both, with Remove / Stop trusting. An admin's "reset two-factor" also removes the
   user's passkeys and trusted devices.
+
+## File storage (Scott, 5 Nov 2026)
+- **Product images** outside Promodata (external ranges, ad hoc): uploaded to the **Shopify CDN** (Shopify Files);
+  the SaaS stores only the public link. Nothing on the cPanel server.
+- **Client artwork** (logos and files uploaded on the product page and checkout) and **branding templates** once
+  read: **Dropbox**, through a SaaS Dropbox app (App folder access), private, never deleted; staff open them
+  through the SaaS (temporary links). Nothing kept on cPanel. To build once Scott has created the app.
+- Upload limit: 20 MB per file (larger files by link, e.g. WeTransfer). PHP's upload_max_filesize ≥ 20M and
+  post_max_size ≥ 128M in cPanel's MultiPHP INI Editor.
