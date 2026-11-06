@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\RateLimiter;
 /**
  * The CMAU product page's "Check stock" button calls this instead of Promodata,
  * so the Promodata token stays on the server. Same URL and reply as the
- * stand-alone relay (fix/stock-relay): /stock.php?id=<APPAID>, Promodata's JSON unchanged.
+ * stand-alone relay (fix/stock-relay): /stock.php?id=<APPAID>, Promodata's JSON unchanged
+ * except rows missing their size slot, which are put in the [colour, size, qty, sku]
+ * order the theme reads (PromodataStock::relayBody).
  */
 class StockRelayController extends Controller
 {
@@ -52,7 +54,7 @@ class StockRelayController extends Controller
             return response()->json(['message' => 'Stock check is unavailable right now'], 502, $headers);
         }
 
-        return response($result['body'], 200, $headers + [
+        return response($stock->relayBody($result['body']), 200, $headers + [
             'Content-Type' => 'application/json; charset=utf-8',
             'Cache-Control' => 'public, max-age=60',
             'X-Stock-Cache' => $result['cached'] ? 'hit' : 'miss',

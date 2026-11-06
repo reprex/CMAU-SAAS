@@ -388,8 +388,10 @@ class CheckoutPricer
     private function stockRow(array $rows, string $colour, string $size): ?array
     {
         $norm = fn (?string $s) => preg_replace('/\s+/', ' ', mb_strtolower(trim((string) $s)));
+        // A row with no size is ordered as "One size" (the theme's name for it).
+        $sizeOf = fn (?string $s) => $norm($s) === '' ? 'one size' : $norm($s);
         foreach ($rows as $r) {
-            if ($norm($r['colour']) === $norm($colour) && $norm($r['size']) === $norm($size)) {
+            if ($norm($r['colour']) === $norm($colour) && $sizeOf($r['size']) === $sizeOf($size)) {
                 return $r;
             }
         }
