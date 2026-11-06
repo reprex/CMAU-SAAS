@@ -23,13 +23,14 @@
 <div class="rule"></div>
 
 {{-- Simple on purpose (Scott, 7 Nov 2026): what to make, at what cost, where to, by when, blind. --}}
-<div class="box"><b>BLIND SHIP, always.</b> No supplier name, logo, invoice, packing slip or prices on or in the cartons. Show the sender as CrowdMerch ({{ $brand['phone'] }}).</div>
 
 <table style="margin-top: 6px"><tr>
   <td style="width: 50%; vertical-align: top; padding-right: 16px">
-    <div class="label orange">Deliver to</div>
+    <div class="label orange">Blind ship to</div>
     <div style="margin-top: 3px"><b>{{ $d['organisation'] ?: $d['name'] }}</b>@if($d['organisation'])<br>Attention {{ $d['name'] }}@endif<br>
       {{ trim(($d['unit'] ? $d['unit'].'/' : '').$d['street']) }}<br>{{ trim($d['suburb'].' '.($d['state'] ?? '').' '.$d['postcode']) }}@if(($d['country'] ?? 'AU') !== 'AU')<br>{{ \App\Freight\Countries::name($d['country']) }}@endif<br>Phone {{ $d['phone'] }}</div>
+    <div style="margin-top: 6px">Show sender as <b>CrowdMerch, {{ $brand['phone'] }}</b>.</div>
+    <div class="small" style="margin-top: 2px">Please do not put any supplier documentation or identification with the goods.</div>
   </td>
   <td style="vertical-align: top">
     <div class="label orange">Deadline</div>
@@ -82,7 +83,7 @@
       <tr><td>Freight</td><td class="right">{{ $po->freight_cost === null ? 'to be advised' : $m($po->freight_cost) }}</td></tr>
       <tr><td style="border-top: 1px solid #E4E1DB; padding-top: 4px"><b>Total ex GST</b></td><td class="right" style="border-top: 1px solid #E4E1DB; padding-top: 4px"><b>${{ $m($po->total_cost) }}</b></td></tr>
     </table>
-    <div class="small muted" style="margin-top: 4px">At your price list for this quantity. Tell us if anything differs.</div>
+    <div class="small muted" style="margin-top: 4px">Please let us know if any prices have changed.</div>
   </td>
 </tr></table>
 </body></html>
