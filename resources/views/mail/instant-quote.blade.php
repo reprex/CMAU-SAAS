@@ -2,7 +2,7 @@ Hi {{ $quote->client_name ? explode(' ', trim($quote->client_name))[0] : 'there'
 
 Please find the quote PDF attached.
 
-It contains everything you need, including detailed pricing, order instructions, mock-ups, and branding templates. If you need anything else, please reply to this email or follow the links in the quote document.
+It contains everything you need, including {{ $contains }}. If you need anything else, please reply to this email or follow the links in the quote document.
 
 Kind Regards
 

@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Catalogue\TemplateFiles;
 use App\Mail\Concerns\AttachesTemplates;
 use App\Models\Quote;
 use App\Pdf\QuotePdf;
@@ -24,7 +25,7 @@ class InstantQuoteMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(html: 'mail.html.instant-quote', text: 'mail.instant-quote', with: ['templates' => $this->templates()]);
+        return new Content(html: 'mail.html.instant-quote', text: 'mail.instant-quote', with: ['templates' => $this->templates(), 'contains' => $this->contains()]);
     }
 
     public function attachments(): array
@@ -32,6 +33,24 @@ class InstantQuoteMail extends Mailable
         $quote = $this->quote;
 
         return [Attachment::fromData(fn () => app(QuotePdf::class)->quote($quote), $quote->number.'.pdf')->withMime('application/pdf'), ...$this->templateAttachments()];
+    }
+
+    /**
+     * What the quote PDF holds, for the email's one line (Scott, 7 Nov 2026): mock-ups and branding templates
+     * only when the quote has them, e.g. "detailed pricing, order instructions, mock-ups, and branding templates".
+     */
+    public function contains(): string
+    {
+        $parts = ['detailed pricing', 'order instructions'];
+        if (! empty($this->quote->mockups)) {
+            $parts[] = 'mock-ups';
+        }
+        if (app(TemplateFiles::class)->forProducts($this->templateProductIds())->isNotEmpty()) {
+            $parts[] = 'branding templates';
+        }
+        $last = array_pop($parts);
+
+        return implode(', ', $parts).(count($parts) > 1 ? ', and ' : ' and ').$last;
     }
 
     protected function templateProductIds(): array
