@@ -29,6 +29,11 @@
       <label class="f">Ships from<select name="ships_from"><option value="">Australia</option><option value="NZ" @selected(old('ships_from', $supplier->ships_from) === 'NZ')>New Zealand</option></select></label>
       <label class="f">Payment terms<select name="payment_terms">@foreach(config('website.payment_terms.options') as $k => $label)<option value="{{ $k }}" @selected(old('payment_terms', $supplier->payment_terms ?? 'full') === $k)>{{ $label }}</option>@endforeach</select></label>
     </div>
+    <div class="fgrid">
+      <label class="f">Orders contact (purchase orders)<input name="orders_contact" value="{{ old('orders_contact', $supplier->orders_contact) }}" maxlength="120" placeholder="e.g. Sam Lee"></label>
+      <label class="f">Orders email<input name="orders_email" type="email" value="{{ old('orders_email', $supplier->orders_email) }}" maxlength="190" placeholder="orders@supplier.com.au"></label>
+      <label class="f">Our account number with them<input name="our_account_number" value="{{ old('our_account_number', $supplier->our_account_number) }}" maxlength="60"></label>
+    </div>
     <label class="f">Closures (one per line: <code>2026-12-18 to 2027-01-11 Christmas shutdown</code>)<textarea name="closures" rows="3" placeholder="Empty: shut the last 2 working days before Christmas, reopening the first Monday after 5 January">{{ old('closures', $closures) }}</textarea><span class="small muted">From the supplier's distributor site or notices. The delivery estimate skips these days for stock and branding (docs/lead-times.md).</span></label>
     <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" name="offers_samples" value="1" @checked(old('offers_samples', $supplier->offers_samples)) style="margin-top:4px"><span><b>Offers samples on the website</b><br><span class="small muted">"Order sample" on its product pages, at the unbranded price at the minimum order. Unprinted or a print overrun: the factory decides.@if($supplier->sample_available) TOD marks this supplier as having samples.@endif</span></span></label>
     <div class="fgrid">

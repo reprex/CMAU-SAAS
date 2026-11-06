@@ -1,5 +1,6 @@
 <?php
 
+use App\Catalogue\TemplateFiles;
 use App\Http\Controllers\Admin\CatalogueSyncController;
 use App\Http\Controllers\Admin\DecorationTypeController;
 use App\Http\Controllers\Admin\PriceCheckController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Public\WebsiteProjectController;
 use App\Http\Controllers\Public\WebsiteQuoteController;
 use App\Http\Controllers\Public\WebsiteSearchController;
 use App\Http\Controllers\Public\WebsiteStaffController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteExtraController;
 use App\Http\Controllers\QuoteItemController;
@@ -42,6 +44,7 @@ use App\Http\Controllers\SubstituteController;
 use App\Http\Controllers\TemplateReviewController;
 use App\Http\Controllers\VetController;
 use App\Http\Controllers\WebsiteOrderController;
+use App\Models\BrandingTemplate;
 use Illuminate\Support\Facades\Route;
 
 // ---- Public endpoints (no login) -----------------------------------------
@@ -51,6 +54,19 @@ Route::match(['GET', 'POST', 'OPTIONS'], '/stock.php', StockRelayController::cla
 Route::match(['GET', 'POST', 'OPTIONS'], '/stock', StockRelayController::class);
 
 Route::post('/webhooks/shopify/draft-orders', [ShopifyWebhookController::class, 'draftOrders'])->name('webhooks.shopify.drafts');
+
+// A branding template linked from a quote or invoice PDF: signed and expiring (docs/branding-templates.md).
+Route::get('/templates/{template}', function (BrandingTemplate $template, TemplateFiles $files) {
+    $data = $files->bytes($template);
+    abort_if($data === null, 404);
+    $name = $files->attachName($template, $template->product);
+
+    return response($data, 200, ['Content-Type' => 'application/octet-stream', 'Content-Disposition' => 'attachment; filename="'.addslashes($name).'"', 'X-Content-Type-Options' => 'nosniff']);
+})->whereNumber('template')->name('templates.download')->middleware(['signed', 'throttle:60,1']);
+
+// A purchase order's client artwork, for the supplier (docs/purchase-orders.md): the token is the key.
+Route::get('/po-artwork/{token}', [PurchaseOrderController::class, 'artwork'])->name('po-artwork.index')->middleware('throttle:60,1');
+Route::get('/po-artwork/{token}/{n}', [PurchaseOrderController::class, 'artworkFile'])->whereNumber('n')->name('po-artwork.file')->middleware('throttle:60,1');
 
 // Website quote API (same paths the theme uses on app.crowdmerch.com.au).
 Route::prefix('crowdmerch/homepage')->controller(WebsiteQuoteController::class)->group(function () {
@@ -169,6 +185,8 @@ Route::middleware(['auth', 'two-factor', 'division'])->group(function () {
     Route::get('/website-orders', [WebsiteOrderController::class, 'index'])->name('website-orders.index');
     Route::get('/website-orders/{order}', [WebsiteOrderController::class, 'show'])->whereNumber('order')->name('website-orders.show');
     Route::get('/website-orders/{order}/invoice.pdf', [WebsiteOrderController::class, 'invoice'])->whereNumber('order')->name('website-orders.invoice');
+    Route::get('/purchase-orders/{po}', [PurchaseOrderController::class, 'show'])->whereNumber('po')->name('purchase-orders.show');
+    Route::get('/purchase-orders/{po}/pdf', [PurchaseOrderController::class, 'pdf'])->whereNumber('po')->name('purchase-orders.pdf');
     Route::get('/website-orders/{order}/positions/{position}/logo', [WebsiteOrderController::class, 'logo'])->whereNumber(['order', 'position'])->name('website-orders.logo');
 
     Route::middleware('role:edit')->group(function () {
@@ -217,6 +235,9 @@ Route::middleware(['auth', 'two-factor', 'division'])->group(function () {
         Route::post('/curation-requests/{curationRequest}/decide', [CurationRequestController::class, 'decide'])->whereNumber('curationRequest')->name('curation-requests.decide')->middleware('role:admin');
         Route::put('/project-requests/{projectRequest}', [ProjectRequestController::class, 'update'])->whereNumber('projectRequest')->name('project-requests.update');
         Route::put('/website-orders/{order}', [WebsiteOrderController::class, 'update'])->whereNumber('order')->name('website-orders.update');
+        Route::post('/website-orders/{order}/purchase-order', [PurchaseOrderController::class, 'store'])->whereNumber('order')->name('purchase-orders.store');
+        Route::put('/purchase-orders/{po}', [PurchaseOrderController::class, 'update'])->whereNumber('po')->name('purchase-orders.update');
+        Route::post('/purchase-orders/{po}/send', [PurchaseOrderController::class, 'send'])->whereNumber('po')->name('purchase-orders.send');
         Route::post('/website-orders/{order}/emails/{email}/send', [WebsiteOrderController::class, 'sendEmail'])->whereNumber('order')->name('website-orders.send');
         Route::post('/website-orders/{order}/changes/{change}/handled', [WebsiteOrderController::class, 'handleChange'])->whereNumber('order')->name('website-orders.change-handled');
         Route::post('/range/{product}/action', [RangeController::class, 'action'])->name('range.action');

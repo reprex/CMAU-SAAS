@@ -7,6 +7,7 @@ use App\Models\Product;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Throwable;
 
 /**
@@ -188,6 +189,24 @@ class TemplateFiles
             ->orderBy('product_id')->orderByRaw('case when file_path is null then 1 else 0 end')->orderBy('filename')->orderBy('id')->get();
 
         return $all->groupBy('product_id')->flatMap(fn (Collection $rows) => $rows->whereNotNull('file_path')->isNotEmpty() ? $rows->whereNotNull('file_path') : $rows->take(1))->values();
+    }
+
+    /**
+     * Links to these products' templates for a quote or invoice PDF (Scott, 7 Nov 2026): signed, expiring
+     * download links on our own domain, named by our code, so the supplier is never shown and bots can't
+     * collect them from the site.
+     *
+     * @param  iterable<int>  $productIds
+     * @return list<array{name: string, url: string}>
+     */
+    public function links(iterable $productIds, int $days = 90): array
+    {
+        $products = Product::query()->whereIn('id', collect($productIds)->filter()->unique())->get(['id', 'supplier_id', 'code', 'name'])->keyBy('id');
+
+        return $this->forProducts($productIds)->map(fn (BrandingTemplate $t) => [
+            'name' => preg_replace('/\.[a-z0-9]+$/i', '', $this->attachName($t, $products[$t->product_id] ?? null)),
+            'url' => URL::temporarySignedRoute('templates.download', now()->addDays($days), ['template' => $t->id]),
+        ])->values()->all();
     }
 
     /**

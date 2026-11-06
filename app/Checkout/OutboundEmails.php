@@ -3,11 +3,13 @@
 namespace App\Checkout;
 
 use App\Jobs\SendPendingEmail;
+use App\Mail\PurchaseOrderMail;
 use App\Mail\QuoteMail;
 use App\Mail\WebsiteChangeRequestMail;
 use App\Mail\WebsiteInvoiceMail;
 use App\Models\AuditLog;
 use App\Models\PendingEmail;
+use App\Models\PurchaseOrder;
 use App\Models\Quote;
 use App\Models\User;
 use App\Models\WebsiteOrder;
@@ -52,6 +54,19 @@ class OutboundEmails
         ]);
     }
 
+    /** A purchase order to the supplier (docs/purchase-orders.md): staff send it with one click, never automatically. */
+    public function preparePurchaseOrder(PurchaseOrder $po): PendingEmail
+    {
+        return PendingEmail::query()->create([
+            'kind' => PendingEmail::KIND_PO,
+            'purchase_order_id' => $po->id,
+            'website_order_id' => $po->website_order_id,
+            'recipient' => (string) $po->supplier?->orders_email,
+            'subject' => PurchaseOrderMail::subjectFor($po),
+            'status' => 'draft',
+        ]);
+    }
+
     public function prepareChangeNotice(WebsiteOrderChange $change): PendingEmail
     {
         return $this->prepare(PendingEmail::query()->create([
@@ -76,10 +91,11 @@ class OutboundEmails
                 PendingEmail::KIND_INVOICE => new WebsiteInvoiceMail($order),
                 PendingEmail::KIND_CHANGE => new WebsiteChangeRequestMail($email->change),
                 PendingEmail::KIND_QUOTE => new QuoteMail($email->quote),
+                PendingEmail::KIND_PO => new PurchaseOrderMail($email->purchaseOrder),
             };
             $pending = Mail::to($email->recipient);
             // A copy to the shop's mailbox, unless Microsoft Graph already saves it to that mailbox's Sent Items.
-            if (in_array($email->kind, [PendingEmail::KIND_INVOICE, PendingEmail::KIND_QUOTE], true) && config('mail.from.address') && config('mail.default') !== 'graph') {
+            if (in_array($email->kind, [PendingEmail::KIND_INVOICE, PendingEmail::KIND_QUOTE, PendingEmail::KIND_PO], true) && config('mail.from.address') && config('mail.default') !== 'graph') {
                 $pending->bcc(config('mail.from.address'));
             }
             $pending->send($mail);
@@ -94,6 +110,14 @@ class OutboundEmails
         if ($email->kind === PendingEmail::KIND_INVOICE && $order) {
             $order->forceFill(['invoice_sent_at' => now()] + ($order->stage < WebsiteOrder::STAGE_INVOICE_SENT
                 ? ['stage' => WebsiteOrder::STAGE_INVOICE_SENT, 'stage_changed_at' => now()] : []))->save();
+        }
+        if ($email->kind === PendingEmail::KIND_PO && ($po = $email->purchaseOrder)) {
+            $po->update(['status' => 'sent', 'sent_at' => now()]);
+            if ($order) {
+                AuditLog::record('purchase_order.sent', $order, ['po' => $po->number, 'to' => $email->recipient]);
+            }
+
+            return true;
         }
         if ($email->kind === PendingEmail::KIND_QUOTE && ($quote = $email->quote)) {
             $quote->update(['sent_at' => now(), 'status' => $quote->status === 'NEW' ? 'QUOTE' : $quote->status]);

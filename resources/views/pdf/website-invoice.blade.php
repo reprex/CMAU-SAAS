@@ -1,5 +1,6 @@
 @php($logos = $logos ?? [])
 @php($payment = $payment ?? '')
+@php($templateLinks = $templateLinks ?? [])
 @php($m = fn ($v) => number_format((float) $v, 2))
 @php($o = $order)
 <!doctype html>
@@ -21,8 +22,8 @@
 .lthumb img { max-width: 40px; max-height: 38px; margin-top: 2px; }
 .tiny { font-size: 8px; }
 .center { text-align: center; }
-.thumb { width: 150px; height: 150px; }
-.thumb img { max-width: 142px; max-height: 142px; }
+.thumb { width: 124px; height: 124px; }
+.thumb img { max-width: 116px; max-height: 116px; }
 </style></head>
 <body>
 <div class="footer"><table><tr><td>{{ $brand['signed_by'] }} · {{ $brand['phone'] }} · {{ $brand['email'] }}</td><td class="right">{{ $brand['legal'] }}</td></tr></table></div>
@@ -63,6 +64,7 @@
       @foreach($o->positions as $p)
         <div class="small">{{ $p->position }} · {{ $p->methodName() }}@if($p->colours) · {{ $p->colours }} colour{{ $p->colours === 1 ? '' : 's' }}@endif @if($p->width_mm) · {{ $p->width_mm }} mm wide @endif</div>
       @endforeach
+      @foreach($templateLinks as $t)<div class="small" style="margin-top: 2px">Branding template: <a href="{{ $t['url'] }}" style="color: #D4651F">{{ $t['name'] }}</a></div>@endforeach
       @if(! empty($o->options))
         <div class="label muted" style="margin-top: 6px">Options</div>
         @foreach($o->options as $opt)<div class="small">{{ $opt['group'] ?? '' }}{{ isset($opt['group']) ? ': ' : '' }}{{ $opt['name'] }}{{ ($opt['n'] ?? 1) > 1 ? ' × '.$opt['n'] : '' }}</div>@endforeach
@@ -98,7 +100,7 @@
   <tr><td>Delivery · {{ $o->freight_name }}</td><td class="right muted"></td><td class="right">{{ $m($o->freight) }}</td></tr>
 </table>
 
-<table style="margin-top: 18px; page-break-inside: avoid">
+<table style="margin-top: 10px; page-break-inside: avoid">
   <tr>
     <td style="padding-right: 30px">
       <div class="label orange">Delivery</div>

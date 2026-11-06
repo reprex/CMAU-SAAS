@@ -71,6 +71,10 @@ class SupplierController extends Controller
             // Lead times v1 (docs/lead-times.md).
             'transit_days' => 'nullable|integer|min:0|max:30',
             'ships_from' => ['nullable', Rule::in(['NZ'])],
+            // Purchase orders (docs/purchase-orders.md).
+            'orders_contact' => 'nullable|string|max:120',
+            'orders_email' => 'nullable|email:rfc|max:190',
+            'our_account_number' => 'nullable|string|max:60',
         ]);
         $closures = $this->closures((string) $request->input('closures', ''));
         if ($closures === null) {
