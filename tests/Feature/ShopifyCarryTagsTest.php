@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Catalogue\ImageTagger;
 use App\Models\Product;
 use App\Shopify\ProductPayload;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,5 +98,18 @@ class ShopifyCarryTagsTest extends TestCase
 
         $this->assertSame('any,urgent', $p->fresh()->overrideValue('carried.tagcollection'), 'metafields from the first file kept');
         $this->assertContains('newtag', $p->fresh()->overrideValue('carried.tags'), 'tags from the second file');
+    }
+
+    public function test_live_colour_spelling_is_kept_so_variants_keep_their_ids(): void
+    {
+        $p = $this->pen();
+        $p->colours()->create(['name' => 'Natural/Black', 'image_url' => 'https://x/n.jpg', 'appa_colours' => ['Black'], 'position' => 0]);
+        app(ImageTagger::class)->apply($p->fresh());
+        $path = tempnam(sys_get_temp_dir(), 'ct').'.csv';
+        file_put_contents($path, "Handle,Title,Tags,Option1 Name,Option1 Value\n2568,Borg Pen,style,Color,Natural/black\n");
+
+        $this->artisan('shopify:carry-tags', ['file' => $path, '--apply' => true])->assertSuccessful();
+
+        $this->assertSame([['label' => 'Natural/black', 'sku' => '2568-naturalblack']], app(ProductPayload::class)->variants($p->fresh()));
     }
 }

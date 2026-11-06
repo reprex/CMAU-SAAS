@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Product;
 use App\Models\ProductOverride;
+use App\Shopify\ProductPayload;
 use App\Support\SheetReader;
 use Illuminate\Console\Command;
 use Throwable;
@@ -43,9 +44,16 @@ class ShopifyCarryTagsCommand extends Command
     {
         ini_set('memory_limit', '1024M'); // a full .xlsx export is read into memory
         $found = [];
+        $colours = [];
         try {
             foreach (SheetReader::rows((string) $this->argument('file'), (string) $this->option('sheet')) as $r) {
                 $h = trim((string) ($r['Handle'] ?? ''));
+                // The live spelling of each colour ("Natural/black"), so a colour whose name differs only in
+                // case or punctuation keeps its variant (and its id) when the SaaS publishes it.
+                $colour = trim((string) ($r['Option1 Value'] ?? ''));
+                if (ctype_digit($h) && $colour !== '' && strcasecmp((string) ($r['Option1 Name'] ?? 'Color'), 'Color') === 0) {
+                    $colours[$h][ProductPayload::looseColour($colour)] ??= $colour;
+                }
                 if (! ctype_digit($h) || isset($found[$h])) {
                     continue; // variant rows repeat the handle; the product's values are on its first row
                 }
@@ -72,6 +80,11 @@ class ShopifyCarryTagsCommand extends Command
 
             return self::FAILURE;
         }
+        foreach ($colours as $h => $map) {
+            if (isset($found[$h])) {
+                $found[$h]['carried']['colours'] = $map;
+            }
+        }
         if ($found === []) {
             $this->error('No products in that file (it needs a Handle column, and the tag metafields and Tags).');
 
@@ -80,7 +93,7 @@ class ShopifyCarryTagsCommand extends Command
 
         $products = Product::query()->with('override')->whereIn('id', array_map('intval', array_keys($found)))->get()->keyBy('id');
         $n = ['in_file' => count($found), 'known' => $products->count(), 'on_range' => 0, 'changed' => 0, 'sort_set' => 0, 'sort_kept' => 0];
-        $fieldCounts = array_fill_keys(array_merge(array_values(self::FIELDS), ['tags']), 0);
+        $fieldCounts = array_fill_keys(array_merge(array_values(self::FIELDS), ['tags', 'colours']), 0);
         foreach ($found as $f) {
             foreach ($f['carried'] as $k => $_) {
                 $fieldCounts[$k]++;
