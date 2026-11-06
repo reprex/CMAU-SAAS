@@ -6,6 +6,7 @@ use App\Checkout\DeliveryEstimator;
 use App\Checkout\LeadTimes;
 use App\Models\PriceLine;
 use App\Models\PriceOption;
+use App\Shopify\ProductPayload;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -81,5 +82,23 @@ class LeadTimesTest extends TestCase
         // A chosen production speed (Dex) gets no Christmas stage.
         $dex = app(DeliveryEstimator::class)->estimate('VIC', '', 0, 'pad', self::ROAD, $start, 3, ['christmas_days' => 2]);
         $this->assertNotContains('christmas', array_column($dex['stages'], 'key'));
+    }
+
+    public function test_product_page_data_is_stable_and_lists_each_decoration(): void
+    {
+        $s = $this->supplier(88, 'AS Colour');
+        $s->update(['state' => 'VIC']);
+        $p = $this->catalogueProduct(43446, 88, 'Staple Tee', '5001');
+        $lt = app(LeadTimes::class);
+
+        $data = $lt->forShopify($p->fresh());
+
+        $this->assertNotEmpty($data['decorations']);
+        $this->assertSame(1, $data['extra_per_decoration']);
+        $this->assertContains('2026-12-25', $data['holidays']);
+        $this->assertContains(['2026-12-23', '2027-01-10'], $data['closed']);
+        $this->assertSame($data, app(LeadTimes::class)->forShopify($p->fresh()), 'same data on a second call');
+        $meta = collect(app(ProductPayload::class)->build($p->fresh())['input']['metafields'])->firstWhere('key', 'leadtimes');
+        $this->assertSame($data, json_decode($meta['value'], true));
     }
 }

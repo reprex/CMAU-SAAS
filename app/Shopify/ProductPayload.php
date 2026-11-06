@@ -13,6 +13,7 @@ use App\Catalogue\ProductOptions;
 use App\Catalogue\SizeGuide;
 use App\Catalogue\SupplierCodes;
 use App\Catalogue\TemplateFiles;
+use App\Checkout\LeadTimes;
 use App\Models\Product;
 use Illuminate\Support\Str;
 
@@ -183,6 +184,8 @@ class ProductPayload
             // Shown to clients (docs/supplier-codes.md): our code under the title; the supplier's code alone as the title chip.
             ($our = OurCodes::code($product)) ? $this->mf('custom', 'ourcode', 'single_line_text_field', $our) : null,
             $product->lead_time_days ? $this->mf('custom', 'leadtimedays', 'number_integer', (string) (int) ceil((float) $product->lead_time_days)) : null,
+            // Lead time per decoration and the rules to count it (docs/lead-times.md). Additive: the new product page reads it.
+            ($lead = $this->sizing(fn () => app(LeadTimes::class)->forShopify($product))) ? $this->mf('custom', 'leadtimes', 'json', json_encode($lead, JSON_UNESCAPED_SLASHES)) : null,
             filled($product->code) ? $this->mf('custom', 'supplierproductcode', 'single_line_text_field', (string) $product->code) : null,
             $area ? $this->mf('custom', 'printarea', 'json', json_encode($area)) : null,
             // Template, else Promodata's decoration print areas, else the type default (docs/logo-preview.md).

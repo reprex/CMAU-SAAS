@@ -5,6 +5,8 @@ namespace App\Checkout;
 use App\Catalogue\ProductFacts;
 use App\Models\PriceLine;
 use App\Models\PriceOption;
+use App\Models\Product;
+use App\Models\ProductWebPrice;
 use App\Models\Supplier;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -145,5 +147,66 @@ class LeadTimes
         }
 
         return $closed;
+    }
+
+    /**
+     * The product page's lead-time data (additive metafield custom.leadtimes, docs/lead-times.md): the theme
+     * adds the stages for the branding chosen and counts business days. Stable for the year (no "today"),
+     * so it doesn't make every product publish again each day.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function forShopify(Product $product): ?array
+    {
+        $supplier = $product->supplier;
+        $decProductId = (int) (ProductWebPrice::query()->find($product->id)?->decoration_product_id ?: $product->id);
+        $options = app(BrandingPricer::class)->options($decProductId);
+        $decorations = [];
+        foreach ($options as $id => $o) {
+            $label = (string) ($o->display_description ?: $o->description);
+            $decorations[(string) $id] = $this->optionDays((string) $id, DecorationMethods::classify($label));
+        }
+        if ($decorations === []) {
+            return null;
+        }
+        $state = (string) ($supplier?->state ?: config('website.lead_times.default_state'));
+        $delivery = $state === 'NZ' ? (string) config('website.lead_times.default_state') : $state;
+        $year = (int) now()->year;
+        $from = CarbonImmutable::parse(($year).'-01-01');
+        $to = CarbonImmutable::parse(($year + 1).'-12-31');
+        $holidays = fn (string $st) => array_values(array_filter(array_keys($this->days->holidays($st)), fn ($d) => $d >= $from->toDateString() && $d <= $to->toDateString()));
+        // Closed days as ranges [first, last].
+        $ranges = [];
+        $prev = null;
+        foreach (array_keys($this->closedDays($supplier, $from, $to)) as $d) {
+            if ($prev !== null && CarbonImmutable::parse($prev)->addDay()->toDateString() === $d) {
+                $ranges[count($ranges) - 1][1] = $d;
+            } else {
+                $ranges[] = [$d, $d];
+            }
+            $prev = $d;
+        }
+        $c = (array) config('website.lead_times.christmas');
+        $rush = [];
+        foreach ([$year - 1, $year] as $y) {
+            if ((int) ($c['days'] ?? 0) > 0) {
+                $rush[] = ['from' => $y.'-'.($c['from'] ?? '10-31'), 'until' => $this->standardReopen($y)->toDateString(), 'days' => (int) $c['days']];
+            }
+        }
+
+        return [
+            'order_check' => (int) config('website.lead_times.order_check'),
+            'stock' => $supplier?->stockLeadDays() ?? (int) config('website.lead_times.stock_default'),
+            'decorations' => $decorations,
+            'extra_per_decoration' => (int) config('website.lead_times.extra_decoration_days', 1),
+            'christmas' => $rush,
+            'transit' => (int) ($supplier?->transit_days ?? 0),
+            'ships_from' => $supplier?->ships_from,
+            'freight' => (int) config('website.lead_times.typical_freight_days', 3),
+            'state' => $state,
+            'holidays' => $holidays($state),
+            'delivery_holidays' => $delivery === $state ? [] : $holidays($delivery),
+            'closed' => $ranges,
+        ];
     }
 }

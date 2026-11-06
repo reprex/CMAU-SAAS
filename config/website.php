@@ -103,6 +103,7 @@ return [
         'default_state' => 'VIC',
         // Lead times v1 (Scott, 5 Nov 2026; docs/lead-times.md).
         'extra_decoration_days' => (int) env('LEAD_EXTRA_DECORATION_DAYS', 1), // each decoration after the first
+        'typical_freight_days' => (int) env('LEAD_TYPICAL_FREIGHT_DAYS', 3),   // product page estimate before an address is known
         'christmas' => [
             'from' => env('LEAD_CHRISTMAS_FROM', '10-31'),    // month-day the Christmas rush starts
             'days' => (int) env('LEAD_CHRISTMAS_DAYS', 2),    // extra working days until production restarts in January
