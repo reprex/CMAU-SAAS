@@ -145,3 +145,5 @@ td.breaks { word-break: break-all; max-width: 260px; }
 @media (max-width: 760px) { main table.tread-pos { display: table; } }
 .c-green { color: #0a7f3f; } .c-orange { color: #b45309; }
 @media (max-width: 760px) { .treads { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .tread { padding: 8px; } }
+.tread-logo { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; display: none; pointer-events: none; }
+.treads.show-logo .tread-logo { display: block; }

@@ -26,6 +26,7 @@ class TemplateReviewTest extends TestCase
         $this->staff();
         $this->get(route('range.template-reads'))->assertOk()
             ->assertSee('Flurr Bamboo Pen')->assertSee('https://cdn.example/black.jpg', false)->assertSee('<polygon points="30,40 70,40 70,46 30,46"', false)
-            ->assertSee('50 × 8 mm')->assertSee('cylinder h')->assertSee('Pad print');
+            ->assertSee('50 × 8 mm')->assertSee('cylinder h')->assertSee('Pad print')->assertSee('tread-logo', false)->assertSee('data-surface="cylinder_h"', false)
+            ->assertSee(route('range.templates.download', [8443, $t->id]), false)->assertSee('Show the CrowdMerch logo');
     }
 }
