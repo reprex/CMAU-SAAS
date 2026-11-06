@@ -1,20 +1,12 @@
-Hi {{ $po->supplier?->orders_contact ? explode(' ', $po->supplier->orders_contact)[0] : 'team' }},
+Hi {{ $po->supplier?->orders_contact ? explode(' ', trim($po->supplier->orders_contact))[0] : 'there' }},
 
-Please find our purchase order {{ $po->number }} attached.
+Please find our purchase order attached. Let us know if any issues.
 
-Please blind ship to the address on the PO: show the sender as Replicat / CrowdMerch, {{ config('quotes.pdf.phone') }}, and please do not put any supplier identification or docs with the shipment.
-@if($po->despatch_by)
-Despatch by: {{ $po->despatch_by->format('l j F Y') }}
-@endif
-@if($po->need_by)
-The client needs it by: {{ $po->need_by->format('l j F Y') }}@if($po->event) for their event ({{ $po->event }})@endif
+Kind Regards
 
-@endif
-Client artwork: {{ $po->artworkUrl() }}
+Scott Wilson
+Owner / Director
+Phone: +61 3 8456 7515, 1300 727 685, 0400 383 330
+www.replicat.com.au · www.crowdmerch.com.au
 
-Please let us know before proofing if this date is a problem, and reply with your confirmation and despatch date, and the freight cost to the delivery address unless it's in your pricing. Please let us know if any prices have changed.
-
-Kind regards,
-{{ config('quotes.pdf.signed_by') }}
-{{ config('quotes.pdf.signed_title') }}
-{{ config('quotes.pdf.phone') }}
+PS: If you have an API that can accept purchase orders automatically, please let us know, and we'd be happy to integrate with our systems.

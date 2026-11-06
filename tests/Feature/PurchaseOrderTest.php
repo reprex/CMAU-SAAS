@@ -92,6 +92,10 @@ class PurchaseOrderTest extends TestCase
         Supplier::query()->whereKey(7)->update(['orders_email' => 'orders@ascolour.example', 'orders_contact' => 'Sam Lee']);
         $this->post(route('purchase-orders.send', $po))->assertRedirect();
         Mail::assertSent(PurchaseOrderMail::class, fn ($m) => $m->hasTo('orders@ascolour.example') && str_contains($m->envelope()->subject, 'BLIND SHIP'));
+        $html = (new PurchaseOrderMail($po->fresh()))->render();
+        foreach (['Hi Sam,', 'Please find our purchase order attached. Let us know if any issues.', 'Scott Wilson', 'width="204" height="60"', 'PS: If you have an API', 'font-family:Arial,sans-serif;font-size:10pt;'] as $text) {
+            $this->assertStringContainsString($text, $html);
+        }
         $this->assertSame('sent', $po->fresh()->status);
     }
 

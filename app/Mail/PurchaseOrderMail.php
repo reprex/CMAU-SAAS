@@ -26,7 +26,7 @@ class PurchaseOrderMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'mail.purchase-order');
+        return new Content(html: 'mail.html.purchase-order', text: 'mail.purchase-order');
     }
 
     public function attachments(): array

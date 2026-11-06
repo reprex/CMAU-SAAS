@@ -1,0 +1,2 @@
+<p>&nbsp;</p>
+<p>This email is intended for the above named recipient only. The information contained in this transmission may be confidential, or commercially sensitive. If you are not the intended recipient you must not copy this email, disclose its contents to any other party, or take any action in reliance on it. We do not waive any privilege, confidentiality or copyright associated with it.</p>
