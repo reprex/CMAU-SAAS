@@ -67,7 +67,7 @@ class PurchaseOrderTest extends TestCase
         $this->assertStringContainsString('Summer Fun Run', $po->event);
 
         $html = view('pdf.purchase-order', ['po' => $po->load('supplier'), 'logo' => null, 'signature' => null, 'brand' => config('quotes.pdf'), 'fontDir' => resource_path('fonts')])->render();
-        foreach (['Blind ship to', 'Show sender as', 'supplier documentation or identification', 'any prices have changed', 'Despatch by', 'Client needs it by', 'Summer Fun Run', 'to be advised', $po->artworkUrl(), '5001-BLK-M'] as $text) {
+        foreach (['Blind ship to', 'Show sender as', 'Replicat / CrowdMerch', 'before proofing', 'supplier documentation or identification', 'any prices have changed', 'Despatch by', 'Client needs it by', 'Summer Fun Run', 'to be advised', $po->artworkUrl(), '5001-BLK-M'] as $text) {
             $this->assertStringContainsString($text, $html);
         }
         $this->assertNotEmpty(app(QuotePdf::class)->purchaseOrder($po));

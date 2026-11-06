@@ -337,7 +337,8 @@ class QuotePdf
     /** A supplier purchase order (docs/purchase-orders.md). */
     public function purchaseOrder(PurchaseOrder $po): string
     {
-        return $this->render('pdf.purchase-order', ['po' => $po->loadMissing('supplier')] + $this->common());
+        // From Replicat, the legal entity (Scott, 7 Nov 2026).
+        return $this->render('pdf.purchase-order', ['po' => $po->loadMissing('supplier'), 'logo' => $this->images->localDataUri(public_path('img/replicat-logo.png')), 'logoAlt' => 'Replicat'] + $this->common());
     }
 
     private function common(): array
