@@ -18,11 +18,18 @@ class PendingEmail extends Model
 
     public const KIND_QUOTE = 'quote';
 
+    public const KIND_PO = 'purchase_order';
+
     protected $guarded = [];
 
     protected function casts(): array
     {
         return ['sent_at' => 'datetime'];
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 
     public function order(): BelongsTo

@@ -97,11 +97,26 @@
   </div>
 
   <div class="side">
+    @if(! $o->isSamples())
+    <div class="card">
+      <h2>Supplier purchase order</h2>
+      @php($pos = \App\Models\PurchaseOrder::query()->where('website_order_id', $o->id)->latest('id')->get())
+      @foreach($pos as $po)
+        <div class="small" style="border-top:1px solid var(--line-soft);padding:6px 0"><a href="{{ route('purchase-orders.show', $po) }}"><b>{{ $po->number }}</b></a>
+          <span class="pill {{ $po->status === 'sent' ? 'ok' : 'warn' }}">{{ $po->status === 'sent' ? 'sent '.$po->sent_at?->timezone(config('app.timezone'))->format('j M') : 'not sent' }}</span>
+          <br><span class="muted">${{ number_format((float) $po->total_cost, 2) }} ex GST{{ $po->freight_cost === null ? ', freight to be advised' : '' }}</span></div>
+      @endforeach
+      @if($canEdit)
+        <form method="post" action="{{ route('purchase-orders.store', $o) }}" style="margin-top:6px">@csrf<button class="btn small {{ $pos->isEmpty() ? 'primary' : '' }}">{{ $pos->isEmpty() ? 'Create purchase order' : 'Create another' }}</button></form>
+      @endif
+      <p class="small muted" style="margin:6px 0 0">At supplier cost, blind shipped to the client, with the deadline, event and an artwork link. Freight is added when the supplier confirms it.</p>
+    </div>
+    @endif
     <div class="card">
       <h2>Emails</h2>
       @forelse($o->emails as $e)
         <div class="small" style="border-top:1px solid var(--line-soft);padding:6px 0">
-          <b>{{ $e->kind === 'invoice' ? 'Invoice to client' : 'Change request to staff' }}</b> · <span class="pill {{ ['sent' => 'ok', 'failed' => 'bad', 'draft' => 'warn'][$e->status] ?? '' }}">{{ ['draft' => 'waiting for you', 'queued' => 'sending', 'sent' => 'sent', 'failed' => 'failed'][$e->status] ?? $e->status }}</span><br>
+          <b>{{ ['invoice' => 'Invoice to client', 'purchase_order' => 'Purchase order to supplier'][$e->kind] ?? 'Change request to staff' }}</b> · <span class="pill {{ ['sent' => 'ok', 'failed' => 'bad', 'draft' => 'warn'][$e->status] ?? '' }}">{{ ['draft' => 'waiting for you', 'queued' => 'sending', 'sent' => 'sent', 'failed' => 'failed'][$e->status] ?? $e->status }}</span><br>
           <span class="muted">{{ $e->recipient }} · {{ $e->subject }}</span>
           @if($e->sent_at)<br><span class="muted">Sent {{ $e->sent_at->timezone(config('app.timezone'))->format('j M g:ia') }}@if($e->sender) by {{ $e->sender->name }}@endif</span>@endif
           @if($e->error)<br><span style="color:var(--bad)">{{ $e->error }}</span>@endif

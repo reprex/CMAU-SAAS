@@ -4,6 +4,7 @@
 - [x] **Lead times per decoration on the PDP, search and checkout** (Scott, 5 Nov 2026; docs/lead-times.md): v1 built 7 Nov (Trends page reading and supplier shutdown dates still to come).
 - [ ] **Live freight: MachShip and FedEx** (Scott, 7 Nov 2026; docs/freight.md): built 7 Nov. Needs `MACHSHIP_TOKEN` (the token ROD uses) and FedEx API keys (developer project with the Rate API, account number) in the server .env, then `st freight` shows live prices for VIC and NZ.
 - [x] **Delivery on website quotes** (Scott, 7 Nov 2026): yes/no, Australia by postcode or any country; exports GST-free with the duties note; estimated weights flagged; next price breaks on the quote.
+- [x] **Supplier purchase orders** (Scott, 7 Nov 2026; docs/purchase-orders.md): built 7 Nov from website orders. Scott fills each supplier's orders contact and email (`st po` lists them).
 - [ ] **Switch to the live store** (docs/publisher.md, "Switching to the live store"): variant-match and carry-tags reports from a live Matrixify export, then switch-store, metafield definitions, collections sync, a first batch of 50.
 
 Things needed before crowdmerch.com.au goes live on the new theme. Add to this list; tick off in the commit that does it.

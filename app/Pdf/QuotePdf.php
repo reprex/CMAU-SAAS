@@ -4,9 +4,11 @@ namespace App\Pdf;
 
 use App\Catalogue\OurCodes;
 use App\Catalogue\SubstituteFinder;
+use App\Catalogue\TemplateFiles;
 use App\Models\PriceOption;
 use App\Models\Product;
 use App\Models\ProductWebPrice;
+use App\Models\PurchaseOrder;
 use App\Models\Quote;
 use App\Models\QuoteExtra;
 use App\Models\QuoteItem;
@@ -96,6 +98,7 @@ class QuotePdf
             'timing' => $this->timing($quote->lead_time),
             'anyTbc' => $included->contains('tbc', true),
             'setupTotal' => (float) $setups->sum(fn ($i) => $i->setupPrice()),
+            'templateLinks' => $single ? app(TemplateFiles::class)->links($productIds) : [],
             'setupNames' => $setups->map(fn ($i) => $i->decoration_name ?: $i->name)->unique()->values(),
         ] + $this->common())->render();
     }
@@ -216,6 +219,7 @@ class QuotePdf
             'payment' => trim((string) config('website.orders.payment_details')),
             'image' => $this->images->dataUri($order->product?->hero_image_url),
             'styles' => $order->lines->groupBy('product_id'),
+            'templateLinks' => app(TemplateFiles::class)->links($order->lines->pluck('product_id')),
         ] + $this->common());
     }
 
@@ -328,6 +332,12 @@ class QuotePdf
         }
 
         return mb_strlen($text) > 220 ? rtrim(mb_substr($text, 0, 217), ' ,.;').'…' : $text;
+    }
+
+    /** A supplier purchase order (docs/purchase-orders.md). */
+    public function purchaseOrder(PurchaseOrder $po): string
+    {
+        return $this->render('pdf.purchase-order', ['po' => $po->loadMissing('supplier')] + $this->common());
     }
 
     private function common(): array

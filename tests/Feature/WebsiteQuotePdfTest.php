@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendInstantQuote;
+use App\Models\BrandingTemplate;
 use App\Models\Product;
 use App\Models\Quote;
 use App\Pdf\QuotePdf;
@@ -171,6 +172,22 @@ class WebsiteQuotePdfTest extends TestCase
         $this->assertStringContainsString('Unbranded (no standard branding listed)', $html);
         $this->assertStringContainsString('Qty 110 × $5.00', $html);
         $this->assertStringContainsString('$550.00</b> ex GST · <b>$605.00</b> inc GST', $html);
+    }
+
+    public function test_the_branding_template_is_linked_and_the_link_downloads_it(): void
+    {
+        Storage::fake('templates');
+        Storage::disk('templates')->put('t/5001.pdf', str_repeat('%PDF-template ', 30));
+        BrandingTemplate::query()->create(['product_id' => self::MENS, 'filename' => '5001 Staple.pdf', 'file_path' => 't/5001.pdf', 'url' => 'file:5001 Staple.pdf', 'status' => 'imported']);
+        $q = $this->quoteFrom($this->send());
+
+        $html = app(QuotePdf::class)->quoteHtml($q);
+        $this->assertMatchesRegularExpression('#Branding template: <a href="([^"]+)"#', $html);
+        preg_match('#Branding template: <a href="([^"]+)"#', $html, $m);
+        $url = html_entity_decode($m[1]);
+        $this->assertStringNotContainsString('AS Colour', $m[0]);
+        $this->get($url)->assertOk()->assertHeader('Content-Disposition');
+        $this->get(preg_replace('/signature=[^&]+/', 'signature=nope', $url))->assertForbidden();
     }
 
     public function test_an_unknown_country_is_refused(): void

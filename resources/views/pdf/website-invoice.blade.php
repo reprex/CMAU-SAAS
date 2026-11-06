@@ -1,5 +1,6 @@
 @php($logos = $logos ?? [])
 @php($payment = $payment ?? '')
+@php($templateLinks = $templateLinks ?? [])
 @php($m = fn ($v) => number_format((float) $v, 2))
 @php($o = $order)
 <!doctype html>
@@ -63,6 +64,7 @@
       @foreach($o->positions as $p)
         <div class="small">{{ $p->position }} · {{ $p->methodName() }}@if($p->colours) · {{ $p->colours }} colour{{ $p->colours === 1 ? '' : 's' }}@endif @if($p->width_mm) · {{ $p->width_mm }} mm wide @endif</div>
       @endforeach
+      @foreach($templateLinks as $t)<div class="small" style="margin-top: 2px">Branding template: <a href="{{ $t['url'] }}" style="color: #D4651F">{{ $t['name'] }}</a></div>@endforeach
       @if(! empty($o->options))
         <div class="label muted" style="margin-top: 6px">Options</div>
         @foreach($o->options as $opt)<div class="small">{{ $opt['group'] ?? '' }}{{ isset($opt['group']) ? ': ' : '' }}{{ $opt['name'] }}{{ ($opt['n'] ?? 1) > 1 ? ' × '.$opt['n'] : '' }}</div>@endforeach

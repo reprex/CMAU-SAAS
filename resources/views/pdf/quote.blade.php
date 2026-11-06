@@ -56,6 +56,7 @@
     <td></td>
   </tr></table>
   <div class="small muted" style="margin-top: 6px">{{ count($pictures['mockups']) ? 'Displayed branding mockups are approximate only, we provide a full factory proof for approval prior to production.' : 'We will send a full factory proof of your branding for approval before production.' }}</div>
+  @foreach($templateLinks ?? [] as $t)<div class="small" style="margin-top: 2px">Branding template: <a href="{{ $t['url'] }}" style="color: #D4651F">{{ $t['name'] }}</a></div>@endforeach
   @if($main)
     <div class="muted" style="margin-top: 8px">{{ collect([$main->ourCode() ? 'Code '.$main->ourCode() : null, $main->colour])->filter()->implode(' · ') }}</div>
     @foreach ($items->filter(fn ($r) => count($r['sizes'])) as $row)
