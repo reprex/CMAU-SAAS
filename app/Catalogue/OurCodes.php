@@ -36,7 +36,10 @@ final class OurCodes
             return null;
         }
 
-        return implode('-', array_filter([$ourCode, self::colourPart((string) $colour), self::part((string) $size)], fn ($p) => $p !== ''));
+        // "One size" (a product with no sizes) adds no size part, as the website shows it.
+        $size = preg_match('/^\s*one\s*size\s*$/i', (string) $size) ? '' : (string) $size;
+
+        return implode('-', array_filter([$ourCode, self::colourPart((string) $colour), self::part($size)], fn ($p) => $p !== ''));
     }
 
     public static function colourPart(string $colour): string
