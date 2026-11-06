@@ -196,12 +196,12 @@ class WebsiteCheckoutTest extends TestCase
         $this->assertSame('2026-11-16', $e['delivery_date']);
         $this->assertSame([['date' => '2026-11-03', 'name' => 'Melbourne Cup']], $e['holidays_skipped']);
 
-        // The slowest method sets the decoration time.
+        // The slowest method sets the decoration time; each further position adds a working day (docs/lead-times.md).
         $r = $this->price($this->cart(['positions' => [
             ['name' => 'Front', 'decID' => self::MENS.'-dtf', 'has_logo' => true],
             ['name' => 'Back', 'decID' => self::MENS.'-oversizedtf', 'has_logo' => true],
         ]]))->assertOk();
-        $this->assertSame(['dtf_oversize', 6], [$r->json('delivery_estimate.stages.2.method'), $r->json('delivery_estimate.stages.2.days')]);
+        $this->assertSame(['dtf_oversize', 7], [$r->json('delivery_estimate.stages.2.method'), $r->json('delivery_estimate.stages.2.days')]);
     }
 
     public function test_the_deadline_check_suggests_a_faster_service_and_flags_little_time_to_spare(): void

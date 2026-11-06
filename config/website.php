@@ -101,6 +101,15 @@ return [
             'embroidery' => 9,
         ],
         'default_state' => 'VIC',
+        // Lead times v1 (Scott, 5 Nov 2026; docs/lead-times.md).
+        'extra_decoration_days' => (int) env('LEAD_EXTRA_DECORATION_DAYS', 1), // each decoration after the first
+        'christmas' => [
+            'from' => env('LEAD_CHRISTMAS_FROM', '10-31'),    // month-day the Christmas rush starts
+            'days' => (int) env('LEAD_CHRISTMAS_DAYS', 2),    // extra working days until production restarts in January
+        ],
+        // A supplier with no closure dates entered is assumed shut for the last 2 working days before
+        // Christmas Day, reopening the first Monday after 5 January.
+        'standard_closure' => ['days_before_christmas' => 2, 'reopen_after' => '01-05'],
     ],
 
     /*

@@ -89,6 +89,21 @@ class WebsiteOrdersAdminTest extends TestCase
         $this->assertSame(2, Supplier::find(53)->stockLeadDays()); // default
     }
 
+    public function test_admins_set_overseas_transit_and_closures(): void
+    {
+        $this->staff('admin');
+        $this->put(route('admin.suppliers.update', 7), ['freight_basis' => 'per_delivery', 'state' => 'NZ', 'transit_days' => 4, 'ships_from' => 'NZ',
+            'closures' => "2026-12-18 to 2027-01-11 Christmas shutdown\n"])->assertRedirect();
+        $s = Supplier::find(7);
+        $this->assertSame(['NZ', 4, 'NZ'], [$s->state, $s->transit_days, $s->ships_from]);
+        $this->assertSame('Christmas shutdown', \DB::table('supplier_closures')->where('supplier_id', 7)->value('note'));
+        $this->get(route('admin.suppliers.edit', 7))->assertSee('2026-12-18 to 2027-01-11 Christmas shutdown');
+
+        $this->put(route('admin.suppliers.update', 7), ['freight_basis' => 'per_delivery', 'closures' => '18 Dec to 11 Jan'])->assertSessionHasErrors('closures');
+        $this->assertSame(1, \DB::table('supplier_closures')->where('supplier_id', 7)->count());
+        $this->assertTrue(PublicHoliday::where('state', 'NZ')->whereDate('date', '2027-06-25')->exists()); // Matariki
+    }
+
     public function test_holidays_are_seeded_and_can_be_imported_from_csv(): void
     {
         $this->assertSame('Melbourne Cup', PublicHoliday::where('state', 'VIC')->whereDate('date', '2026-11-03')->value('name'));

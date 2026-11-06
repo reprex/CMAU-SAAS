@@ -110,6 +110,7 @@ class SamplesPricer
                 'label' => 'From factory '.$g['factory'],
                 'supplier_id' => $sid, // removed from the public reply (staff only)
                 'days' => $g['supplier']->sampleLeadDays(),
+                'transit' => (int) ($g['supplier']->transit_days ?? 0), // overseas to the client (Trends from NZ)
                 'state' => (string) ($g['supplier']->state ?: config('website.lead_times.default_state')),
                 'items' => array_map(fn ($it) => array_diff_key($it, ['supplier' => 1, 'supplier_id' => 1]), $g['items']),
                 'goods' => $goods,
@@ -128,11 +129,13 @@ class SamplesPricer
             $slowest = collect($factories)->sortByDesc('days')->first();
             $service = (string) config('website.samples.freight_service', 'tnt_road');
             $transit = (int) max($zone[$service]['days'] ?? [(int) config('website.samples.transit_days_default', 3)]);
-            $estimate = $this->estimator->stages($slowest['state'], [
+            $overseas = (int) max(array_column($factories, 'transit') ?: [0]);
+            $estimate = $this->estimator->stages($slowest['state'], array_values(array_filter([
                 ['key' => 'order_check', 'name' => 'Order check and invoice', 'days' => (int) config('website.lead_times.order_check')],
                 ['key' => 'supply', 'name' => count($factories) > 1 ? 'Samples from the factories' : 'Samples from the factory', 'days' => (int) $slowest['days']],
-                ['key' => 'freight', 'name' => 'Delivery to '.$zone['name'], 'days' => $transit],
-            ], $today);
+                $overseas > 0 ? ['key' => 'transit', 'name' => 'Shipping from overseas', 'days' => $overseas, 'state' => config('website.lead_times.default_state')] : null,
+                ['key' => 'freight', 'name' => 'Delivery to '.$zone['name'], 'days' => $transit, 'state' => $slowest['state'] === 'NZ' ? config('website.lead_times.default_state') : $slowest['state']],
+            ])), $today);
         }
 
         // ---- Totals.
@@ -159,7 +162,7 @@ class SamplesPricer
     /** The reply for the website: no supplier ids, names or codes. */
     public static function publicReply(array $result): array
     {
-        $result['factories'] = array_map(fn ($f) => array_diff_key($f, ['supplier_id' => 1, 'state' => 1]), $result['factories']);
+        $result['factories'] = array_map(fn ($f) => array_diff_key($f, ['supplier_id' => 1, 'state' => 1, 'transit' => 1]), $result['factories']);
         if ($result['delivery_estimate']) {
             unset($result['delivery_estimate']['state']);
         }
