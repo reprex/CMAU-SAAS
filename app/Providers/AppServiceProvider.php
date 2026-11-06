@@ -6,6 +6,7 @@ use App\Checkout\Address\AddressLookup;
 use App\Checkout\Address\NoAddressLookup;
 use App\Checkout\Sms\LogSmsSender;
 use App\Checkout\Sms\SmsSender;
+use App\Freight\CarrierFreightDriver;
 use App\Freight\EstimateFreightDriver;
 use App\Freight\FreightDriver;
 use App\Mail\Transport\GraphTransport;
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         // Website checkout drivers (docs/website-checkout.md). Each is chosen in config
         // so MachShip/FedEx, an SMS provider and an address provider can be added later.
         $this->app->bind(FreightDriver::class, fn ($app) => match (config('freight.driver')) {
+            'carriers' => $app->make(CarrierFreightDriver::class),
             default => $app->make(EstimateFreightDriver::class),
         });
         $this->app->bind(SmsSender::class, fn ($app) => match (config('website.sms.driver')) {

@@ -52,7 +52,8 @@ class QuoteCalculator
         }
 
         $subtotal = Money::roundToCent($subtotal);
-        $gst = Money::roundToCent($subtotal * (float) config('quotes.gst_rate'));
+        // Delivered outside Australia: a GST-free export (Scott, 7 Nov 2026).
+        $gst = $quote->gst_free_export ? 0.0 : Money::roundToCent($subtotal * (float) config('quotes.gst_rate'));
 
         $quote->forceFill([
             'subtotal' => $subtotal,
@@ -128,6 +129,12 @@ class QuoteCalculator
 
     private function syncFreight(Quote $quote): void
     {
+        // Website quotes price delivery with the carrier (or the client doesn't want it): no standard freight lines.
+        if ($quote->freight_source !== null) {
+            $quote->extras->where('kind', 'freight')->where('auto', true)->each->delete();
+
+            return;
+        }
         $legs = $this->freightLegs($quote);
         $existing = $quote->extras->where('kind', 'freight')->where('auto', true)->keyBy('auto_key');
         $where = $quote->deliverySuburb();

@@ -73,15 +73,25 @@
 
 <table class="lines" style="margin-top: 10px">
   <tr class="head"><td class="label muted">Item</td><td class="right label muted" style="width: 130px">Qty × each</td><td class="right label muted" style="width: 90px">ex GST</td></tr>
+  {{-- Itemised (Scott, 7 Nov 2026): each style unbranded, then each branding position and option across all units, then setups and delivery. --}}
+  @php($units = (int) $o->lines->sum('qty'))
+  @php($brandUnit = (float) $o->positions->sum(fn ($p) => (float) $p->unit_ex_gst) + (float) collect($o->options ?? [])->sum(fn ($x) => (float) ($x['unit'] ?? 0)))
   @foreach ($styles as $pid => $lines)
     @php($first = $lines->first())
-    <tr><td>{{ $first->product_name }}, branded</td><td class="right muted">{{ number_format($lines->sum('qty')) }} × ${{ $m($first->unit_ex_gst) }}</td><td class="right">{{ $m($lines->sum(fn ($l) => (float) $l->total_ex_gst)) }}</td></tr>
+    @php($blank = round((float) $first->unit_ex_gst - $brandUnit, 2))
+    <tr><td>{{ $first->product_name }}, unbranded <span class="muted">· {{ $lines->pluck('colour')->unique()->implode(', ') }}</span></td><td class="right muted">{{ number_format($lines->sum('qty')) }} × ${{ $m($blank) }}</td><td class="right">{{ $m($blank * $lines->sum('qty')) }}</td></tr>
   @endforeach
   @foreach($o->positions as $p)
-    @if((float) $p->setup_ex_gst > 0)<tr><td>Setup: {{ $p->position }} ({{ $p->methodName() }})</td><td class="right muted">once</td><td class="right">{{ $m($p->setup_ex_gst) }}</td></tr>@endif
+    <tr><td>Branding: {{ $p->position }} · {{ $p->decoration_name ?: $p->methodName() }}@if($p->width_mm) <span class="muted">· {{ $p->width_mm }} mm wide</span>@endif</td><td class="right muted">{{ number_format($units) }} × ${{ $m($p->unit_ex_gst) }}</td><td class="right">{{ $m((float) $p->unit_ex_gst * $units) }}</td></tr>
   @endforeach
   @foreach($o->options ?? [] as $opt)
-    @if((float) ($opt['once'] ?? 0) > 0)<tr><td>{{ $opt['name'] }}</td><td class="right muted">once</td><td class="right">{{ $m($opt['once']) }}</td></tr>@endif
+    @if((float) ($opt['unit'] ?? 0) > 0)<tr><td>{{ $opt['group'] ?? 'Option' }}: {{ $opt['name'] }}</td><td class="right muted">{{ number_format($units) }} × ${{ $m($opt['unit']) }}</td><td class="right">{{ $m((float) $opt['unit'] * $units) }}</td></tr>@endif
+  @endforeach
+  @foreach($o->positions as $p)
+    @if((float) $p->setup_ex_gst > 0)<tr><td>Setup: {{ $p->position }} · {{ $p->methodName() }}</td><td class="right muted">once</td><td class="right">{{ $m($p->setup_ex_gst) }}</td></tr>@endif
+  @endforeach
+  @foreach($o->options ?? [] as $opt)
+    @if((float) ($opt['once'] ?? 0) > 0)<tr><td>Setup: {{ $opt['name'] }}</td><td class="right muted">once</td><td class="right">{{ $m($opt['once']) }}</td></tr>@endif
   @endforeach
   @php($listedSetup = $o->positions->sum(fn ($p) => (float) $p->setup_ex_gst) + collect($o->options ?? [])->sum(fn ($x) => (float) ($x['once'] ?? 0)))
   @if((float) $o->setup - $listedSetup > 0.004)<tr><td>Setup (once for the order)</td><td class="right muted">once</td><td class="right">{{ $m((float) $o->setup - $listedSetup) }}</td></tr>@endif
@@ -111,6 +121,7 @@
           @foreach($rows as $st)<tr><td>{{ $st['name'] }}</td><td class="right muted">{{ $st['days'] }} business day{{ $st['days'] === 1 ? '' : 's' }} · by {{ \Carbon\CarbonImmutable::parse($st['ends'])->format('D j M') }}</td></tr>@endforeach
         </table>
       @endif
+      <div class="tiny muted" style="margin: -4px 0 8px">Production and delivery lead times are estimates only, and delays out of our control may occur. However, we would not take on a project unless your required date fell comfortably within our expected turnaround.</div>
       <div class="label orange">What happens next</div>
       <ol class="soft" style="margin: 3px 0 10px; padding-left: 16px">
         <li>Pay this invoice by card or bank transfer{{ $payment ? ':' : '.' }}@if($payment)<div class="small" style="white-space: pre-line">{{ $payment }}</div>@endif</li>

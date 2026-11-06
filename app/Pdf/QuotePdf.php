@@ -4,6 +4,7 @@ namespace App\Pdf;
 
 use App\Catalogue\OurCodes;
 use App\Catalogue\SubstituteFinder;
+use App\Models\PriceOption;
 use App\Models\Product;
 use App\Models\ProductWebPrice;
 use App\Models\Quote;
@@ -58,9 +59,11 @@ class QuotePdf
         ])->values();
 
         $included = collect();
+        // Website quotes: the setups are one line under the products, not under "Also included" (Scott, 7 Nov 2026).
+        $setups = $quote->source === 'website' ? $quote->items->filter(fn ($i) => $i->setupPrice() > 0) : collect();
         foreach ($quote->items as $i) {
-            if ($i->setupPrice() > 0) {
-                $included->push(['label' => ($i->decoration_name ? 'Setup: '.$i->decoration_name : 'Setup').' ('.$i->name.')', 'amount' => $i->setupPrice(), 'tbc' => false]);
+            if ($i->setupPrice() > 0 && $quote->source !== 'website') {
+                $included->push(['label' => ($i->decoration_name ? 'Setup: '.$i->decoration_name : 'Setup').($quote->source === 'website' ? '' : ' ('.$i->name.')'), 'amount' => $i->setupPrice(), 'tbc' => false]);
             }
         }
         foreach ($quote->extras->where('kind', 'service') as $x) {
@@ -92,6 +95,8 @@ class QuotePdf
             'separate' => $quote->decoration_display === 'separate',
             'timing' => $this->timing($quote->lead_time),
             'anyTbc' => $included->contains('tbc', true),
+            'setupTotal' => (float) $setups->sum(fn ($i) => $i->setupPrice()),
+            'setupNames' => $setups->map(fn ($i) => $i->decoration_name ?: $i->name)->unique()->values(),
         ] + $this->common())->render();
     }
 
@@ -125,9 +130,11 @@ class QuotePdf
      */
     private function moreProducts(Quote $quote, int $productId): array
     {
+        $units = (int) $quote->items->filter(fn ($i) => $i->skus->isNotEmpty() || $i->stage === 'sku')->sum('quantity');
         $card = fn (Product $p) => [
             'name' => $p->name, 'code' => OurCodes::code($p->supplier_id, $p->code), 'image' => $this->images->dataUri($p->hero_image_url),
             'from' => ProductWebPrice::query()->find($p->id)?->collection_variant_price,
+            'at' => $this->priceAt($p, $units),
             'url' => 'https://'.config('quotes.pdf.website').'/products/'.$p->id,
         ];
         $load = fn (array $ids) => Product::query()->whereIn('id', $ids)->where('tier', Product::TIER_LIVE)->where('discontinued', false)->get()
@@ -140,6 +147,28 @@ class QuotePdf
         $saved = $load(array_map('intval', (array) ($quote->saved_products ?? [])))->reject(fn ($p) => $similar->contains('id', $p->id));
 
         return ['similar' => $similar->take(4)->map($card)->values(), 'saved' => $saved->take(12)->map($card)->values()];
+    }
+
+    /**
+     * A comparison for page 2 (Scott, 7 Nov 2026): the product at the quote's total quantity with its default
+     * branding (one position) and that setup, ex and inc GST. Null when it can't be priced.
+     *
+     * @return array{units: int, unit: float, setup: float, branding: ?string, ex: float, inc: float}|null
+     */
+    private function priceAt(Product $p, int $units): ?array
+    {
+        $web = ProductWebPrice::query()->find($p->id);
+        $undec = $web?->undecorated_option_id ? PriceOption::query()->where('option_id', $web->undecorated_option_id)->first() : null;
+        if ($units < 1 || $undec === null || $undec->prices()->isEmpty()) {
+            return null;
+        }
+        $dec = $web->default_decoration_option_id ? PriceOption::query()->where('option_id', $web->default_decoration_option_id)->first() : null;
+        $unit = Money::roundToCent($undec->prices()->priceAt($units)) + ($dec ? Money::roundToCent($dec->prices()->priceAt($units)) : 0.0);
+        $setup = Money::roundToCent((float) $undec->setup_price + (float) ($dec?->setup_price ?? 0));
+        $ex = Money::roundToCent($unit * $units + $setup);
+
+        return ['units' => $units, 'unit' => $unit, 'setup' => $setup, 'branding' => $dec ? (string) ($dec->display_description ?: $dec->description) : null, 'ex' => $ex,
+            'inc' => Money::roundToCent($ex * (1 + (float) config('quotes.gst_rate')))];
     }
 
     public function comparison(Quote $quote): string

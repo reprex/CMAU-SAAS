@@ -28,6 +28,7 @@ case "$1" in
       grep -E ',new,,,"?Custom Print"?,' "$f" | cut -d, -f1,2 | sort -u | head -40 ;;
   cpwhy) $PHP artisan catalogue:colour-check ;;
   mail) [ -z "$2" ] && { echo "Use: st mail you@example.com"; exit 1; }; $PHP artisan config:cache >/dev/null && $PHP artisan mail:test "$2" ;;
+  freight) $PHP artisan config:cache >/dev/null && $PHP artisan freight:test AU "${2:-3066}"; $PHP artisan freight:test NZ "${3:-1010}" ;;
   apoff) $PHP artisan shopify:auto-publish off ;;
   apon) $PHP artisan shopify:auto-publish on ;;
   sw) $PHP artisan shopify:switch-store ;;
@@ -44,5 +45,5 @@ case "$1" in
        "st apoff    automatic publishing off" "st apon     automatic publishing on" \
        "st sw       switch-store report" "st swgo     switch-store --apply" \
        "st mfd      metafield definitions" "st cols     collections --sync" "st pub50    publish 50 products" \
-       "st mail ADDRESS  send a test email (after .env changes)" "st health   status and range report" "st help     this list" ;;
+       "st mail ADDRESS  send a test email (after .env changes)" "st freight  price a test delivery (MachShip VIC, FedEx NZ)" "st health   status and range report" "st help     this list" ;;
 esac

@@ -10,11 +10,11 @@
 .fig { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 20px; line-height: 1.1; }
 .inc td { border-bottom: 1px solid #E4E1DB; padding: 5px 0; }
 .totals { background: #D4651F; color: #FFFFFF; }
-.pic { width: 100%; height: 230px; background: #F4F3F0; text-align: center; }
-.pic img { max-width: 96%; max-height: 222px; margin-top: 4px; }
-.pic.art img { max-height: 160px; margin-top: 35px; }
-.small-pic { height: 170px; }
-.small-pic img { max-height: 162px; }
+.pic { width: 100%; height: 165px; background: #F4F3F0; text-align: center; }
+.pic img { max-width: 96%; max-height: 157px; margin-top: 4px; }
+.pic.art img { max-height: 120px; margin-top: 22px; }
+.small-pic { height: 125px; }
+.small-pic img { max-height: 117px; }
 .lines td { border-bottom: 1px solid #E4E1DB; padding: 5px 0; }
 .thumb-s { width: 84px; height: 84px; background: #F4F3F0; text-align: center; }
 .thumb-s img { max-width: 78px; max-height: 78px; margin-top: 3px; }
@@ -57,8 +57,7 @@
   </tr></table>
   <div class="small muted" style="margin-top: 6px">{{ count($pictures['mockups']) ? 'Displayed branding mockups are approximate only, we provide a full factory proof for approval prior to production.' : 'We will send a full factory proof of your branding for approval before production.' }}</div>
   @if($main)
-    <div class="iname" style="margin-top: 10px; font-size: 20px">{{ $main->name }}</div>
-    <div class="muted">{{ collect([$main->ourCode() ? 'Code '.$main->ourCode() : null, $main->colour])->filter()->implode(' · ') }}</div>
+    <div class="muted" style="margin-top: 8px">{{ collect([$main->ourCode() ? 'Code '.$main->ourCode() : null, $main->colour])->filter()->implode(' · ') }}</div>
     @foreach ($items->filter(fn ($r) => count($r['sizes'])) as $row)
       @if(! $loop->first)<div class="small" style="margin-top: 6px"><b>{{ $row['item']->name }}</b> <span class="muted">{{ $row['item']->ourCode() ? 'Code '.$row['item']->ourCode() : '' }}</span></div>@endif
       @foreach ($row['sizes'] as $colour => $sizes)
@@ -69,6 +68,27 @@
     @php($names = collect($pictures['artwork'])->pluck('name')->filter()->unique())
     @if($names->isNotEmpty())<div class="small muted" style="margin-top: 4px">Artwork received: {{ $names->implode(', ') }}</div>@endif
   @endif
+  {{-- One line per style, all branding and per-unit options in it; no price-break columns (Scott, 7 Nov 2026: too confusing). --}}
+  @php($styleRows = $items->filter(fn ($r) => count($r['sizes']) > 0))
+  @php($runRows = $items->reject(fn ($r) => count($r['sizes']) > 0))
+  @php($consolidate = $quote->source === 'website' && $styleRows->isNotEmpty() && $runRows->every(fn ($r) => (float) $r['item']->quantity === (float) $styleRows->sum(fn ($x) => (float) $x['item']->quantity)))
+  @if($consolidate)
+    @php($runUnit = (float) $runRows->sum(fn ($r) => (float) $r['item']->unitPrice()))
+    @php($brandings = $items->map(fn ($r) => $r['item']->decoration_name)->filter()->unique()->values())
+    @php($units = (int) $styleRows->sum(fn ($r) => (int) $r['item']->quantity))
+    <table class="lines" style="margin-top: 10px">
+      <tr class="head"><td class="label muted">Item</td><td class="right label" style="width: 112px">{{ number_format($units) }} units</td><td class="right label muted" style="width: 80px">ex GST</td></tr>
+      @foreach ($styleRows as $row)
+        @php($i = $row['item'])
+        @php($unit = round((float) $i->unitPrice() + $runUnit, 2))
+        <tr><td>{{ $i->name }}, branded</td>
+          <td class="right" style="white-space: nowrap">{{ number_format($i->quantity) }} × <b>${{ $m($unit) }}</b></td>
+          <td class="right" style="white-space: nowrap"><b>${{ $m($unit * (float) $i->quantity) }}</b></td></tr>
+      @endforeach
+      @if($setupTotal > 0)<tr><td>Setup, once for the order <span class="muted">· {{ $setupNames->implode('; ') }}</span></td><td class="right muted" style="white-space: nowrap">once</td><td class="right" style="white-space: nowrap"><b>${{ $m($setupTotal) }}</b></td></tr>@endif
+    </table>
+    <div class="small muted" style="margin-top: 4px">Branding: {{ $brandings->implode('; ') }}.</div>
+  @else
   <table class="lines" style="margin-top: 10px">
     @foreach ($items as $row)
       @php($i = $row['item'])
@@ -76,7 +96,9 @@
         <td class="right muted" style="width: 150px; white-space: nowrap">{{ number_format($i->quantity) }} × ${{ $m($i->unitPrice()) }}</td>
         <td class="right" style="width: 90px; white-space: nowrap"><b>${{ $m($i->goodsTotal()) }}</b></td></tr>
     @endforeach
+    @if($setupTotal > 0)<tr><td>Setup, once for the order <span class="muted">· {{ $setupNames->implode('; ') }}</span></td><td class="right muted" style="white-space: nowrap">once</td><td class="right" style="white-space: nowrap"><b>${{ $m($setupTotal) }}</b></td></tr>@endif
   </table>
+  @endif
 @else
 <table>
   @foreach ($items as $n => $row)
@@ -125,17 +147,27 @@
 </table>
 @endif
 
-<table style="margin-top: 18px; page-break-inside: avoid">
+<table style="margin-top: 12px; page-break-inside: avoid">
   <tr>
     <td style="padding-right: 30px">
       @if($timing)<div class="label orange">Timing</div><div class="soft" style="margin: 3px 0 12px">{{ $timing }}</div>@endif
       @foreach ($info as $line)<div class="soft" style="margin: 0 0 8px">{{ $line->description }}</div>@endforeach
       <div class="label orange">How to go ahead</div>
+      @if($quote->source === 'website')
+        {{-- Reply, or check out online with this quote's cart rebuilt; payment comes before the proof (Scott, 7 Nov 2026). --}}
+        @php($checkout = $quote->checkoutUrl())
+        <ol class="soft" style="margin: 3px 0 14px; padding-left: 16px">
+          <li>Simply reply to this email{{ $checkout ? ',' : '.' }} @if($checkout)or complete the <a href="{{ $checkout }}" style="color: #D4651F; font-weight: 600">online checkout</a>.@endif</li>
+          <li>Pay the invoice.</li>
+          <li>Approve the digital proof of your branding and we start production.</li>
+        </ol>
+      @else
       <ol class="soft" style="margin: 3px 0 14px; padding-left: 16px">
         <li>Reply to accept, or tell us any changes.</li>
         <li>Approve the digital proof of your branding.</li>
         <li>Pay the invoice and we start production.</li>
       </ol>
+      @endif
       <table style="width: auto"><tr>
         @if($signature)<td style="padding-right: 12px"><img src="{{ $signature }}" alt="" style="height: 40px"></td>@endif
         <td style="padding-top: 12px"><b>{{ $brand['signed_by'] }}</b><br><span class="muted">{{ $brand['signed_title'] }}</span></td>
@@ -150,22 +182,25 @@
           @endforeach
         </table>
       @endif
-      <table class="totals"><tr><td style="padding: 16px 18px">
+      <table class="totals"><tr><td style="padding: 12px 16px">
         <table>
           <tr><td style="color: #FFFFFF">Subtotal ex GST</td><td class="right" style="color: #FFFFFF">{{ $m($quote->subtotal) }}</td></tr>
-          <tr><td style="color: #FFFFFF; padding-bottom: 8px">GST</td><td class="right" style="color: #FFFFFF; padding-bottom: 8px">{{ $m($quote->gst) }}</td></tr>
+          <tr><td style="color: #FFFFFF; padding-bottom: 8px">{{ $quote->gst_free_export ? 'GST (not charged on exports)' : 'GST' }}</td><td class="right" style="color: #FFFFFF; padding-bottom: 8px">{{ $m($quote->gst) }}</td></tr>
         </table>
         <div style="border-top: 1px solid #EBB591; padding-top: 8px; text-align: right">
-          <div class="label" style="color: #FFFFFF">Total inc GST</div>
-          <div class="os" style="font-weight: 600; font-size: 36px; line-height: 1; color: #FFFFFF">${{ $m($quote->total) }}</div>
+          <div class="label" style="color: #FFFFFF">{{ $quote->gst_free_export ? 'Total, no GST' : 'Total inc GST' }}</div>
+          <div class="os" style="font-weight: 600; font-size: 30px; line-height: 1; color: #FFFFFF">${{ $m($quote->total) }}</div>
         </div>
       </td></tr></table>
       @if($anyTbc)<div class="muted small" style="margin-top: 5px">Delivery marked TBC is not in this total yet; we will confirm it.</div>@endif
+      @if($quote->freight_source === 'none')<div class="muted small" style="margin-top: 5px">Delivery is not included. Ask us if you'd like it added.</div>@endif
+      @if($quote->gst_free_export)<div class="muted small" style="margin-top: 5px">Outside Australia: no Australian GST (GST-free export); local duties and taxes are payable by you to the carrier before delivery.</div>@endif
     </td>
   </tr>
 </table>
 @if($single && ($similar->isNotEmpty() || $saved->isNotEmpty()))
   <div style="page-break-before: always"></div>
+  @if(collect($similar)->merge($saved)->contains(fn ($c) => $c['at']))<div class="small muted">Prices to compare: each product at the same total quantity as your quote, with one branding position in its standard branding and that setup, before delivery. Your quote's branding may differ; ask us to price it exactly.</div>@endif
   @foreach([['You might also consider', $similar], ['Products you saved', $saved]] as [$heading, $cards])
     @if($cards->isNotEmpty())
       <div class="label orange" style="margin-top: 14px">{{ $heading }}</div>
@@ -179,7 +214,11 @@
                   <td style="padding-left: 10px; vertical-align: top">
                     <div class="iname" style="font-size: 14px">{{ $c['name'] }}</div>
                     <div class="muted small">{{ $c['code'] ? 'Code '.$c['code'] : '' }}</div>
-                    @if($c['from'])<div class="small" style="margin-top: 2px">From ${{ $m($c['from']) }} each, branded, ex GST</div>@endif
+                    @if($c['at'])
+                      <div class="small muted" style="margin-top: 2px">{{ $c['at']['branding'] ? 'Assumes 1 branding position: '.$c['at']['branding'] : 'Unbranded (no standard branding listed)' }}</div>
+                      <div class="small">Qty {{ number_format($c['at']['units']) }} × ${{ $m($c['at']['unit']) }}{{ $c['at']['setup'] > 0 ? ' + $'.$m($c['at']['setup']).' setup' : '' }}</div>
+                      <div class="small"><b>${{ $m($c['at']['ex']) }}</b> ex GST · <b>${{ $m($c['at']['inc']) }}</b> inc GST</div>
+                    @elseif($c['from'])<div class="small" style="margin-top: 2px">From ${{ $m($c['from']) }} each, branded, ex GST</div>@endif
                     <div class="small"><a href="{{ $c['url'] }}" style="color: #D4651F">{{ preg_replace('#^https://#', '', $c['url']) }}</a></div>
                   </td>
                 </tr></table>

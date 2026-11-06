@@ -11,7 +11,48 @@
 */
 return [
 
-    'driver' => env('FREIGHT_DRIVER', 'estimate'),
+    // "carriers": MachShip in Australia and FedEx overseas, each once its keys are set (else the estimate);
+    // "estimate": the placeholder rates below only (tests, or if the carriers must be switched off).
+    'driver' => env('FREIGHT_DRIVER', 'carriers'),
+
+    // Where CrowdMerch goods ship from (the decorator's dock; Scott to confirm).
+    'from' => [
+        'suburb' => env('FREIGHT_FROM_SUBURB', 'DERRIMUT'),
+        'postcode' => env('FREIGHT_FROM_POSTCODE', '3026'),
+        'state' => env('FREIGHT_FROM_STATE', 'VIC'),
+    ],
+
+    // MachShip (Australia): the same account and TNT services as ROD (REPSTACK: Machship API integration
+    // with ROD.mdb). Price = MachShip's sell price ex GST, plus markup_percent.
+    'machship' => [
+        'token' => env('MACHSHIP_TOKEN'),
+        'base_url' => env('MACHSHIP_BASE_URL', 'https://live.machship.com/apiv2/'),
+        'company_id' => env('MACHSHIP_COMPANY_ID'),
+        'carrier_ids' => array_values(array_filter(array_map('intval', explode(',', (string) env('MACHSHIP_CARRIER_IDS', '11'))))),
+        // MachShip carrier service id => our service id (and name shown to clients).
+        'services' => [
+            540 => ['id' => 'tnt_road', 'name' => 'TNT Road Express'],
+            538 => ['id' => 'tnt_overnight', 'name' => 'TNT Overnight Express'],
+        ],
+        'markup_percent' => (float) env('MACHSHIP_MARKUP_PERCENT', 0),
+        'timeout' => 12,
+    ],
+
+    // FedEx (overseas): REST Rate API with Replicat's account rates. Price = FedEx's account rate (AUD,
+    // incl. fuel) plus markup_percent. Duties and taxes are the receiver's.
+    'fedex' => [
+        'client_id' => env('FEDEX_CLIENT_ID'),
+        'client_secret' => env('FEDEX_CLIENT_SECRET'),
+        'account_number' => env('FEDEX_ACCOUNT_NUMBER'),
+        'base_url' => env('FEDEX_BASE_URL', 'https://apis.fedex.com'),
+        'services' => [
+            'FEDEX_INTERNATIONAL_PRIORITY' => 'fedex_ip', 'INTERNATIONAL_PRIORITY' => 'fedex_ip',
+            'INTERNATIONAL_ECONOMY' => 'fedex_ie', 'FEDEX_INTERNATIONAL_ECONOMY' => 'fedex_ie',
+        ],
+        'commodity' => env('FEDEX_COMMODITY', 'Promotional merchandise'),
+        'markup_percent' => (float) env('FEDEX_MARKUP_PERCENT', 0),
+        'timeout' => 15,
+    ],
 
     // Pack data when Promodata has no packing details for a product: by Promodata
     // product type name (lower case, partial match), then "default".

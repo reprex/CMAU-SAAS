@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Public;
 
 use App\Catalogue\ImageTagger;
+use App\Freight\Countries;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendInstantQuote;
 use App\Models\Product;
@@ -238,6 +239,10 @@ class WebsiteQuoteController extends Controller
                 'cart.options' => 'nullable|array|max:20',
                 'cart.options.*.id' => 'required|string|max:190',
                 'cart.options.*.n' => 'nullable|integer|min:1|max:20',
+                'cart.delivery' => 'nullable|array',
+                'cart.delivery.wanted' => 'nullable|boolean',
+                'cart.delivery.country' => 'nullable|string|size:2',
+                'cart.delivery.postcode' => 'nullable|string|max:12',
                 'similar' => 'nullable|array|max:8',
                 'similar.*' => 'integer|min:1',
                 'saved' => 'nullable|array|max:24',
@@ -246,6 +251,7 @@ class WebsiteQuoteController extends Controller
                 'logos.*' => "file|mimes:{$mimes}|max:".(int) config('website.orders.logo_max_kb'),
                 'mockups' => 'array|max:4',
                 'mockups.*' => 'file|mimes:jpg,jpeg,png,webp|max:3072',
+                'cart_state' => 'nullable|string|max:200000',
             ]);
         if ($v->fails()) {
             return $this->reply($request, ['success' => false, 'message' => 'Please check your details.', 'errors' => $v->errors()], 422);
@@ -257,6 +263,17 @@ class WebsiteQuoteController extends Controller
         if ($cart['lines'] === []) {
             return $this->reply($request, ['success' => false, 'message' => 'Choose a quantity first.'], 422);
         }
+        // Delivery (Scott, 7 Nov 2026): yes or no; Australia by postcode, else a country and its postal code.
+        if (isset($cart['delivery'])) {
+            $d = $cart['delivery'];
+            $wanted = filter_var($d['wanted'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $country = mb_strtoupper(trim((string) ($d['country'] ?? 'AU'))) ?: 'AU';
+            if ($wanted && $country !== 'AU' && ! Countries::valid($country)) {
+                return $this->reply($request, ['success' => false, 'message' => 'Choose the country to deliver to.'], 422);
+            }
+            $cart['delivery'] = ['wanted' => $wanted, 'country' => $country, 'postcode' => trim((string) ($d['postcode'] ?? '')) ?: null];
+        }
+        $cart['need_by'] = $request->filled('need_by') ? (string) $request->input('need_by') : null;
         $client = ['name' => $request->input('name'), 'organisation' => $request->input('organisation'), 'email' => $request->input('email'), 'phone' => $request->input('phone')];
         try {
             $r = $quotes->build(null, $cart, $client, null, (array) $request->file('logos', []),
@@ -277,12 +294,47 @@ class WebsiteQuoteController extends Controller
             $mockups[] = ['path' => $path, 'view' => $i === 0 ? 'front' : 'back'];
         }
         $ids = fn ($key, $max) => array_values(array_slice(array_unique(array_filter(array_map('intval', (array) $request->input($key, [])), fn ($id) => $id !== (int) $cart['product_id'])), 0, $max));
-        $quote->forceFill(['mockups' => $mockups ?: null, 'similar_products' => $ids('similar', 4) ?: null, 'saved_products' => $ids('saved', 12) ?: null])->save();
+        // The cart as the shopper built it, for the PDF's "complete the online checkout" link (Scott, 7 Nov 2026).
+        $state = json_decode((string) $request->input('cart_state', ''), true);
+        $quote->forceFill(['mockups' => $mockups ?: null, 'similar_products' => $ids('similar', 4) ?: null, 'saved_products' => $ids('saved', 12) ?: null,
+            'cart_state' => is_array($state) && isset($state['product']) ? $state : null,
+            'public_token' => is_array($state) && isset($state['product']) ? ($quote->public_token ?: Str::random(40)) : $quote->public_token])->save();
         if (config('shopify.website_api.email_instant_quote')) {
             SendInstantQuote::dispatch($quote->id);
         }
 
         return $this->reply($request, ['success' => true, 'quoteNumber' => $quote->number, 'emailed' => (bool) config('shopify.website_api.email_instant_quote'), 'issues' => array_column($r['issues'], 'message')]);
+    }
+
+    /**
+     * The cart behind a website quote, for its "complete the online checkout" link: the cart as the shopper
+     * built it, their logos (by position) and their contact details. The storefront rebuilds the cart from it
+     * and the checkout prices it again (Scott, 7 Nov 2026).
+     */
+    public function quoteCart(Request $request)
+    {
+        if ($blocked = $this->guard($request, 'read', 60)) {
+            return $blocked;
+        }
+        $token = (string) $request->query('quote', '');
+        $quote = preg_match('/^[A-Za-z0-9]{40}$/', $token)
+            ? Quote::query()->where('public_token', $token)->where('source', 'website')->whereNotNull('cart_state')->first() : null;
+        if (! $quote) {
+            return $this->reply($request, ['success' => false, 'message' => 'We can\'t find that quote. Reply to its email and we\'ll set up your order.'], 404);
+        }
+        $disk = Storage::disk(config('website.orders.artwork_disk'));
+        $logos = [];
+        foreach ((array) ($quote->artwork ?? []) as $a) {
+            $path = (string) ($a['path'] ?? '');
+            if ($path !== '' && $disk->exists($path) && $disk->size($path) <= 6_000_000) {
+                $mime = $disk->mimeType($path) ?: 'application/octet-stream';
+                $logos[] = ['position' => (string) ($a['position'] ?? ''), 'name' => (string) ($a['name'] ?? 'logo'), 'data' => 'data:'.$mime.';base64,'.base64_encode((string) $disk->get($path))];
+            }
+        }
+
+        return $this->reply($request, ['success' => true, 'quoteNumber' => $quote->number, 'cart' => $quote->cart_state, 'logos' => $logos,
+            'delivery' => $quote->freight_source === 'carrier' ? ['country' => $quote->delivery_country ?: 'AU', 'postcode' => $quote->delivery_postcode] : null,
+            'contact' => ['name' => $quote->client_name, 'organisation' => $quote->client_company, 'email' => $quote->client_email, 'phone' => $quote->client_phone]]);
     }
 
     public function preflight(Request $request)

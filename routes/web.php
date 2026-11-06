@@ -57,6 +57,7 @@ Route::prefix('crowdmerch/homepage')->controller(WebsiteQuoteController::class)-
     Route::options('{any}', 'preflight')->where('any', '.*');
     Route::post('createQuoteDraftOrder', 'createQuoteDraftOrder');
     Route::post('quote-pdf', 'quotePdf');
+    Route::get('quote-cart', 'quoteCart');
     Route::post('addToWishlist', 'addToWishlist');
     Route::match(['GET', 'POST'], 'getDraftOrderItems', 'getDraftOrderItems');
     Route::post('removeDiscontinuedItem', 'removeDiscontinuedItem');

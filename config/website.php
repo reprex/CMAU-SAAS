@@ -8,6 +8,10 @@
 */
 return [
 
+    // The storefront and its cart page: the quote PDF's checkout link rebuilds the cart there.
+    'storefront_url' => env('WEBSITE_STOREFRONT_URL', 'https://crowdmerch.com.au'),
+    'cart_path' => env('WEBSITE_CART_PATH', '/pages/cart'),
+
     'orders' => [
         'enabled' => (bool) env('WEBSITE_ORDERS', true),
         // Defaults to the website quote API's origins; empty means nobody can call it.
