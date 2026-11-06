@@ -19,7 +19,10 @@
   @php($alt = collect($cmp?->positions ?? []))
   <div class="card tread">
     <div class="row between"><a href="{{ route('range.show', $t->product_id) }}"><b>{{ \Illuminate\Support\Str::limit($t->product?->name, 40) }}</b></a><span class="small muted">{{ $t->read_at?->diffForHumans() }}</span></div>
-    <a class="small" href="{{ route('range.templates.download', [$t->product_id, $t->id]) }}">Branding template used{{ $t->filename ? ': '.\Illuminate\Support\Str::limit($t->filename, 36) : '' }}</a>
+    <div class="row small" style="gap:4px 12px;flex-wrap:wrap">
+      <a href="{{ route('range.templates.download', [$t->product_id, $t->id]) }}">Branding template used</a>
+      @if($store = config('shopify.dev_store'))<a href="https://{{ $store }}/products/{{ $t->product_id }}" target="_blank" rel="noopener">See on CMAU_DEV</a>@endif
+    </div>
     @forelse($byImage as $url => $ps)
       <div class="tread-photo">
         <img src="{{ $url }}" alt="" loading="lazy">
