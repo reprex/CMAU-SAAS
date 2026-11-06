@@ -85,4 +85,17 @@ class ShopifyCarryTagsTest extends TestCase
         $this->assertSame(5, (int) $p->fresh()->overrideValue('master_sort_order'));
         $this->assertSame('any,urgent', $p->fresh()->overrideValue('carried.tagcollection'));
     }
+
+    public function test_a_second_file_adds_to_what_the_first_carried(): void
+    {
+        $p = $this->pen();
+        $this->artisan('shopify:carry-tags', ['file' => $this->export(), '--apply' => true])->assertSuccessful();
+        $path = tempnam(sys_get_temp_dir(), 'ct').'.csv';
+        file_put_contents($path, "Handle,Title,Tags\n2568,Borg Pen,\"style, trends, newtag\"\n");
+
+        $this->artisan('shopify:carry-tags', ['file' => $path, '--apply' => true])->assertSuccessful();
+
+        $this->assertSame('any,urgent', $p->fresh()->overrideValue('carried.tagcollection'), 'metafields from the first file kept');
+        $this->assertContains('newtag', $p->fresh()->overrideValue('carried.tags'), 'tags from the second file');
+    }
 }
