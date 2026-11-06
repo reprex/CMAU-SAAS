@@ -79,6 +79,9 @@ class VetQueue
         $others = DecTypeCode::query()->whereNull('type_code')
             ->joinSub(PriceOption::query()->join('products as p', 'p.id', '=', 'price_options.product_id')
                 ->where('p.tier', Product::TIER_LIVE)->where('p.discontinued', false)->whereNotIn('p.supplier_id', $read)
+                // Priced by an external price (AS Colour, JB's: Melbourne Merch's decorations): the supplier's own
+                // lines (size and colour price differences) aren't used, so their wording needs no type (Scott, 7 Nov 2026).
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('price_options as ext')->whereColumn('ext.product_id', 'p.id')->where('ext.kind', PriceOption::KIND_EXTERNAL))
                 ->selectRaw('price_options.code, count(distinct p.id) as live_n, min(p.supplier_id) as sid')->groupBy('price_options.code'), 'lu', 'lu.code', '=', 'dec_type_codes.code')
             ->orderByDesc('lu.live_n')->limit(30)->get(['dec_type_codes.code', 'full_description', 'lu.sid', 'lu.live_n'])
             ->map(fn ($l) => ['code' => $l->code, 'description' => $l->full_description, 'supplier' => $names[$l->sid] ?? null, 'on_range' => (int) $l->live_n, 'shared' => true]);
