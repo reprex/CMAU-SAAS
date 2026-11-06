@@ -204,4 +204,12 @@ class PhotoBrandingTest extends TestCase
         $this->staff();
         $this->get(route('range.template-reads', ['compare' => 'claude-haiku-5-5']))->assertOk()->assertSee('stroke-dasharray', false)->assertSee('45 × 7 mm');
     }
+
+    public function test_impossible_sizes_are_ignored_and_small_json_slips_forgiven(): void
+    {
+        $rows = BrandingTemplates::rows(['positions' => [['name' => 'Front', 'view' => 'front', 'max_width_mm' => 90000, 'max_height_mm' => 40]]], null, null);
+        $this->assertNull($rows[0]['max_width_mm']);
+        $this->assertSame(40, $rows[0]['max_height_mm']);
+        $this->assertSame('Magnet front', BrandingTemplates::decode('{"positions":[{"name":"Magnet front","view":"front",},]}')['positions'][0]['name']);
+    }
 }
