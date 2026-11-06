@@ -4,11 +4,15 @@ namespace App\Freight;
 
 use App\Models\Product;
 use App\Models\ProductDetail;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * How a product ships: unit weight, units per carton, carton size and the empty
  * carton's weight. Read from Promodata's packing details where the supplier
- * gives them, otherwise the per-type defaults in config/freight.php.
+ * gives them. Without a weight from Promodata, the weight is estimated from
+ * similar products (the median unit weight of others of the same Promodata
+ * type that have one), else the per-type defaults in config/freight.php, and
+ * the pack is marked estimated so delivery says so (Scott, 7 Nov 2026).
  */
 class PackData
 {
@@ -26,8 +30,40 @@ class PackData
         }
         unset($pack['carton_kg']);
         $pack['source'] = $found === [] ? 'default' : 'promodata';
+        $pack['estimated'] = ! isset($found['unit_kg']) && ! isset($found['carton_kg']);
+        if ($pack['estimated'] && ($similar = $this->similarUnitKg($product)) !== null) {
+            $pack['unit_kg'] = $similar;
+            $pack['source'] = 'similar';
+        }
 
         return $pack;
+    }
+
+    /** The median unit weight of up to 60 products of the same Promodata type whose details give one. */
+    public function similarUnitKg(Product $product): ?float
+    {
+        $type = trim((string) $product->promodata_type_name);
+        if ($type === '') {
+            return null;
+        }
+
+        return Cache::remember('pack-similar:'.md5($type), 86400, function () use ($type, $product) {
+            $ids = Product::query()->where('promodata_type_name', $type)->whereKeyNot($product->id)->limit(60)->pluck('id');
+            $kgs = [];
+            foreach (ProductDetail::query()->whereIn('product_id', $ids)->get() as $d) {
+                $f = $this->fromDetails((array) ($d->details ?? []));
+                $kg = $f['unit_kg'] ?? (isset($f['carton_kg'], $f['units_per_carton']) ? $f['carton_kg'] / max(1, $f['units_per_carton']) : null);
+                if ($kg !== null && $kg > 0 && $kg < 50) {
+                    $kgs[] = $kg;
+                }
+            }
+            if (count($kgs) < 2) {
+                return null;
+            }
+            sort($kgs);
+
+            return round($kgs[intdiv(count($kgs), 2)], 3);
+        });
     }
 
     /** @return array{unit_kg: float, units_per_carton: int, carton_cm: array, tare_kg: float} */

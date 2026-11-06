@@ -92,6 +92,7 @@ class QuotePdf
             'separate' => $quote->decoration_display === 'separate',
             'timing' => $this->timing($quote->lead_time),
             'anyTbc' => $included->contains('tbc', true),
+            'deliveryEstimated' => $quote->extras->where('kind', 'freight')->contains(fn ($x) => str_contains((string) $x->description, '(estimate)')),
         ] + $this->common())->render();
     }
 

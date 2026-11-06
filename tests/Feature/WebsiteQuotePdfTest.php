@@ -38,13 +38,17 @@ class WebsiteQuotePdfTest extends TestCase
         parent::tearDown();
     }
 
-    private function send(array $extra = []): TestResponse
+    private function send(array $extra = [], ?array $delivery = null): TestResponse
     {
         $c = $this->cart();
+        $cart = ['product_id' => $c['product_id'], 'lines' => $c['lines'], 'positions' => [['name' => 'Front centre', 'decID' => self::MENS.'-dtf', 'width_mm' => 280]]];
+        if ($delivery !== null) {
+            $cart['delivery'] = $delivery;
+        }
 
         return $this->withHeaders(['Origin' => self::ORIGIN, 'Accept' => 'application/json'])->post('/crowdmerch/homepage/quote-pdf', $extra + [
             'name' => 'Alex Ng', 'email' => 'alex@example.com', 'phone' => '0400 111 222',
-            'cart' => json_encode(['product_id' => $c['product_id'], 'lines' => $c['lines'], 'positions' => [['name' => 'Front centre', 'decID' => self::MENS.'-dtf', 'width_mm' => 280]]]),
+            'cart' => json_encode($cart),
             'logos' => [0 => UploadedFile::fake()->image('front.png', 300, 200)],
             'mockups' => [UploadedFile::fake()->image('mockup-front.jpg', 600, 600)],
         ]);
@@ -115,6 +119,63 @@ class WebsiteQuotePdfTest extends TestCase
 
         $this->assertNull($q->checkoutUrl());
         $this->assertStringNotContainsString('online checkout', app(QuotePdf::class)->quoteHtml($q));
+    }
+
+    private function quoteFrom(TestResponse $res): Quote
+    {
+        return Quote::query()->where('number', $res->assertOk()->json('quoteNumber'))->firstOrFail()->load('extras');
+    }
+
+    public function test_delivery_in_australia_is_priced_for_the_postcode(): void
+    {
+        $q = $this->quoteFrom($this->send([], ['wanted' => true, 'country' => 'AU', 'postcode' => '3066']));
+
+        $freight = $q->extras->where('kind', 'freight');
+        $this->assertCount(1, $freight, 'the carrier price only, no standard supplier freight');
+        $this->assertStringContainsString('Delivery to 3066 VIC: TNT Road Express', $freight->first()->description);
+        $this->assertGreaterThan(0, (float) $freight->first()->unit_price);
+        $this->assertSame('carrier', $q->freight_source);
+        $this->assertFalse($q->gst_free_export);
+        $this->assertGreaterThan(0, (float) $q->gst);
+        $this->assertStringContainsString('Delivery is an estimate', app(QuotePdf::class)->quoteHtml($q), 'placeholder rates are an estimate');
+    }
+
+    public function test_overseas_delivery_is_gst_free_and_says_duties_are_the_clients(): void
+    {
+        $q = $this->quoteFrom($this->send([], ['wanted' => true, 'country' => 'NZ', 'postcode' => '1010']));
+
+        $this->assertTrue($q->gst_free_export);
+        $this->assertSame(0.0, (float) $q->gst);
+        $this->assertSame((float) $q->subtotal, (float) $q->total);
+        $this->assertStringContainsString('New Zealand', $q->extras->firstWhere('kind', 'freight')->description);
+        $html = app(QuotePdf::class)->quoteHtml($q);
+        $this->assertStringContainsString('GST (not charged on exports)', $html);
+        $this->assertStringContainsString('duties and taxes are payable by you to the carrier', $html);
+    }
+
+    public function test_no_delivery_wanted(): void
+    {
+        $q = $this->quoteFrom($this->send([], ['wanted' => false]));
+
+        $this->assertSame('none', $q->freight_source);
+        $this->assertCount(0, $q->extras->where('kind', 'freight'));
+        $this->assertStringContainsString('Delivery is not included', app(QuotePdf::class)->quoteHtml($q));
+    }
+
+    public function test_an_unknown_country_is_refused(): void
+    {
+        $this->send([], ['wanted' => true, 'country' => 'ZZ', 'postcode' => '1'])->assertStatus(422);
+    }
+
+    public function test_the_next_price_breaks_show_beside_one_line_per_style(): void
+    {
+        $q = $this->quoteFrom($this->send());
+
+        $this->assertSame(250, $q->price_breaks[0]['units']);
+        $this->assertEquals(15.25, $q->price_breaks[0]['styles'][self::MENS], '7.50 tee + 7.75 DTF at 250');
+        $html = app(QuotePdf::class)->quoteHtml($q);
+        $this->assertStringContainsString('250 units', $html);
+        $this->assertStringContainsString('AS Colour Mens Staple Tee, branded', $html);
     }
 
     public function test_bad_requests_are_refused(): void

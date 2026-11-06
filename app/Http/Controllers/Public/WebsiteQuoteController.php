@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Public;
 
 use App\Catalogue\ImageTagger;
+use App\Freight\Countries;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendInstantQuote;
 use App\Models\Product;
@@ -238,6 +239,10 @@ class WebsiteQuoteController extends Controller
                 'cart.options' => 'nullable|array|max:20',
                 'cart.options.*.id' => 'required|string|max:190',
                 'cart.options.*.n' => 'nullable|integer|min:1|max:20',
+                'cart.delivery' => 'nullable|array',
+                'cart.delivery.wanted' => 'nullable|boolean',
+                'cart.delivery.country' => 'nullable|string|size:2',
+                'cart.delivery.postcode' => 'nullable|string|max:12',
                 'similar' => 'nullable|array|max:8',
                 'similar.*' => 'integer|min:1',
                 'saved' => 'nullable|array|max:24',
@@ -258,6 +263,17 @@ class WebsiteQuoteController extends Controller
         if ($cart['lines'] === []) {
             return $this->reply($request, ['success' => false, 'message' => 'Choose a quantity first.'], 422);
         }
+        // Delivery (Scott, 7 Nov 2026): yes or no; Australia by postcode, else a country and its postal code.
+        if (isset($cart['delivery'])) {
+            $d = $cart['delivery'];
+            $wanted = filter_var($d['wanted'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $country = mb_strtoupper(trim((string) ($d['country'] ?? 'AU'))) ?: 'AU';
+            if ($wanted && $country !== 'AU' && ! Countries::valid($country)) {
+                return $this->reply($request, ['success' => false, 'message' => 'Choose the country to deliver to.'], 422);
+            }
+            $cart['delivery'] = ['wanted' => $wanted, 'country' => $country, 'postcode' => trim((string) ($d['postcode'] ?? '')) ?: null];
+        }
+        $cart['need_by'] = $request->filled('need_by') ? (string) $request->input('need_by') : null;
         $client = ['name' => $request->input('name'), 'organisation' => $request->input('organisation'), 'email' => $request->input('email'), 'phone' => $request->input('phone')];
         try {
             $r = $quotes->build(null, $cart, $client, null, (array) $request->file('logos', []),

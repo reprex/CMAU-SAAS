@@ -14,13 +14,18 @@ return new class extends Migration
     {
         Schema::table('quotes', function (Blueprint $table) {
             $table->json('cart_state')->nullable();
+            // Website quotes (Scott, 7 Nov 2026): the next price breaks up, delivery priced by the carrier
+            // ('carrier') or not wanted ('none') instead of the suppliers' standard freight, and exports GST-free.
+            $table->json('price_breaks')->nullable();
+            $table->string('freight_source', 20)->nullable();
+            $table->boolean('gst_free_export')->default(false);
         });
     }
 
     public function down(): void
     {
         Schema::table('quotes', function (Blueprint $table) {
-            $table->dropColumn('cart_state');
+            $table->dropColumn(['cart_state', 'price_breaks', 'freight_source', 'gst_free_export']);
         });
     }
 };

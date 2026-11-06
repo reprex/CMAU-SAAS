@@ -18,7 +18,7 @@ class EstimateFreightDriver implements FreightDriver
     public function quote(Consignment $c, string $country, ?string $postcode): array
     {
         $country = mb_strtoupper($country);
-        $base = ['country' => $country, 'export' => $country !== 'AU', 'cartons' => $c->cartons, 'kg' => round($c->kg, 2), 'm3' => round($c->m3, 3)];
+        $base = ['country' => $country, 'export' => $country !== 'AU', 'cartons' => $c->cartons, 'kg' => round($c->kg, 2), 'm3' => round($c->m3, 3), 'estimated' => $c->estimated, 'source' => 'estimate'];
 
         if ($country === 'AU') {
             $postcode = trim((string) $postcode);

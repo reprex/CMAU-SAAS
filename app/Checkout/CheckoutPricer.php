@@ -181,7 +181,8 @@ class CheckoutPricer
 
         // ---- Freight from the pack data of each style.
         $country = mb_strtoupper((string) ($in['delivery']['country'] ?? 'AU'));
-        $consignment = Consignment::from(array_map(fn ($s) => ['pack' => $this->packs->for($allowed[$s['product_id']]), 'units' => $s['units']], array_values($styles)));
+        $consignment = Consignment::from(array_map(fn ($s) => ['pack' => $this->packs->for($allowed[$s['product_id']]), 'units' => $s['units']], array_values($styles)))
+            ->withValue($goods);
         $freight = $units > 0 ? $this->freight->quote($consignment, $country, $in['delivery']['postcode'] ?? null) : null;
         $chosen = null;
         if ($freight && $freight['ok']) {
@@ -279,6 +280,53 @@ class CheckoutPricer
             'alerts' => $alerts,
             'artwork_review_note' => collect($positions)->contains('needs_review', true) ? 'Prices subject to the CrowdMerch team reviewing your artwork.' : null,
         ];
+    }
+
+    /**
+     * The next price breaks above the quantity ordered, for the quote (Scott, 7 Nov 2026): at each, every
+     * style's branded unit price (unbranded + every position + per-unit options), priced exactly as above.
+     * Setups and delivery are not in these. Breaks come from the product's and its decorations' price strings.
+     *
+     * @param  array<string, mixed>  $in  as evaluate()
+     * @return list<array{units: int, styles: array<int, float>}>
+     */
+    public function priceBreaks(array $in, int $units, int $count = 2): array
+    {
+        $main = Product::query()->find((int) $in['product_id']);
+        if ($main === null || $units < 1) {
+            return [];
+        }
+        $pids = array_values(array_unique(array_map(fn ($l) => (int) $l['product_id'], $in['lines'])));
+        $undec = [];
+        foreach ($pids as $pid) {
+            $web = ProductWebPrice::query()->find($pid);
+            $undec[$pid] = $web?->undecorated_option_id ? PriceOption::query()->where('option_id', $web->undecorated_option_id)->first() : null;
+        }
+        $decProductId = (int) (ProductWebPrice::query()->find($main->id)?->decoration_product_id ?: $main->id);
+        $options = $this->branding->options($decProductId);
+        $qtys = collect($undec[$main->id]?->prices()->breaks() ?? [])->pluck('qty');
+        $pricedNow = [];
+        foreach ($in['positions'] as $p) {
+            $priced = $this->branding->price($options, (string) $p['decID'], isset($p['colours']) ? (int) $p['colours'] : null, $units);
+            $pricedNow[] = $priced ?? ['method' => null];
+            $opt = $priced ? $options->first(fn ($o) => $o->option_id === $priced['decoration_option_id']) : null;
+            $qtys = $qtys->merge(collect($opt?->prices()->breaks() ?? [])->pluck('qty'));
+        }
+        $out = [];
+        foreach ($qtys->filter(fn ($q) => $q > $units)->unique()->sort()->take($count) as $q) {
+            $brand = 0.0;
+            foreach ($in['positions'] as $p) {
+                $brand += (float) ($this->branding->price($options, (string) $p['decID'], isset($p['colours']) ? (int) $p['colours'] : null, (int) $q)['unit'] ?? 0);
+            }
+            $brand += $this->options($main, $in['options'] ?? [], (int) $q, $pricedNow, fn () => null)['unit'];
+            $styles = [];
+            foreach ($pids as $pid) {
+                $styles[$pid] = Money::roundToCent(($undec[$pid] ? Money::roundToCent($undec[$pid]->prices()->priceAt((int) $q)) : 0.0) + $brand);
+            }
+            $out[] = ['units' => (int) $q, 'styles' => $styles];
+        }
+
+        return $out;
     }
 
     /**

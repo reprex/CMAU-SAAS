@@ -69,6 +69,29 @@
     @php($names = collect($pictures['artwork'])->pluck('name')->filter()->unique())
     @if($names->isNotEmpty())<div class="small muted" style="margin-top: 4px">Artwork received: {{ $names->implode(', ') }}</div>@endif
   @endif
+  {{-- One line per style, all branding and per-unit options in it; the next two price breaks beside it (Scott, 7 Nov 2026). --}}
+  @php($styleRows = $items->filter(fn ($r) => count($r['sizes']) > 0))
+  @php($runRows = $items->reject(fn ($r) => count($r['sizes']) > 0))
+  @php($consolidate = $quote->source === 'website' && $styleRows->isNotEmpty() && $runRows->every(fn ($r) => (float) $r['item']->quantity === (float) $styleRows->sum(fn ($x) => (float) $x['item']->quantity)))
+  @if($consolidate)
+    @php($runUnit = (float) $runRows->sum(fn ($r) => (float) $r['item']->unitPrice()))
+    @php($brandings = $items->map(fn ($r) => $r['item']->decoration_name)->filter()->unique()->values())
+    @php($breaks = collect($quote->price_breaks ?? [])->take(2))
+    @php($units = (int) $styleRows->sum(fn ($r) => (int) $r['item']->quantity))
+    <table class="lines" style="margin-top: 10px">
+      <tr class="head"><td class="label muted">Item</td><td class="right label" style="width: 112px">{{ number_format($units) }} units</td><td class="right label muted" style="width: 80px">ex GST</td>
+        @foreach($breaks as $b)<td class="right label muted" style="width: 74px">{{ number_format($b['units']) }} units</td>@endforeach</tr>
+      @foreach ($styleRows as $row)
+        @php($i = $row['item'])
+        @php($unit = round((float) $i->unitPrice() + $runUnit, 2))
+        <tr><td>{{ $i->name }}, branded</td>
+          <td class="right" style="white-space: nowrap">{{ number_format($i->quantity) }} × <b>${{ $m($unit) }}</b></td>
+          <td class="right" style="white-space: nowrap"><b>${{ $m($unit * (float) $i->quantity) }}</b></td>
+          @foreach($breaks as $b)<td class="right muted" style="white-space: nowrap">@if(isset($b['styles'][$i->product_id]))${{ $m($b['styles'][$i->product_id]) }}@endif</td>@endforeach</tr>
+      @endforeach
+    </table>
+    <div class="small muted" style="margin-top: 4px">Branding: {{ $brandings->implode('; ') }}.@if($breaks->isNotEmpty()) Prices each at {{ $breaks->pluck('units')->map(fn ($u) => number_format($u))->implode(' and ') }} units in total, for the same branding; setup and delivery extra.@endif</div>
+  @else
   <table class="lines" style="margin-top: 10px">
     @foreach ($items as $row)
       @php($i = $row['item'])
@@ -77,6 +100,7 @@
         <td class="right" style="width: 90px; white-space: nowrap"><b>${{ $m($i->goodsTotal()) }}</b></td></tr>
     @endforeach
   </table>
+  @endif
 @else
 <table>
   @foreach ($items as $n => $row)
@@ -163,14 +187,17 @@
       <table class="totals"><tr><td style="padding: 16px 18px">
         <table>
           <tr><td style="color: #FFFFFF">Subtotal ex GST</td><td class="right" style="color: #FFFFFF">{{ $m($quote->subtotal) }}</td></tr>
-          <tr><td style="color: #FFFFFF; padding-bottom: 8px">GST</td><td class="right" style="color: #FFFFFF; padding-bottom: 8px">{{ $m($quote->gst) }}</td></tr>
+          <tr><td style="color: #FFFFFF; padding-bottom: 8px">{{ $quote->gst_free_export ? 'GST (not charged on exports)' : 'GST' }}</td><td class="right" style="color: #FFFFFF; padding-bottom: 8px">{{ $m($quote->gst) }}</td></tr>
         </table>
         <div style="border-top: 1px solid #EBB591; padding-top: 8px; text-align: right">
-          <div class="label" style="color: #FFFFFF">Total inc GST</div>
+          <div class="label" style="color: #FFFFFF">{{ $quote->gst_free_export ? 'Total, no GST' : 'Total inc GST' }}</div>
           <div class="os" style="font-weight: 600; font-size: 36px; line-height: 1; color: #FFFFFF">${{ $m($quote->total) }}</div>
         </div>
       </td></tr></table>
       @if($anyTbc)<div class="muted small" style="margin-top: 5px">Delivery marked TBC is not in this total yet; we will confirm it.</div>@endif
+      @if($quote->freight_source === 'none')<div class="muted small" style="margin-top: 5px">Delivery is not included. Ask us if you'd like it added.</div>@endif
+      @if($deliveryEstimated)<div class="muted small" style="margin-top: 5px">Delivery is an estimate, subject to confirming the exact product mix and weights.</div>@endif
+      @if($quote->gst_free_export)<div class="muted small" style="margin-top: 5px">Delivering outside Australia: no Australian GST is charged (GST-free export). Any local duties and taxes are payable by you to the carrier before delivery.</div>@endif
     </td>
   </tr>
 </table>

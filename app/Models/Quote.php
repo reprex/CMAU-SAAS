@@ -37,6 +37,8 @@ class Quote extends Model
             'similar_products' => 'array',
             'saved_products' => 'array',
             'cart_state' => 'array',
+            'price_breaks' => 'array',
+            'gst_free_export' => 'boolean',
             'valid_until' => 'date',
             'sent_at' => 'datetime',
             'won_at' => 'datetime',

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Quotes\ItemPricer;
 use App\Quotes\QuoteCalculator;
 use App\Quotes\QuoteNumbers;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -41,13 +42,19 @@ class StaffQuotes
      */
     public function build(?User $user, array $cart, ?array $client, ?Quote $into, array $logos, ?string $note, string $source = 'manual'): array
     {
-        $result = $this->pricer->evaluate([
+        // The website's quote asks whether to deliver, and where (Scott, 7 Nov 2026): priced by the carrier.
+        $delivery = isset($cart['delivery']) && is_array($cart['delivery']) ? $cart['delivery'] : null;
+        $wanted = $delivery !== null && (bool) ($delivery['wanted'] ?? false);
+        $country = $wanted ? mb_strtoupper((string) ($delivery['country'] ?? 'AU')) : 'AU';
+        $in = [
             'product_id' => (int) $cart['product_id'],
             'lines' => $cart['lines'],
             'positions' => array_map(fn ($p) => $p + ['has_logo' => true], $cart['positions']),
             'options' => array_map(fn ($o) => ['id' => (string) $o['id'], 'n' => (int) ($o['n'] ?? 1)], $cart['options'] ?? []),
-            'delivery' => ['country' => 'AU', 'postcode' => $client['address']['postcode'] ?? null],
-        ]);
+            'delivery' => $wanted ? ['country' => $country, 'postcode' => $delivery['postcode'] ?? null] : ['country' => 'AU', 'postcode' => $client['address']['postcode'] ?? null],
+            'need_by' => $cart['need_by'] ?? null,
+        ];
+        $result = $this->pricer->evaluate($in);
         if (! ($result['found'] ?? false)) {
             throw new RuntimeException('That product cannot be quoted from the website.');
         }
@@ -55,9 +62,14 @@ class StaffQuotes
         if ($blocking) {
             throw new RuntimeException(implode(' ', array_column($blocking, 'message')));
         }
-        $other = array_values(array_filter($result['issues'], fn ($i) => ! in_array($i['code'], ['logo', 'review'], true)));
+        $quiet = $delivery !== null ? ['logo', 'review', 'need_by', 'deadline', 'late'] : ['logo', 'review'];
+        if ($delivery !== null && ! $wanted) {
+            $quiet[] = 'freight';
+        }
+        $other = array_values(array_filter($result['issues'], fn ($i) => ! in_array($i['code'], $quiet, true)));
+        $breaks = $source === 'website' ? $this->pricer->priceBreaks($in, (int) $result['units']) : [];
 
-        return DB::transaction(function () use ($user, $cart, $client, $into, $logos, $note, $result, $other, $source) {
+        return DB::transaction(function () use ($user, $cart, $client, $into, $logos, $note, $result, $other, $source, $delivery, $wanted, $country, $breaks) {
             $quote = $into ?? Quote::query()->create([
                 'number' => $this->numbers->next(),
                 'status' => $source === 'website' ? 'QUOTE' : 'PHONE',
@@ -177,10 +189,58 @@ class StaffQuotes
                 .($positions ? ', '.implode('; ', array_map(fn ($p) => $p['name'].' '.$p['method_name'], $positions)) : '')
                 .($other ? '. Check: '.implode(' ', array_column($other, 'message')) : '');
             $quote->forceFill(['artwork' => $art ?: null, 'internal_notes' => trim($notes."\n".$line), 'edited_at' => $quote->edited_at ?? now()])->save();
+            if ($breaks !== []) {
+                $quote->forceFill(['price_breaks' => $breaks])->save();
+            }
+            if ($delivery !== null) {
+                $this->delivery($quote, $result, $wanted, $country, $delivery['postcode'] ?? null, $cart['need_by'] ?? null);
+            }
             $this->calculator->recalculate($quote);
             AuditLog::record($into ? 'quote.website_items_added' : 'quote.created_from_website', $quote, ['product' => $result['product']['id'], 'units' => $result['units']]);
 
             return ['quote' => $quote->fresh(), 'added' => $added, 'issues' => $other];
         });
+    }
+
+    /**
+     * Delivery on a website quote (Scott, 7 Nov 2026): the carrier's price (MachShip in Australia, FedEx
+     * overseas) for the cheapest service that arrives by the date needed (else the fastest), or "to be
+     * confirmed" when it can't be priced. Overseas is a GST-free export; local duties and taxes are the
+     * client's, paid to the carrier. No delivery wanted: no freight lines at all.
+     *
+     * @param  array<string, mixed>  $result  CheckoutPricer::evaluate()
+     */
+    private function delivery(Quote $quote, array $result, bool $wanted, string $country, ?string $postcode, ?string $needBy): void
+    {
+        $quote->extras()->where('kind', 'freight')->where('auto', false)->where('auto_key', 'website')->delete();
+        $quote->forceFill([
+            'freight_source' => $wanted ? 'carrier' : 'none',
+            'gst_free_export' => $wanted && $country !== 'AU',
+            'delivery_country' => $wanted ? $country : $quote->delivery_country,
+            'delivery_postcode' => $wanted ? ($postcode ?: null) : $quote->delivery_postcode,
+        ])->save();
+        if (! $wanted) {
+            return;
+        }
+        $freight = $result['freight'] ?? null;
+        $options = collect($freight['ok'] ?? false ? $freight['options'] : []);
+        $chosen = null;
+        if ($options->isNotEmpty()) {
+            $byPrice = $options->sortBy('price');
+            $chosen = $needBy ? $byPrice->first(fn ($o) => ! empty($o['delivery_date']) && $o['delivery_date'] <= $needBy) : null;
+            $chosen ??= $needBy ? $options->sortBy('delivery_date')->first() : $byPrice->first();
+        }
+        $where = $country === 'AU' ? trim(($postcode ?? '').' '.($freight['zone'] ?? '')) : trim(($freight['zone'] ?? $country).' '.($postcode ?? ''));
+        $eta = $chosen && ! empty($chosen['delivery_date']) ? ', ETA '.CarbonImmutable::parse($chosen['delivery_date'])->format('D j M') : '';
+        // Weights not all from Promodata, or no live carrier rate: say it's an estimate (Scott, 7 Nov 2026).
+        $estimate = ($freight['estimated'] ?? false) || ($freight['source'] ?? 'estimate') === 'estimate' ? ' (estimate)' : '';
+        $quote->extras()->create([
+            'kind' => 'freight', 'auto' => false, 'auto_key' => 'website', 'quantity' => 1, 'position' => 1000,
+            'description' => $chosen ? "Delivery to {$where}: {$chosen['name']}{$eta}{$estimate}" : "Delivery to {$where} (to be confirmed)",
+            'unit_price' => $chosen ? (float) $chosen['price'] : 0,
+            'unit_cost' => $chosen ? ($chosen['cost'] ?? null) : null,
+            'tbc' => $chosen === null,
+        ]);
+        $this->calculator->recalculate($quote);
     }
 }

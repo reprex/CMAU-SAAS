@@ -1,6 +1,9 @@
 Hi {{ $quote->client_name ? explode(' ', $quote->client_name)[0] : 'there' }},
 
-Thanks for your quote request. Your instant quote {{ $quote->number }} is attached: ${{ number_format((float) $quote->total, 2) }} inc GST.
+Thanks for your quote request. Your instant quote {{ $quote->number }} is attached: ${{ number_format((float) $quote->total, 2) }} {{ $quote->gst_free_export ? 'with no GST (export)' : 'inc GST' }}.
+@if($quote->gst_free_export)
+As it's going outside Australia, no Australian GST is charged. Any local duties and taxes are payable by you to the carrier before delivery.
+@endif
 @include('mail.partials.templates')
 
 Prices are subject to sighting your artwork. To go ahead, or to change anything, just reply to this email or call {{ config('quotes.pdf.phone') }}.
