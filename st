@@ -26,6 +26,7 @@ case "$1" in
   cp) f=$(ls -t storage/app/private/variant-match/*.csv 2>/dev/null | head -1); [ -z "$f" ] && { echo "Run st vm first."; exit 1; }
       echo "Products going to Custom Print where live has colours: $(grep -E ',new,,,"?Custom Print"?,' "$f" | cut -d, -f1 | sort -u | wc -l)"
       grep -E ',new,,,"?Custom Print"?,' "$f" | cut -d, -f1,2 | sort -u | head -40 ;;
+  cpwhy) $PHP artisan catalogue:colour-check ;;
   apoff) $PHP artisan shopify:auto-publish off ;;
   apon) $PHP artisan shopify:auto-publish on ;;
   sw) $PHP artisan shopify:switch-store ;;
@@ -38,7 +39,7 @@ case "$1" in
        "st lead     the Promodata lead-time report" "st ver      which release is deployed" \
        "st retry    queue the failed templates to be read again" \
        "st haiku50  read 50 templates again with Haiku, to compare with Sonnet" \
-       "st vm       variant-match report (live-export.csv)" "st cp       Custom Print where live has colours" \
+       "st vm       variant-match report (live-export.csv)" "st cp       Custom Print where live has colours" "st cpwhy    why they have no colours" \
        "st apoff    automatic publishing off" "st apon     automatic publishing on" \
        "st sw       switch-store report" "st swgo     switch-store --apply" \
        "st mfd      metafield definitions" "st cols     collections --sync" "st pub50    publish 50 products" \

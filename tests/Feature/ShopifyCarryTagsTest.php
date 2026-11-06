@@ -112,4 +112,16 @@ class ShopifyCarryTagsTest extends TestCase
 
         $this->assertSame([['label' => 'Natural/black', 'sku' => '2568-naturalblack']], app(ProductPayload::class)->variants($p->fresh()));
     }
+
+    public function test_a_product_promodata_lists_no_colours_for_keeps_its_live_colours(): void
+    {
+        $p = $this->pen(); // no colours from Promodata
+        $path = tempnam(sys_get_temp_dir(), 'ct').'.csv';
+        file_put_contents($path, "Handle,Title,Tags,Option1 Name,Option1 Value\n2568,Borg Pen,style,Color,White\n2568,,,Color,Navy Blue\n");
+        $this->assertSame('Custom Print', app(ProductPayload::class)->variants($p->fresh())[0]['label']);
+
+        $this->artisan('shopify:carry-tags', ['file' => $path, '--apply' => true])->assertSuccessful();
+
+        $this->assertSame([['label' => 'White', 'sku' => '2568-white'], ['label' => 'Navy Blue', 'sku' => '2568-navyblue']], app(ProductPayload::class)->variants($p->fresh()));
+    }
 }
