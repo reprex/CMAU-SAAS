@@ -191,6 +191,7 @@ return array(
     'App\\Models\\SupplierDecType' => $baseDir . '/app/Models/SupplierDecType.php',
     'App\\Models\\SupplierFreightRate' => $baseDir . '/app/Models/SupplierFreightRate.php',
     'App\\Models\\SyncRun' => $baseDir . '/app/Models/SyncRun.php',
+    'App\\Models\\TemplateComparison' => $baseDir . '/app/Models/TemplateComparison.php',
     'App\\Models\\TrustedDevice' => $baseDir . '/app/Models/TrustedDevice.php',
     'App\\Models\\User' => $baseDir . '/app/Models/User.php',
     'App\\Models\\WebsiteOrder' => $baseDir . '/app/Models/WebsiteOrder.php',

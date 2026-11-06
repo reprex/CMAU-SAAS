@@ -742,6 +742,7 @@ class ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d
         'App\\Models\\SupplierDecType' => __DIR__ . '/../..' . '/app/Models/SupplierDecType.php',
         'App\\Models\\SupplierFreightRate' => __DIR__ . '/../..' . '/app/Models/SupplierFreightRate.php',
         'App\\Models\\SyncRun' => __DIR__ . '/../..' . '/app/Models/SyncRun.php',
+        'App\\Models\\TemplateComparison' => __DIR__ . '/../..' . '/app/Models/TemplateComparison.php',
         'App\\Models\\TrustedDevice' => __DIR__ . '/../..' . '/app/Models/TrustedDevice.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Models\\WebsiteOrder' => __DIR__ . '/../..' . '/app/Models/WebsiteOrder.php',

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Catalogue\BrandingTemplates;
 use App\Models\BrandingTemplate;
 use App\Models\Product;
+use App\Support\ClaudeLimit;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
@@ -24,7 +25,8 @@ class CatalogueReadTemplatesCommand extends Command
         {--seconds=0 : Stop after this many seconds (0: no limit)}
         {--supplier= : Only this supplier\'s products}
         {--reread : Mark every template already read (or failed) to be read again by the minute cron, then stop}
-        {--retry-failed : Mark only the failed templates to be read again by the minute cron, then stop}';
+        {--retry-failed : Mark only the failed templates to be read again by the minute cron, then stop}
+        {--compare= : Read already-read templates again with this model (e.g. claude-haiku-5-5) and keep it beside the reading in use (--limit of them, newest first)}';
 
     protected $description = 'Find and read supplier branding templates';
 
@@ -36,6 +38,19 @@ class CatalogueReadTemplatesCommand extends Command
         @ini_set('memory_limit', '1024M'); // a template PDF goes to Claude whole (up to 20 MB, more as base64)
         if ($n = BrandingTemplates::releaseStuck()) {
             $this->warn("{$n} templates that stopped an earlier run were set aside as failed.");
+        }
+        if ($model = $this->option('compare')) {
+            $todo = BrandingTemplate::query()->where('status', 'read')
+                ->whereDoesntHave('comparisons', fn ($q) => $q->where('model', $model))
+                ->whereHas('positions', fn ($q) => $q->whereNotNull('image_url'))
+                ->latest('read_at')->limit((int) $this->option('limit'))->get();
+            $r = $templates->compare($todo, (string) $model, max(1, (int) $this->option('parallel')));
+            $this->info("Read {$r['done']} templates with {$model} to compare ({$r['failed']} failed). Compare them on Range › Template reads.");
+            if (ClaudeLimit::paused()) {
+                $this->warn('Stopped: Claude API limit ('.(ClaudeLimit::pause()['why'] ?? '').').');
+            }
+
+            return self::SUCCESS;
         }
         if ($this->option('retry-failed')) {
             $n = BrandingTemplate::query()->where('status', 'failed')->update(['status' => 'new']);

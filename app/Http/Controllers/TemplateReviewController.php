@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BrandingTemplate;
 use App\Models\Supplier;
+use App\Models\TemplateComparison;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,12 +19,15 @@ class TemplateReviewController extends Controller
         $supplier = $request->integer('supplier') ?: null;
         $q = BrandingTemplate::query()->where('status', 'read')
             ->when($supplier, fn ($q) => $q->whereHas('product', fn ($p) => $p->where('supplier_id', $supplier)));
-        $templates = (clone $q)->with(['product:id,name,code,supplier_id,hero_image_url', 'positions'])
+        $compare = $request->query('compare') ? (string) $request->query('compare') : null;
+        $templates = (clone $q)->with(['product:id,name,code,supplier_id,hero_image_url', 'positions', 'comparisons'])
+            ->when($compare, fn ($q) => $q->whereHas('comparisons', fn ($c) => $c->where('model', $compare)))
             ->when($request->query('only') === 'boxes', fn ($q) => $q->whereHas('positions', fn ($p) => $p->whereNotNull('image_url')))
             ->latest('read_at')->paginate(24)->withQueryString();
         $suppliers = Supplier::query()->whereIn('id', BrandingTemplate::query()->where('status', 'read')
             ->join('products', 'products.id', '=', 'branding_templates.product_id')->distinct()->pluck('products.supplier_id'))->orderBy('name')->pluck('name', 'id');
 
-        return view('range.template-reads', ['templates' => $templates, 'suppliers' => $suppliers, 'supplier' => $supplier, 'total' => (clone $q)->count()]);
+        return view('range.template-reads', ['templates' => $templates, 'suppliers' => $suppliers, 'supplier' => $supplier, 'total' => (clone $q)->count(),
+            'models' => TemplateComparison::query()->distinct()->pluck('model'), 'compare' => $compare]);
     }
 }

@@ -14,7 +14,9 @@ case "$1" in
   lead) $PHP artisan catalogue:lead-time-report ;;
   ver) echo "Deployed: $(cut -c1-7 .deployed-commit 2>/dev/null)"; git --git-dir="$HOME/repositories/CMAU-SAAS/.git" log -1 --format='%s (%cr)' 2>/dev/null ;;
   retry) $PHP artisan catalogue:read-templates --retry-failed ;;
+  haiku50) $PHP artisan catalogue:read-templates --compare=claude-haiku-5-5 --limit=50 --parallel=5 ;;
   *) printf '%s\n' "st          status: templates, photo checks, last error" "st fails    the failed templates and why" \
        "st lead     the Promodata lead-time report" "st ver      which release is deployed" \
-       "st retry    queue the failed templates to be read again" "st help     this list" ;;
+       "st retry    queue the failed templates to be read again" \
+       "st haiku50  read 50 templates again with Haiku, to compare with Sonnet" "st help     this list" ;;
 esac

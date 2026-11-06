@@ -6,7 +6,9 @@ use App\Models\BrandingPosition;
 use App\Models\BrandingTemplate;
 use App\Models\PrintArea;
 use App\Models\Product;
+use App\Models\TemplateComparison;
 use App\Support\ClaudeLimit;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -173,6 +175,66 @@ class BrandingTemplates
         return $out;
     }
 
+    /**
+     * Read templates again with another model and keep its reading beside the one in use, to compare (Scott,
+     * 6 Nov 2026: 50 on Haiku against Sonnet). Nothing on the website changes.
+     *
+     * @param  iterable<BrandingTemplate>  $templates
+     * @return array{done: int, failed: int}
+     */
+    public function compare(iterable $templates, string $model, int $parallel = 5): array
+    {
+        $done = $failed = 0;
+        foreach (collect($templates)->chunk(max(1, $parallel)) as $batch) {
+            if (! $this->canRead()) {
+                break;
+            }
+            $jobs = [];
+            foreach ($batch as $t) {
+                $job = rescue(fn () => $this->prepare($t), null, false);
+                if ($job) {
+                    $job['body']['model'] = $model;
+                    $jobs[] = $job;
+                }
+            }
+            if ($jobs === []) {
+                continue;
+            }
+            $send = fn ($r) => $r->withHeaders(['x-api-key' => config('search.anthropic.key'), 'anthropic-version' => '2023-06-01'])
+                ->timeout((int) config('images.templates.timeout', 90));
+            $responses = Http::pool(fn ($pool) => array_map(fn ($j) => $send($pool->as((string) $j['template']->id))->post('https://api.anthropic.com/v1/messages', $j['body']), $jobs));
+            foreach ($jobs as $job) {
+                $r = $responses[(string) $job['template']->id] ?? null;
+                $row = ['positions' => null, 'message' => null];
+                if (! $r instanceof Response || ! $r->successful()) {
+                    $why = $r instanceof Response ? (string) $r->json('error.message') : 'no reply';
+                    if ($r instanceof Response && ClaudeLimit::is($r->status(), $why)) {
+                        ClaudeLimit::hit($why);
+
+                        return ['done' => $done, 'failed' => $failed];
+                    }
+                    $row['message'] = mb_substr('Claude: '.$why, 0, 250);
+                    $failed++;
+                } else {
+                    $text = (string) collect($r->json('content', []))->where('type', 'text')->pluck('text')->implode('');
+                    $a = strpos($text, '{');
+                    $b = strrpos($text, '}');
+                    $json = $a !== false && $b > $a ? json_decode(substr($text, $a, $b - $a + 1), true) : null;
+                    if (is_array($json['positions'] ?? null)) {
+                        $row['positions'] = self::rows($json, $job['front'], $job['back']);
+                        $done++;
+                    } else {
+                        $row['message'] = 'Reply was not usable';
+                        $failed++;
+                    }
+                }
+                TemplateComparison::query()->updateOrCreate(['branding_template_id' => $job['template']->id, 'model' => $model], $row);
+            }
+        }
+
+        return ['done' => $done, 'failed' => $failed];
+    }
+
     /** Templates left "reading" by a run that stopped (out of memory, timed out): set aside as failed. */
     public static function releaseStuck(int $minutes = 10): int
     {
@@ -293,54 +355,11 @@ class BrandingTemplates
             return 0;
         }
 
-        $num = fn ($v) => is_numeric($v) && $v > 0 ? (int) round((float) $v) : null;
-        $positions = collect($json['positions'])->filter(fn ($p) => is_array($p) && filled($p['name'] ?? null))->take(12)->values();
-        DB::transaction(function () use ($template, $product, $positions, $front, $back, $num) {
+        $positions = collect(self::rows($json, $front, $back));
+        DB::transaction(function () use ($template, $product, $positions) {
             BrandingPosition::query()->where('branding_template_id', $template->id)->where('source', 'template')->delete();
-            foreach ($positions as $i => $p) {
-                $view = in_array($p['view'] ?? null, self::VIEWS, true) ? $p['view'] : 'front';
-                $pic = ['front' => $front, 'back' => $back][$view] ?? null;
-                $box = is_array($p['box'] ?? null) && $pic && is_numeric($p['box']['left'] ?? null) && is_numeric($p['box']['top'] ?? null) && is_numeric($p['box']['width'] ?? null) ? $p['box'] : null;
-                $confidence = in_array($p['confidence'] ?? null, ['high', 'low'], true) ? $p['confidence'] : null;
-                $quad = $pic ? self::quad($p['quad'] ?? null) : null;
-                if (! $box && $quad) {
-                    $xs = array_column($quad, 0);
-                    $ys = array_column($quad, 1);
-                    $box = ['left' => min($xs), 'top' => min($ys), 'width' => max($xs) - min($xs)]; // the corners' bounding box
-                }
-                if ($confidence === 'low') {
-                    $box = null; // not where the print really goes on our picture: a guide card, not a mockup
-                    $quad = null;
-                }
-                $surface = in_array($p['surface'] ?? null, self::SURFACES, true) ? $p['surface'] : null;
-                // Methods: names, each with its own size where the template gives one.
-                $names = [];
-                $sizes = [];
-                foreach ((array) ($p['methods'] ?? []) as $m) {
-                    $name = mb_substr(trim((string) (is_array($m) ? ($m['name'] ?? '') : $m)), 0, 60);
-                    if ($name === '' || in_array($name, $names, true)) {
-                        continue;
-                    }
-                    $names[] = $name;
-                    if (is_array($m) && ($w = $num($m['max_width_mm'] ?? null))) {
-                        $sizes[$name] = [$w, $num($m['max_height_mm'] ?? null) ?? $w];
-                    }
-                }
-                $mw = $num($p['max_width_mm'] ?? null);
-                $mh = $num($p['max_height_mm'] ?? null);
-                if (! $mw && $sizes !== []) {
-                    $big = collect($sizes)->sortByDesc(fn ($s) => $s[0] * $s[1])->first();
-                    [$mw, $mh] = $big;
-                }
-                BrandingPosition::query()->create([
-                    'product_id' => $product->id, 'branding_template_id' => $template->id, 'position' => $i,
-                    'name' => mb_substr(trim((string) $p['name']), 0, 60), 'view' => $view, 'image_url' => $box ? $pic : null,
-                    'left' => $box ? max(0, min(95, (float) $box['left'])) : null, 'top' => $box ? max(0, min(95, (float) $box['top'])) : null,
-                    'width' => $box ? max(3, min(100, (float) $box['width'])) : null,
-                    'quad' => $box ? $quad : null, 'surface' => $surface,
-                    'max_width_mm' => $mw, 'max_height_mm' => $mh,
-                    'methods' => $names, 'method_sizes' => $sizes ?: null, 'confidence' => $confidence,
-                ]);
+            foreach ($positions as $i => $row) {
+                BrandingPosition::query()->create($row + ['product_id' => $product->id, 'branding_template_id' => $template->id, 'position' => $i]);
             }
             $template->update(['status' => $positions->isEmpty() ? 'none' : 'read', 'message' => null, 'read_at' => now()]);
         });
@@ -369,6 +388,63 @@ class BrandingTemplates
             'left' => $front->left, 'top' => $front->top, 'width' => $front->width,
             'pred_left' => $front->left, 'pred_top' => $front->top, 'pred_width' => $front->width, 'source' => 'template',
         ]);
+    }
+
+    /**
+     * Claude's reply as position rows (without product and template), placed on the photos it was shown.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function rows(array $json, ?string $front, ?string $back): array
+    {
+        $num = fn ($v) => is_numeric($v) && $v > 0 ? (int) round((float) $v) : null;
+        $out = [];
+        foreach (collect($json['positions'] ?? [])->filter(fn ($p) => is_array($p) && filled($p['name'] ?? null))->take(12)->values() as $p) {
+            $view = in_array($p['view'] ?? null, self::VIEWS, true) ? $p['view'] : 'front';
+            $pic = ['front' => $front, 'back' => $back][$view] ?? null;
+            $box = is_array($p['box'] ?? null) && $pic && is_numeric($p['box']['left'] ?? null) && is_numeric($p['box']['top'] ?? null) && is_numeric($p['box']['width'] ?? null) ? $p['box'] : null;
+            $confidence = in_array($p['confidence'] ?? null, ['high', 'low'], true) ? $p['confidence'] : null;
+            $quad = $pic ? self::quad($p['quad'] ?? null) : null;
+            if (! $box && $quad) {
+                $xs = array_column($quad, 0);
+                $ys = array_column($quad, 1);
+                $box = ['left' => min($xs), 'top' => min($ys), 'width' => max($xs) - min($xs)]; // the corners' bounding box
+            }
+            if ($confidence === 'low') {
+                $box = null; // not where the print really goes on our picture: a guide card, not a mockup
+                $quad = null;
+            }
+            $surface = in_array($p['surface'] ?? null, self::SURFACES, true) ? $p['surface'] : null;
+            // Methods: names, each with its own size where the template gives one.
+            $names = [];
+            $sizes = [];
+            foreach ((array) ($p['methods'] ?? []) as $m) {
+                $name = mb_substr(trim((string) (is_array($m) ? ($m['name'] ?? '') : $m)), 0, 60);
+                if ($name === '' || in_array($name, $names, true)) {
+                    continue;
+                }
+                $names[] = $name;
+                if (is_array($m) && ($w = $num($m['max_width_mm'] ?? null))) {
+                    $sizes[$name] = [$w, $num($m['max_height_mm'] ?? null) ?? $w];
+                }
+            }
+            $mw = $num($p['max_width_mm'] ?? null);
+            $mh = $num($p['max_height_mm'] ?? null);
+            if (! $mw && $sizes !== []) {
+                $big = collect($sizes)->sortByDesc(fn ($s) => $s[0] * $s[1])->first();
+                [$mw, $mh] = $big;
+            }
+            $out[] = [
+                'name' => mb_substr(trim((string) $p['name']), 0, 60), 'view' => $view, 'image_url' => $box ? $pic : null,
+                'left' => $box ? max(0, min(95, (float) $box['left'])) : null, 'top' => $box ? max(0, min(95, (float) $box['top'])) : null,
+                'width' => $box ? max(3, min(100, (float) $box['width'])) : null,
+                'quad' => $box ? $quad : null, 'surface' => $surface,
+                'max_width_mm' => $mw, 'max_height_mm' => $mh,
+                'methods' => $names, 'method_sizes' => $sizes ?: null, 'confidence' => $confidence,
+            ];
+        }
+
+        return $out;
     }
 
     /** What Shopify gets: custom.brandingpositions (json). @return list<array<string, mixed>> */
