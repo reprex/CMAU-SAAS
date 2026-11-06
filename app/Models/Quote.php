@@ -33,6 +33,9 @@ class Quote extends Model
         return [
             'deadline' => 'date',
             'artwork' => 'array',
+            'mockups' => 'array',
+            'similar_products' => 'array',
+            'saved_products' => 'array',
             'valid_until' => 'date',
             'sent_at' => 'datetime',
             'won_at' => 'datetime',

@@ -2,6 +2,10 @@
 
 namespace App\Pdf;
 
+use App\Catalogue\OurCodes;
+use App\Catalogue\SubstituteFinder;
+use App\Models\Product;
+use App\Models\ProductWebPrice;
 use App\Models\Quote;
 use App\Models\QuoteExtra;
 use App\Models\QuoteItem;
@@ -12,6 +16,7 @@ use App\Quotes\QuoteNumbers;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * The client PDFs, CrowdMerch branded (layouts agreed 25 Oct 2026, docs/quotes.md):
@@ -65,8 +70,21 @@ class QuotePdf
             $included->push(['label' => $x->description, 'amount' => $x->total(), 'tbc' => (bool) $x->tbc]);
         }
 
+        // One product (the website's quote and mockup PDF; Scott, 7 Nov 2026): page 1 is that product with the
+        // shopper's mockups (else their uploaded artwork) and the unbranded product; page 2 lists up to 4
+        // similar products and the ones they hearted.
+        $productIds = $quote->items->pluck('product_id')->filter()->unique();
+        // The website's quotes are always one product (with any related styles in the same run).
+        $single = $customs->isEmpty() && ($productIds->count() === 1 || ($quote->source === 'website' && $productIds->isNotEmpty()));
+        $pictures = $single ? $this->pictures($quote) : ['mockups' => [], 'artwork' => [], 'product' => null];
+        $more = $single ? $this->moreProducts($quote, (int) $productIds->first()) : ['similar' => collect(), 'saved' => collect()];
+
         return view('pdf.quote', [
             'quote' => $quote,
+            'single' => $single,
+            'pictures' => $pictures,
+            'similar' => $more['similar'],
+            'saved' => $more['saved'],
             'items' => $items,
             'customs' => $customs,
             'included' => $included,
@@ -75,6 +93,53 @@ class QuotePdf
             'timing' => $this->timing($quote->lead_time),
             'anyTbc' => $included->contains('tbc', true),
         ] + $this->common())->render();
+    }
+
+    /** @return array{mockups: list<array{src: string, view: string}>, artwork: list<array{src: ?string, name: string, position: string}>, product: ?string} */
+    private function pictures(Quote $quote): array
+    {
+        $disk = Storage::disk(config('website.orders.artwork_disk'));
+        $local = fn (string $path) => $disk->exists($path) ? $this->images->localDataUri($disk->path($path)) : null;
+        $mockups = [];
+        foreach ((array) ($quote->mockups ?? []) as $m) {
+            if (($src = $local((string) ($m['path'] ?? ''))) !== null) {
+                $mockups[] = ['src' => $src, 'view' => (string) ($m['view'] ?? '')];
+            }
+        }
+        $artwork = [];
+        foreach ((array) ($quote->artwork ?? []) as $a) {
+            $raster = preg_match('/\.(png|jpe?g|gif|webp)$/i', (string) ($a['path'] ?? ''));
+            $artwork[] = ['src' => $raster ? $local((string) $a['path']) : null, 'name' => (string) ($a['name'] ?? 'Your artwork'), 'position' => (string) ($a['position'] ?? '')];
+        }
+        $first = $quote->items->first(fn ($i) => $i->product_id);
+        $product = $first?->product_id ? Product::query()->find($first->product_id) : null;
+
+        return ['mockups' => $mockups, 'artwork' => $artwork, 'product' => $this->images->dataUri($product?->hero_image_url ?? $first?->image_url)];
+    }
+
+    /**
+     * Page 2: the similar products shown with the product (else the closest on the web range), at most 4,
+     * and the products the shopper hearted.
+     *
+     * @return array{similar: Collection<int, array>, saved: Collection<int, array>}
+     */
+    private function moreProducts(Quote $quote, int $productId): array
+    {
+        $card = fn (Product $p) => [
+            'name' => $p->name, 'code' => OurCodes::code($p->supplier_id, $p->code), 'image' => $this->images->dataUri($p->hero_image_url),
+            'from' => ProductWebPrice::query()->find($p->id)?->collection_variant_price,
+            'url' => 'https://'.config('quotes.pdf.website').'/products/'.$p->id,
+        ];
+        $load = fn (array $ids) => Product::query()->whereIn('id', $ids)->where('tier', Product::TIER_LIVE)->where('discontinued', false)->get()
+            ->sortBy(fn ($p) => array_search($p->id, $ids))->values();
+        $similar = $load(array_map('intval', (array) ($quote->similar_products ?? [])));
+        if ($similar->isEmpty() && $quote->source === 'website' && ($ref = Product::query()->find($productId))) {
+            $similar = app(SubstituteFinder::class)->find($ref, ['limit' => 12])->pluck('product')
+                ->filter(fn ($p) => $p->tier === Product::TIER_LIVE)->take(3)->values();
+        }
+        $saved = $load(array_map('intval', (array) ($quote->saved_products ?? [])))->reject(fn ($p) => $similar->contains('id', $p->id));
+
+        return ['similar' => $similar->take(4)->map($card)->values(), 'saved' => $saved->take(12)->map($card)->values()];
     }
 
     public function comparison(Quote $quote): string
@@ -107,8 +172,19 @@ class QuotePdf
             return $this->render('pdf.website-samples-invoice', ['order' => $order, 'factories' => $order->factoryGroups()] + $this->common());
         }
 
+        $disk = Storage::disk(config('website.orders.artwork_disk'));
+        $logos = [];
+        foreach ($order->positions as $p) {
+            $path = (string) $p->logo_path;
+            if ($path !== '' && preg_match('/\.(png|jpe?g|gif|webp)$/i', $path) && $disk->exists($path) && ($src = $this->images->localDataUri($disk->path($path)))) {
+                $logos[] = ['src' => $src, 'position' => (string) $p->position];
+            }
+        }
+
         return $this->render('pdf.website-invoice', [
             'order' => $order,
+            'logos' => $logos,
+            'payment' => trim((string) config('website.orders.payment_details')),
             'image' => $this->images->dataUri($order->product?->hero_image_url),
             'styles' => $order->lines->groupBy('product_id'),
         ] + $this->common());

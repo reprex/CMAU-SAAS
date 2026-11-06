@@ -39,7 +39,7 @@ class StaffQuotes
      * @param  array<int, UploadedFile>  $logos  by position index
      * @return array{quote: Quote, added: int, issues: list<array>}
      */
-    public function build(User $user, array $cart, ?array $client, ?Quote $into, array $logos, ?string $note): array
+    public function build(?User $user, array $cart, ?array $client, ?Quote $into, array $logos, ?string $note, string $source = 'manual'): array
     {
         $result = $this->pricer->evaluate([
             'product_id' => (int) $cart['product_id'],
@@ -57,11 +57,11 @@ class StaffQuotes
         }
         $other = array_values(array_filter($result['issues'], fn ($i) => ! in_array($i['code'], ['logo', 'review'], true)));
 
-        return DB::transaction(function () use ($user, $cart, $client, $into, $logos, $note, $result, $other) {
+        return DB::transaction(function () use ($user, $cart, $client, $into, $logos, $note, $result, $other, $source) {
             $quote = $into ?? Quote::query()->create([
                 'number' => $this->numbers->next(),
-                'status' => 'PHONE',
-                'source' => 'manual',
+                'status' => $source === 'website' ? 'QUOTE' : 'PHONE',
+                'source' => $source,
                 'title' => $result['product']['name'],
                 'client_name' => $client['name'] ?? null,
                 'client_company' => $client['organisation'] ?? null,
@@ -74,8 +74,8 @@ class StaffQuotes
                 'delivery_state' => $client['address']['state'] ?? null,
                 'delivery_postcode' => $client['address']['postcode'] ?? null,
                 'delivery_country' => $client['address']['country'] ?? 'AU',
-                'created_by' => $user->id,
-                'assigned_to' => $user->id,
+                'created_by' => $user?->id,
+                'assigned_to' => $user?->id,
                 'valid_until' => now()->addDays((int) config('quotes.valid_days'))->toDateString(),
                 'lead_time' => config('quotes.default_lead_time'),
                 'edited_at' => now(),
@@ -173,7 +173,7 @@ class StaffQuotes
                 $art[] = ['position' => $cart['positions'][$i]['name'] ?? 'Logo', 'path' => $path, 'name' => mb_substr($file->getClientOriginalName(), 0, 160), 'size' => (int) $file->getSize()];
             }
             $notes = trim((string) $quote->internal_notes);
-            $line = 'From the website by '.$user->name.' '.now()->timezone(config('app.timezone'))->format('j M g:ia').': '.$result['product']['name'].', '.$result['units'].' units'
+            $line = 'From the website'.($user ? ' by '.$user->name : ' (the shopper\'s quote and mockup PDF)').' '.now()->timezone(config('app.timezone'))->format('j M g:ia').': '.$result['product']['name'].', '.$result['units'].' units'
                 .($positions ? ', '.implode('; ', array_map(fn ($p) => $p['name'].' '.$p['method_name'], $positions)) : '')
                 .($other ? '. Check: '.implode(' ', array_column($other, 'message')) : '');
             $quote->forceFill(['artwork' => $art ?: null, 'internal_notes' => trim($notes."\n".$line), 'edited_at' => $quote->edited_at ?? now()])->save();

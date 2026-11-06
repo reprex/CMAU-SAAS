@@ -1,3 +1,5 @@
+@php($logos = $logos ?? [])
+@php($payment = $payment ?? '')
 @php($m = fn ($v) => number_format((float) $v, 2))
 @php($o = $order)
 <!doctype html>
@@ -11,7 +13,16 @@
 .inc td { border-bottom: 1px solid #E4E1DB; padding: 5px 0; }
 .totals { background: #D4651F; color: #FFFFFF; }
 .alert { border: 1.5px solid #D4651F; background: #FCF1EA; padding: 8px 10px; margin: 0 0 6px; }
-.stage td { border-bottom: 1px solid #E4E1DB; padding: 3px 0; }
+.stage td { border-bottom: 1px solid #E4E1DB; padding: 2px 0; }
+.lines td { border-bottom: 1px solid #E4E1DB; padding: 4px 0; }
+.lines .head td { padding-top: 0; }
+.iname2 { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; text-transform: uppercase; margin: 4px 0 2px; }
+.lthumb { height: 42px; background: #F4F3F0; text-align: center; }
+.lthumb img { max-width: 40px; max-height: 38px; margin-top: 2px; }
+.tiny { font-size: 8px; }
+.center { text-align: center; }
+.thumb { width: 150px; height: 150px; }
+.thumb img { max-width: 142px; max-height: 142px; }
 </style></head>
 <body>
 <div class="footer"><table><tr><td>{{ $brand['signed_by'] }} · {{ $brand['phone'] }} · {{ $brand['email'] }}</td><td class="right">{{ $brand['legal'] }}</td></tr></table></div>
@@ -24,69 +35,85 @@
   'title' => 'Your order',
 ])
 <div class="muted" style="margin-top: 5px">{{ collect([$o->organisation ? 'Attention '.$o->contact_name : null, $o->phone, $o->email])->filter()->implode(' · ') }}</div>
-<div class="muted">Delivering to {{ $o->addressLine() }}</div>
 <div class="rule"></div>
 
 @if(! empty($o->alerts))
-  <div style="margin-top: 12px">
+  <div style="margin-top: 8px">
     <div class="label orange">Before you pay</div>
     @foreach($o->alerts as $alert)<div class="alert">{{ $alert['message'] }}</div>@endforeach
   </div>
 @endif
 
-<table>
-  @foreach ($styles as $pid => $lines)
-    @php($first = $lines->first())
-    <tr class="item">
-      <td style="width: 110px"><div class="thumb">@if($loop->first && $image)<img src="{{ $image }}" alt="">@endif</div></td>
-      <td style="padding-left: 16px; padding-right: 12px">
-        <div class="label orange">Item {{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</div>
-        <div class="iname">{{ $first->product_name }}</div>
-        <div class="muted">Code {{ $o->ourCodeFor($first) }}</div>
+{{-- One product (with any related styles in the same run), everything from the checkout, on one page (Scott, 7 Nov 2026). --}}
+<table style="margin-top: 10px">
+  <tr>
+    <td style="width: 150px; vertical-align: top">
+      <div class="thumb">@if($image)<img src="{{ $image }}" alt="">@endif</div>
+      @if(count($logos))
+        <table style="margin-top: 6px"><tr>
+          @foreach(array_slice($logos, 0, 3) as $lg)<td style="width: 33%; padding-right: 4px"><div class="lthumb"><img src="{{ $lg['src'] }}" alt=""></div><div class="tiny muted center">{{ $lg['position'] }}</div></td>@endforeach
+        </tr></table>
+      @endif
+    </td>
+    <td style="padding-left: 16px; vertical-align: top">
+      @foreach ($styles as $pid => $lines)
+        @php($first = $lines->first())
+        <div class="{{ $loop->first ? 'iname' : 'iname2' }}">{{ $first->product_name }}</div>
+        <div class="muted small">Code {{ $o->ourCodeFor($first) }} · {{ number_format($lines->sum('qty')) }} units</div>
         @foreach($lines->groupBy('colour') as $colour => $sizes)
-          <div style="margin-top: 4px"><span class="small muted">{{ $colour }}&nbsp;</span>@foreach($sizes as $s)<span class="chip"><span class="muted">{{ $s->size }}</span> <b>{{ $s->qty }}</b>@if($s->sku) <span class="muted">{{ $s->sku }}</span>@endif</span>@endforeach</div>
+          <div style="margin-top: 3px"><span class="small muted">{{ $colour }}&nbsp;</span>@foreach($sizes as $s)<span class="chip"><span class="muted">{{ $s->size }}</span> <b>{{ $s->qty }}</b>@if($s->sku) <span class="muted tiny">{{ $s->sku }}</span>@endif</span>@endforeach</div>
         @endforeach
-      </td>
-      <td class="right" style="width: 140px">
-        <div class="muted">{{ number_format($lines->sum('qty')) }} × ${{ $m($first->unit_ex_gst) }}</div>
-        <div class="fig">${{ $m($lines->sum(fn ($l) => (float) $l->total_ex_gst)) }}</div>
-        <div class="small" style="font-weight: 700">ex GST</div>
-      </td>
-    </tr>
-  @endforeach
+        <div style="height: 6px"></div>
+      @endforeach
+      <div class="label muted" style="margin-top: 2px">Branding{{ $styles->count() > 1 ? ' (the same on every style)' : '' }}</div>
+      @foreach($o->positions as $p)
+        <div class="small">{{ $p->position }} · {{ $p->methodName() }}@if($p->colours) · {{ $p->colours }} colour{{ $p->colours === 1 ? '' : 's' }}@endif @if($p->width_mm) · {{ $p->width_mm }} mm wide @endif</div>
+      @endforeach
+      @if(! empty($o->options))
+        <div class="label muted" style="margin-top: 6px">Options</div>
+        @foreach($o->options as $opt)<div class="small">{{ $opt['group'] ?? '' }}{{ isset($opt['group']) ? ': ' : '' }}{{ $opt['name'] }}{{ ($opt['n'] ?? 1) > 1 ? ' × '.$opt['n'] : '' }}</div>@endforeach
+      @endif
+    </td>
+  </tr>
 </table>
 
-<table style="margin-top: 12px">
-  <tr><td class="label muted" colspan="2">Branding (the same on every style)</td></tr>
-  @foreach($o->positions as $p)
-    <tr><td style="padding: 3px 0">{{ $p->position }} · {{ $p->methodName() }}@if($p->colours) · {{ $p->colours }} colour{{ $p->colours === 1 ? '' : 's' }}@endif @if($p->width_mm) · {{ $p->width_mm }} mm wide @endif</td><td class="right muted">{{ $m($p->unit_ex_gst) }} each, setup {{ $m($p->setup_ex_gst) }}</td></tr>
+<table class="lines" style="margin-top: 10px">
+  <tr class="head"><td class="label muted">Item</td><td class="right label muted" style="width: 130px">Qty × each</td><td class="right label muted" style="width: 90px">ex GST</td></tr>
+  @foreach ($styles as $pid => $lines)
+    @php($first = $lines->first())
+    <tr><td>{{ $first->product_name }}, branded</td><td class="right muted">{{ number_format($lines->sum('qty')) }} × ${{ $m($first->unit_ex_gst) }}</td><td class="right">{{ $m($lines->sum(fn ($l) => (float) $l->total_ex_gst)) }}</td></tr>
   @endforeach
+  @foreach($o->positions as $p)
+    @if((float) $p->setup_ex_gst > 0)<tr><td>Setup: {{ $p->position }} ({{ $p->methodName() }})</td><td class="right muted">once</td><td class="right">{{ $m($p->setup_ex_gst) }}</td></tr>@endif
+  @endforeach
+  @foreach($o->options ?? [] as $opt)
+    @if((float) ($opt['once'] ?? 0) > 0)<tr><td>{{ $opt['name'] }}</td><td class="right muted">once</td><td class="right">{{ $m($opt['once']) }}</td></tr>@endif
+  @endforeach
+  @php($listedSetup = $o->positions->sum(fn ($p) => (float) $p->setup_ex_gst) + collect($o->options ?? [])->sum(fn ($x) => (float) ($x['once'] ?? 0)))
+  @if((float) $o->setup - $listedSetup > 0.004)<tr><td>Setup (once for the order)</td><td class="right muted">once</td><td class="right">{{ $m((float) $o->setup - $listedSetup) }}</td></tr>@endif
+  <tr><td>Delivery · {{ $o->freight_name }}</td><td class="right muted"></td><td class="right">{{ $m($o->freight) }}</td></tr>
 </table>
 
 <table style="margin-top: 18px; page-break-inside: avoid">
   <tr>
     <td style="padding-right: 30px">
       <div class="label orange">Delivery</div>
-      <div class="soft" style="margin: 3px 0 8px">{{ $o->freight_name }} · estimated <b>{{ $o->eta->format('D j M Y') }}</b>@if($o->need_by) · needed by {{ $o->need_by->format('D j M Y') }}@endif @if($o->event_name) · {{ $o->event_name }}@endif</div>
+      <div class="soft" style="margin: 3px 0 6px">To {{ $o->addressLine() }} · {{ $o->freight_name }} · estimated <b>{{ $o->eta->format('D j M Y') }}</b>@if($o->need_by) · needed by {{ $o->need_by->format('D j M Y') }}@endif</div>
+      @if($o->event_name || $o->event_date)<div class="small" style="margin: 0 0 6px">Event: {{ collect([$o->event_name, $o->event_date?->format('D j M Y'), $o->event_place])->filter()->implode(' · ') }}</div>@endif
       @if(! empty($o->eta_breakdown['stages']))
-        <table class="stage small" style="margin-bottom: 10px">
+        <table class="stage tiny" style="margin-bottom: 8px">
           @foreach($o->eta_breakdown['stages'] as $st)<tr><td>{{ $st['name'] }}</td><td class="right muted">{{ $st['days'] }} business day{{ $st['days'] === 1 ? '' : 's' }} · by {{ \Carbon\CarbonImmutable::parse($st['ends'])->format('D j M') }}</td></tr>@endforeach
         </table>
       @endif
       <div class="label orange">What happens next</div>
       <ol class="soft" style="margin: 3px 0 10px; padding-left: 16px">
-        <li>Pay this invoice by card or bank transfer.</li>
+        <li>Pay this invoice by card or bank transfer{{ $payment ? ':' : '.' }}@if($payment)<div class="small" style="white-space: pre-line">{{ $payment }}</div>@endif</li>
         <li>{{ config('website.orders.proof_ack_text') }}</li>
         <li>We order the stock, brand it and send it to you.</li>
       </ol>
       @if($o->export && ! collect($o->alerts ?? [])->contains('code', 'export'))<div class="alert">{{ config('website.orders.duty_note') }}</div>@endif
     </td>
     <td style="width: 300px">
-      <table><tr><td class="label muted">Also included</td><td class="right small" style="font-weight: 700">ex GST</td></tr></table>
-      <table class="inc" style="margin: 3px 0 12px">
-        @if((float) $o->setup > 0)<tr><td>Setup (once for the order)</td><td class="right">{{ $m($o->setup) }}</td></tr>@endif
-        <tr><td>Delivery · {{ $o->freight_name }}</td><td class="right">{{ $m($o->freight) }}</td></tr>
-      </table>
       <table class="totals"><tr><td style="padding: 14px 16px">
         <table>
           <tr><td style="color: #FFFFFF">Subtotal ex GST</td><td class="right" style="color: #FFFFFF">{{ $m($o->subtotal) }}</td></tr>

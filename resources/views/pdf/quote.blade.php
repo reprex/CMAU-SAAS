@@ -10,6 +10,15 @@
 .fig { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 20px; line-height: 1.1; }
 .inc td { border-bottom: 1px solid #E4E1DB; padding: 5px 0; }
 .totals { background: #D4651F; color: #FFFFFF; }
+.pic { width: 100%; height: 230px; background: #F4F3F0; text-align: center; }
+.pic img { max-width: 96%; max-height: 222px; margin-top: 4px; }
+.pic.art img { max-height: 160px; margin-top: 35px; }
+.small-pic { height: 170px; }
+.small-pic img { max-height: 162px; }
+.lines td { border-bottom: 1px solid #E4E1DB; padding: 5px 0; }
+.thumb-s { width: 84px; height: 84px; background: #F4F3F0; text-align: center; }
+.thumb-s img { max-width: 78px; max-height: 78px; margin-top: 3px; }
+.center { text-align: center; }
 </style></head>
 <body>
 <div class="footer"><table><tr><td>{{ $brand['signed_by'] }} · {{ $brand['phone'] }} · {{ $brand['email'] }}</td><td class="right">{{ $brand['legal'] }}</td></tr></table></div>
@@ -25,6 +34,50 @@
 @if($attention->isNotEmpty())<div class="muted" style="margin-top: 5px">{{ $attention->implode(' · ') }}</div>@endif
 <div class="rule"></div>
 
+@if($single)
+  @php($main = $items->first()['item'] ?? null)
+  {{-- Page 1: the one product the quote is for (Scott, 7 Nov 2026). --}}
+  <table style="margin-top: 12px"><tr>
+    @if(count($pictures['mockups']))
+      @foreach(array_slice($pictures['mockups'], 0, 2) as $mk)
+        <td style="width: 34%; padding-right: 10px; vertical-align: top"><div class="pic"><img src="{{ $mk['src'] }}" alt=""></div>
+          <div class="small muted center" style="margin-top: 3px">Your mockup{{ count($pictures['mockups']) > 1 ? ' · '.ucfirst($mk['view']) : '' }}</div></td>
+      @endforeach
+    @else
+      @foreach(array_slice(array_values(array_filter($pictures['artwork'], fn ($a) => $a['src'])), 0, 2) as $art)
+        <td style="width: 34%; padding-right: 10px; vertical-align: top"><div class="pic art"><img src="{{ $art['src'] }}" alt=""></div>
+          <div class="small muted center" style="margin-top: 3px">Your artwork{{ $art['position'] ? ' · '.$art['position'] : '' }}</div></td>
+      @endforeach
+    @endif
+    @if($pictures['product'])
+      <td style="width: 28%; vertical-align: top"><div class="pic small-pic"><img src="{{ $pictures['product'] }}" alt=""></div>
+        <div class="small muted center" style="margin-top: 3px">The product, unbranded</div></td>
+    @endif
+    <td></td>
+  </tr></table>
+  <div class="small muted" style="margin-top: 6px">{{ count($pictures['mockups']) ? 'Displayed branding mockups are approximate only, we provide a full factory proof for approval prior to production.' : 'We will send a full factory proof of your branding for approval before production.' }}</div>
+  @if($main)
+    <div class="iname" style="margin-top: 10px; font-size: 20px">{{ $main->name }}</div>
+    <div class="muted">{{ collect([$main->ourCode() ? 'Code '.$main->ourCode() : null, $main->colour])->filter()->implode(' · ') }}</div>
+    @foreach ($items->filter(fn ($r) => count($r['sizes'])) as $row)
+      @if(! $loop->first)<div class="small" style="margin-top: 6px"><b>{{ $row['item']->name }}</b> <span class="muted">{{ $row['item']->ourCode() ? 'Code '.$row['item']->ourCode() : '' }}</span></div>@endif
+      @foreach ($row['sizes'] as $colour => $sizes)
+        <div style="margin-top: 4px">@if(count($row['sizes']) > 1 || ! $loop->parent->first)<span class="small muted">{{ $colour }}&nbsp;</span>@endif
+        @foreach ($sizes as $sz)<span class="chip"><span class="muted">{{ $sz['size'] }}</span> <b>{{ $sz['qty'] }}</b></span>@endforeach</div>
+      @endforeach
+    @endforeach
+    @php($names = collect($pictures['artwork'])->pluck('name')->filter()->unique())
+    @if($names->isNotEmpty())<div class="small muted" style="margin-top: 4px">Artwork received: {{ $names->implode(', ') }}</div>@endif
+  @endif
+  <table class="lines" style="margin-top: 10px">
+    @foreach ($items as $row)
+      @php($i = $row['item'])
+      <tr><td>{{ $i->product_unit_price > 0 && $i->hasDecoration() ? $i->name.', with '.$i->decoration_name : ($i->product_unit_price > 0 ? $i->name : ($i->decoration_name ?: $i->name)) }}</td>
+        <td class="right muted" style="width: 150px; white-space: nowrap">{{ number_format($i->quantity) }} × ${{ $m($i->unitPrice()) }}</td>
+        <td class="right" style="width: 90px; white-space: nowrap"><b>${{ $m($i->goodsTotal()) }}</b></td></tr>
+    @endforeach
+  </table>
+@else
 <table>
   @foreach ($items as $n => $row)
     @php($i = $row['item'])
@@ -70,6 +123,7 @@
     </tr>
   @endforeach
 </table>
+@endif
 
 <table style="margin-top: 18px; page-break-inside: avoid">
   <tr>
@@ -110,4 +164,33 @@
     </td>
   </tr>
 </table>
+@if($single && ($similar->isNotEmpty() || $saved->isNotEmpty()))
+  <div style="page-break-before: always"></div>
+  @foreach([['You might also consider', $similar], ['Products you saved', $saved]] as [$heading, $cards])
+    @if($cards->isNotEmpty())
+      <div class="label orange" style="margin-top: 14px">{{ $heading }}</div>
+      <table style="margin-top: 6px">
+        @foreach($cards->chunk(2) as $pair)
+          <tr>
+            @foreach($pair as $c)
+              <td style="width: 50%; padding: 6px 10px 6px 0; vertical-align: top">
+                <table><tr>
+                  <td style="width: 84px"><div class="thumb-s">@if($c['image'])<img src="{{ $c['image'] }}" alt="">@endif</div></td>
+                  <td style="padding-left: 10px; vertical-align: top">
+                    <div class="iname" style="font-size: 14px">{{ $c['name'] }}</div>
+                    <div class="muted small">{{ $c['code'] ? 'Code '.$c['code'] : '' }}</div>
+                    @if($c['from'])<div class="small" style="margin-top: 2px">From ${{ $m($c['from']) }} each, branded, ex GST</div>@endif
+                    <div class="small"><a href="{{ $c['url'] }}" style="color: #D4651F">{{ preg_replace('#^https://#', '', $c['url']) }}</a></div>
+                  </td>
+                </tr></table>
+              </td>
+            @endforeach
+            @if($pair->count() === 1)<td></td>@endif
+          </tr>
+        @endforeach
+      </table>
+    @endif
+  @endforeach
+  <div class="small muted" style="margin-top: 10px">Ask us to quote any of these at your quantity and branding.</div>
+@endif
 </body></html>
