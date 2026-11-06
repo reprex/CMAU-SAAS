@@ -58,8 +58,10 @@ class QuotePdf
         ])->values();
 
         $included = collect();
+        // Website quotes: the setups are one line under the products, not under "Also included" (Scott, 7 Nov 2026).
+        $setups = $quote->source === 'website' ? $quote->items->filter(fn ($i) => $i->setupPrice() > 0) : collect();
         foreach ($quote->items as $i) {
-            if ($i->setupPrice() > 0) {
+            if ($i->setupPrice() > 0 && $quote->source !== 'website') {
                 $included->push(['label' => ($i->decoration_name ? 'Setup: '.$i->decoration_name : 'Setup').($quote->source === 'website' ? '' : ' ('.$i->name.')'), 'amount' => $i->setupPrice(), 'tbc' => false]);
             }
         }
@@ -92,7 +94,8 @@ class QuotePdf
             'separate' => $quote->decoration_display === 'separate',
             'timing' => $this->timing($quote->lead_time),
             'anyTbc' => $included->contains('tbc', true),
-            'deliveryEstimated' => $quote->extras->where('kind', 'freight')->contains(fn ($x) => str_contains((string) $x->description, '(estimate)')),
+            'setupTotal' => (float) $setups->sum(fn ($i) => $i->setupPrice()),
+            'setupNames' => $setups->map(fn ($i) => $i->decoration_name ?: $i->name)->unique()->values(),
         ] + $this->common())->render();
     }
 

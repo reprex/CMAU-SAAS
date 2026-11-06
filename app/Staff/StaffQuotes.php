@@ -233,7 +233,8 @@ class StaffQuotes
         $where = $country === 'AU' ? trim(($postcode ?? '').' '.($freight['zone'] ?? '')) : trim(($freight['zone'] ?? $country).' '.($postcode ?? ''));
         $eta = $chosen && ! empty($chosen['delivery_date']) ? ', ETA '.CarbonImmutable::parse($chosen['delivery_date'])->format('D j M') : '';
         // Weights not all from Promodata, or no live carrier rate: say it's an estimate (Scott, 7 Nov 2026).
-        $estimate = ($freight['estimated'] ?? false) || ($freight['source'] ?? 'estimate') === 'estimate' ? ' (estimate)' : '';
+        $estimate = ($freight['estimated'] ?? false) || ($freight['source'] ?? 'estimate') === 'estimate'
+            ? ' (estimate based on '.rtrim(rtrim(number_format((float) ($freight['kg'] ?? 0), 1), '0'), '.').' kg, subject to confirming final weight)' : '';
         $quote->extras()->create([
             'kind' => 'freight', 'auto' => false, 'auto_key' => 'website', 'quantity' => 1, 'position' => 1000,
             'description' => $chosen ? "Delivery to {$where}: {$chosen['name']}{$eta}{$estimate}" : "Delivery to {$where} (to be confirmed)",

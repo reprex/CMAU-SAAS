@@ -137,7 +137,7 @@ class WebsiteQuotePdfTest extends TestCase
         $this->assertSame('carrier', $q->freight_source);
         $this->assertFalse($q->gst_free_export);
         $this->assertGreaterThan(0, (float) $q->gst);
-        $this->assertStringContainsString('Delivery is an estimate', app(QuotePdf::class)->quoteHtml($q), 'placeholder rates are an estimate');
+        $this->assertMatchesRegularExpression('/\(estimate based on [\d.]+ kg, subject to confirming final weight\)/', $freight->first()->description, 'placeholder rates are an estimate');
     }
 
     public function test_overseas_delivery_is_gst_free_and_says_duties_are_the_clients(): void

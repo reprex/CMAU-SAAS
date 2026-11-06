@@ -85,6 +85,7 @@
           <td class="right" style="white-space: nowrap">{{ number_format($i->quantity) }} × <b>${{ $m($unit) }}</b></td>
           <td class="right" style="white-space: nowrap"><b>${{ $m($unit * (float) $i->quantity) }}</b></td></tr>
       @endforeach
+      @if($setupTotal > 0)<tr><td>Setup, once for the order <span class="muted">· {{ $setupNames->implode('; ') }}</span></td><td class="right muted" style="white-space: nowrap">once</td><td class="right" style="white-space: nowrap"><b>${{ $m($setupTotal) }}</b></td></tr>@endif
     </table>
     <div class="small muted" style="margin-top: 4px">Branding: {{ $brandings->implode('; ') }}.</div>
   @else
@@ -95,6 +96,7 @@
         <td class="right muted" style="width: 150px; white-space: nowrap">{{ number_format($i->quantity) }} × ${{ $m($i->unitPrice()) }}</td>
         <td class="right" style="width: 90px; white-space: nowrap"><b>${{ $m($i->goodsTotal()) }}</b></td></tr>
     @endforeach
+    @if($setupTotal > 0)<tr><td>Setup, once for the order <span class="muted">· {{ $setupNames->implode('; ') }}</span></td><td class="right muted" style="white-space: nowrap">once</td><td class="right" style="white-space: nowrap"><b>${{ $m($setupTotal) }}</b></td></tr>@endif
   </table>
   @endif
 @else
@@ -192,7 +194,7 @@
       </td></tr></table>
       @if($anyTbc)<div class="muted small" style="margin-top: 5px">Delivery marked TBC is not in this total yet; we will confirm it.</div>@endif
       @if($quote->freight_source === 'none')<div class="muted small" style="margin-top: 5px">Delivery is not included. Ask us if you'd like it added.</div>@endif
-      @if($deliveryEstimated || $quote->gst_free_export)<div class="muted small" style="margin-top: 5px">{{ collect([$deliveryEstimated ? 'Delivery is an estimate, subject to confirming the exact product mix and weights.' : null, $quote->gst_free_export ? 'Outside Australia: no Australian GST (GST-free export); local duties and taxes are payable by you to the carrier before delivery.' : null])->filter()->implode(' ') }}</div>@endif
+      @if($quote->gst_free_export)<div class="muted small" style="margin-top: 5px">Outside Australia: no Australian GST (GST-free export); local duties and taxes are payable by you to the carrier before delivery.</div>@endif
     </td>
   </tr>
 </table>
