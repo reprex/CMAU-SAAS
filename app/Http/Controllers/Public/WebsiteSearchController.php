@@ -90,7 +90,7 @@ class WebsiteSearchController extends Controller
         $hits = $keyword->search($brief);
         $answer = fn (string $mode, $rows, array $extra = []) => $this->reply($request, [
             'mode' => $mode,
-            'understood' => array_merge(['qty' => $brief['qty'], 'budget' => $brief['budget'], 'under' => $brief['under'], 'eco' => $brief['eco'], 'colours' => $brief['colours'], 'types' => $brief['types'],
+            'understood' => array_merge(['qty' => $brief['qty'], 'budget' => $brief['budget'], 'under' => $brief['under'], 'eco' => $brief['eco'], 'colours' => $brief['colours'], 'types' => $brief['types'], 'needed_by' => $brief['need_by'],
                 'heading' => Occasions::heading($brief['occasions'])], $extra['understood'] ?? []),
             'results' => array_values(is_array($rows) ? $rows : $rows->all()),
             // The subcategories, for "pick one or more" on the website (Scott, 3 Nov 2026).
@@ -144,6 +144,7 @@ class WebsiteSearchController extends Controller
             $plannedBrief = $brief;
             $plannedBrief['budget'] ??= is_numeric($u['budget_each'] ?? null) && $u['budget_each'] > 0 ? (float) $u['budget_each'] : null;
             $plannedBrief['qty'] ??= is_numeric($u['qty'] ?? null) && $u['qty'] > 0 ? (int) $u['qty'] : null;
+            $plannedBrief['need_by'] ??= is_string($u['needed_by'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $u['needed_by']) ? $u['needed_by'] : null;
             $tags = array_column($ai['groups'], 'tag');
             $why = array_column($ai['groups'], 'why', 'tag');
             $perType = count($tags) === 1 ? 24 : (count($tags) <= 4 ? 5 : 3);
@@ -155,7 +156,7 @@ class WebsiteSearchController extends Controller
 
                 return $answer('keyword', $hits);
             }
-            $understood = array_filter(['qty' => $plannedBrief['qty'], 'budget_each' => $plannedBrief['budget'], 'needed_by' => $u['needed_by'] ?? null,
+            $understood = array_filter(['qty' => $plannedBrief['qty'], 'budget_each' => $plannedBrief['budget'], 'needed_by' => $plannedBrief['need_by'] ?? ($u['needed_by'] ?? null),
                 'eco' => (bool) ($u['eco'] ?? $brief['eco']), 'occasion' => $u['occasion'] ?? null, 'heading' => $ai['heading'],
                 'products' => array_values(array_unique(array_filter(array_map(fn ($r) => $r['group'] ?? null, $results))))], fn ($v) => $v !== null);
             Cache::put($cacheKey, ['results' => $results, 'understood' => $understood], now()->addMinutes((int) config('search.anthropic.cache_minutes')));
