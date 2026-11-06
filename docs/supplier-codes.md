@@ -8,7 +8,8 @@
   - the **title chip** beside the product name may show the **supplier's own product code** (e.g. `5001`, `104743`), from `custom.supplierproductcode`;
   - the **line under the title** shows **only our code**: "Our code 3-104743" (with Copy), from `custom.ourcode`. No supplier name or supplier code in that line.
 - **Everywhere else client-facing** shows our code only, never the supplier's code or name: collection cards, the stock table, the SaaS checkout replies (`crowdmerch/checkout/*`), the invoice PDF, the emails, My Orders and samples (docs/website-checkout.md, rule 10).
-- **Staff** see everything: supplier name, supplier code and supplier SKUs, on Range, the quote desk and Website orders. Order lines keep the supplier code and SKU for ordering from the supplier.
+- **Quotes** (6 Nov 2026): the quote PDF and the product comparison PDF print our code ("Code 3-104743", `QuoteItem::ourCode()`), never the supplier's code or name. A line with no supplier prints no code (the bare supplier code is never shown on its own). The comparison's intro, taken from the supplier's description, leaves out any sentence that names the supplier. The quote emails carry no codes. Tests: `QuoteDeskHttpTest::test_client_quote_outputs_show_our_code_never_the_suppliers_name_or_code`, `WebsiteSamplesTest` (invoices).
+- **Staff** see everything: supplier name, supplier code and supplier SKUs, on Range, the quote desk and Website orders. Each quote desk line also shows "our code 3-104743": use that, not the supplier's code, when writing to a client. Order lines keep the supplier code and SKU for ordering from the supplier.
 
 ## Live stock, and where the SKUs come from
 

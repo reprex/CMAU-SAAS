@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Catalogue\OurCodes;
 use App\Pricing\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,6 +56,17 @@ class QuoteItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Our code ("SupplierID-Code", e.g. 3-104743), the only product code clients
+     * see (docs/supplier-codes.md). Null without a supplier: the bare supplier
+     * code is never printed on its own. product_code stays the supplier's code
+     * for staff and for ordering.
+     */
+    public function ourCode(): ?string
+    {
+        return OurCodes::code($this->supplier_id, $this->product_code);
     }
 
     public function hasDecoration(): bool

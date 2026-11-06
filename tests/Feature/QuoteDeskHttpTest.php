@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendInstantQuote;
+use App\Mail\QuoteMail;
 use App\Models\Quote;
 use App\Models\User;
 use App\Pdf\QuotePdf;
@@ -233,5 +234,38 @@ class QuoteDeskHttpTest extends TestCase
         $quote = Quote::where('shopify_draft_order_id', 42)->first();
         $this->assertSame('website', $quote->source);
         Queue::assertPushed(SendInstantQuote::class);
+    }
+
+    public function test_client_quote_outputs_show_our_code_never_the_suppliers_name_or_code(): void
+    {
+        $this->supplier(7, 'AS Colour');
+        $quote = Quote::create(['number' => 'MR12001', 'client_name' => 'Pat Lee', 'client_email' => 'pat@example.com']);
+        $quote->items()->create(['supplier_id' => 7, 'supplier_name' => 'AS Colour', 'product_code' => '5001', 'name' => 'Staple Tee', 'colour' => 'Black', 'quantity' => 50,
+            'description' => "AS Colour's best seller. A soft cotton tee for every day.\nFeatures:\n* Ribbed neck", 'product_unit_price' => 8.5]);
+        // No supplier: the bare supplier code is never printed on its own.
+        $quote->items()->create(['supplier_name' => 'AS Colour', 'product_code' => 'X9-SUPP', 'name' => 'Local cap', 'quantity' => 20, 'product_unit_price' => 6]);
+
+        $pdf = app(QuotePdf::class);
+        $html = $pdf->quoteHtml($quote);
+        $this->assertStringContainsString('Code 7-5001', $html);
+        $this->assertStringNotContainsString('Code 5001', $html);
+        $this->assertStringNotContainsString('X9-SUPP', $html);
+        $this->assertStringNotContainsString('AS Colour', $html);
+
+        $cmp = $pdf->comparisonHtml($quote);
+        $this->assertStringContainsString('Code 7-5001', $cmp);
+        $this->assertStringNotContainsString('Code 5001', $cmp);
+        $this->assertStringNotContainsString('X9-SUPP', $cmp);
+        $this->assertStringNotContainsString('AS Colour', $cmp);
+        $this->assertStringContainsString('A soft cotton tee for every day.', $cmp);
+        $this->assertStringStartsWith('%PDF', $pdf->quote($quote));
+
+        $mail = (new QuoteMail($quote))->render();
+        $this->assertStringNotContainsString('AS Colour', $mail);
+        $this->assertStringNotContainsString('5001', $mail);
+
+        // Staff keep the supplier's details for ordering, with our code to quote to the client.
+        $this->staff('sales');
+        $this->get(route('quotes.show', $quote))->assertOk()->assertSee('AS Colour')->assertSee('5001')->assertSee('our code 7-5001');
     }
 }
