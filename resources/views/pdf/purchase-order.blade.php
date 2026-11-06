@@ -15,7 +15,7 @@
 @include('pdf._header', [
   'number' => 'Purchase order '.$po->number,
   'dateLine' => $po->created_at->timezone(config('app.timezone'))->format('j F Y'),
-  'kicker' => 'Purchase order to',
+  'kicker' => 'Supplier:',
   'client' => $s?->name ?? 'Supplier',
   'title' => 'Purchase order',
 ])
