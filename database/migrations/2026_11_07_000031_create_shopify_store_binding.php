@@ -31,8 +31,9 @@ return new class extends Migration
             $table->index(['store', 'kind']);
         });
 
-        // Ids already stored came from the store the app is set up for today (CMAU_DEV).
-        $store = mb_strtolower((string) config('shopify.store'));
+        // Ids already stored came from the development store (writes were locked to it), even if .env
+        // has already been pointed at the live store when this runs.
+        $store = mb_strtolower((string) (config('shopify.dev_store') ?: config('shopify.store')));
         $hasIds = DB::table('products')->whereNotNull('shopify_product_id')->exists()
             || DB::table('shopify_media')->exists()
             || DB::table('shopify_collections')->whereNotNull('shopify_gid')->exists();

@@ -171,6 +171,9 @@ class ProductPublisher
      */
     private function prepare(Product $product, bool $preview, bool $force, ?int $userId): array
     {
+        if (! $preview && ! $product->shopify_product_id && StoreBinding::adopting()) {
+            $this->adopt($product, $userId);
+        }
         $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
         $built = $this->payload->build($product, $media);
         $hash = sha1(json_encode($built['input']));
@@ -195,6 +198,79 @@ class ProductPublisher
         return ['built' => $built, 'hash' => $hash, 'action' => $action];
     }
 
+    /**
+     * After switching to a store that already has these products (the live store, filled by TOD's
+     * Matrixify imports; docs/publisher.md): find the product by its handle (APPAID) and take over
+     * its id and pictures, so the first publish updates it instead of re-uploading every picture.
+     * Its pictures are matched to the SaaS's by file name; any left over are kept (merged, never
+     * replaced). Read-only on Shopify.
+     */
+    public function adopt(Product $product, ?int $userId = null): bool
+    {
+        try {
+            $q = 'query($q: String!) { products(first: 3, query: $q) { nodes { id handle status media(first: 250) { nodes { id ... on MediaImage { image { url } } } } } } }';
+            $nodes = $this->shopify->graphql($q, ['q' => 'handle:'.$product->id])['products']['nodes'] ?? [];
+        } catch (Throwable $e) {
+            $this->log($product, 'adopt', false, 'lookup by handle failed: '.mb_substr($e->getMessage(), 0, 500), null, $userId);
+
+            return false;
+        }
+        $node = collect($nodes)->first(fn ($n) => (string) ($n['handle'] ?? '') === (string) $product->id);
+        if (! $node) {
+            return false; // not on the store: the publish creates it
+        }
+        $live = [];
+        foreach ($node['media']['nodes'] ?? [] as $m) {
+            if (! empty($m['id']) && ! empty($m['image']['url'])) {
+                $live[] = ['id' => $m['id'], 'url' => (string) $m['image']['url'], 'key' => self::fileKey((string) $m['image']['url'])];
+            }
+        }
+        $built = $this->payload->build($product, []);
+        $ours = $built['files'];
+        foreach ($built['input']['variants'] ?? [] as $v) {
+            if (isset($v['file']['originalSource'])) {
+                $ours[] = $v['file']['originalSource'];
+            }
+        }
+        $used = [];
+        $rows = [];
+        foreach (array_unique($ours) as $url) {
+            $key = self::fileKey($url);
+            foreach ($live as $i => $l) {
+                if (! isset($used[$i]) && $key !== '' && $l['key'] === $key) {
+                    $used[$i] = true;
+                    $rows[] = ['product_id' => $product->id, 'url_hash' => sha1($url), 'url' => $url, 'media_gid' => $l['id']];
+
+                    break;
+                }
+            }
+        }
+        foreach ($live as $i => $l) { // pictures only the store has (staff added them): kept
+            if (! isset($used[$i])) {
+                $rows[] = ['product_id' => $product->id, 'url_hash' => sha1($l['url']), 'url' => mb_substr($l['url'], 0, 1024), 'media_gid' => $l['id']];
+            }
+        }
+        DB::table('shopify_media')->where('product_id', $product->id)->delete();
+        foreach ($rows as $r) {
+            DB::table('shopify_media')->insert($r + ['created_at' => now(), 'updated_at' => now()]);
+        }
+        $product->forceFill(['shopify_product_id' => $this->numericId((string) $node['id'])]);
+        DB::table('products')->where('id', $product->id)->update(['shopify_product_id' => $product->shopify_product_id]);
+        $this->log($product, 'adopt', true, 'found by handle ('.strtolower((string) ($node['status'] ?? '')).'); '.count($used).' of '.count($live).' pictures matched, '.(count($live) - count($used)).' kept', null, $userId);
+
+        return true;
+    }
+
+    /** "https://cdn.shopify.com/s/files/1/…/LL0007_White_3f2a…-….jpg?v=1" and "https://res.cloudinary.com/…/LL0007_White.jpg" -> "ll0007_white" */
+    public static function fileKey(string $url): string
+    {
+        $name = mb_strtolower(rawurldecode(basename((string) parse_url($url, PHP_URL_PATH))));
+        $name = preg_replace('/\.(jpe?g|png|gif|webp|avif)$/', '', $name);
+        $name = preg_replace('/_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', '', $name); // Shopify's suffix on a repeated file name
+
+        return (string) $name;
+    }
+
     /** Does this payload upload any picture Shopify doesn't have yet? */
     private function uploads(array $built): bool
     {
@@ -214,6 +290,8 @@ class ProductPublisher
 
     private function done(Product $product, string $action, array $built, string $productGid, ?string $channel, ?int $userId): array
     {
+        // A run that started before shopify:switch-store must not write the old store's id back.
+        app(StoreBinding::class)->assertMatches();
         // What an unchanged product will look like next time (images by id), so it is skipped.
         $media = DB::table('shopify_media')->where('product_id', $product->id)->pluck('media_gid', 'url')->all();
         $hash = sha1(json_encode($this->payload->build($product, $media)['input']));
@@ -246,7 +324,7 @@ class ProductPublisher
         if ($gid === '') {
             throw new \RuntimeException('Shopify returned no product id');
         }
-        if ($files !== null) {
+        if ($files !== null && app(StoreBinding::class)->matches()) {
             // Media come back in the order the files were sent. A product found by its handle on a
             // store we have no ids for (the live store after shopify:switch-store) may carry older
             // pictures too: those come first, so the ones just sent are the last count($files).

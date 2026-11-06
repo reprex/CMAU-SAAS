@@ -20,6 +20,14 @@ class StoreBinding
 {
     public const KEY = 'shopify.ids_store';
 
+    /** Set by a switch to a store with no ids kept: products are looked up by handle before their first publish. */
+    public const ADOPT = 'shopify.adopt_by_handle';
+
+    public static function adopting(): bool
+    {
+        return DB::table('app_settings')->where('key', self::ADOPT)->value('value') === '1';
+    }
+
     /** The store .env points at. */
     public function configured(): string
     {
@@ -100,6 +108,7 @@ class StoreBinding
             $this->clear();
             $restored = $this->restore($to);
             $this->set($to);
+            DB::table('app_settings')->updateOrInsert(['key' => self::ADOPT], ['value' => array_sum($restored) > 0 ? '0' : '1', 'updated_at' => now(), 'created_at' => now()]);
             Cache::forever('shopify:auto_publish', false);
             Cache::forget('shopify:publish_paused_until');
             Cache::forget('range-collections:tags');

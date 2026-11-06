@@ -75,7 +75,7 @@ class LeadTimes
             $line = PriceLine::query()->where('product_id', $opt->product_id)->whereNotNull('base_price_line_id')->whereNotNull('lead_time')
                 ->where(fn ($q) => $q->where('description', $opt->description)
                     ->when(filled($opt->promodata_decoration), fn ($q) => $q->orWhere('promodata_decoration', $opt->promodata_decoration)))
-                ->value('lead_time');
+                ->orderBy('id')->value('lead_time');
             $text = $line ? (string) $line : null;
         }
 

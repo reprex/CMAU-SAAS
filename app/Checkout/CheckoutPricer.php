@@ -228,7 +228,7 @@ class CheckoutPricer
         } elseif ($needBy->lte($today)) {
             $issue('need_by', 'The need-by date must be after today.');
         } elseif ($chosen) {
-            $deadline = $this->estimator->deadline($estimates, $chosen['id'], $needBy, $state, collect($freight['options'])->pluck('name', 'id')->all());
+            $deadline = $this->estimator->deadline($estimates, $chosen['id'], $needBy, $state === 'NZ' ? (string) config('website.lead_times.default_state') : $state, collect($freight['options'])->pluck('name', 'id')->all());
             if (! $deadline['met']) {
                 $date = CarbonImmutable::parse($needBy)->format('D j M');
                 $deadline['faster_service']

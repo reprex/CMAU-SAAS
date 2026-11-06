@@ -37,7 +37,7 @@ class DeliveryEstimator
         $closed = (array) ($lead['closed'] ?? []);
         $delivery = (string) ($lead['delivery_state'] ?? ($state === 'NZ' ? config('website.lead_times.default_state') : $state));
         $stages = [
-            ['key' => 'order_check', 'name' => 'Order check and invoice', 'days' => (int) config('website.lead_times.order_check')],
+            ['key' => 'order_check', 'name' => 'Order check and invoice', 'days' => (int) config('website.lead_times.order_check'), 'state' => (string) config('website.lead_times.default_state')], // done here in Melbourne
             ['key' => 'stock', 'name' => 'Stock from '.($supplierName ?: 'the supplier'), 'days' => $stockDays, 'closed' => $closed],
             ['key' => 'decoration', 'name' => $productionDays !== null ? 'Production ('.($productionDays ?: 'same day').($productionDays ? ' working '.($productionDays === 1 ? 'day' : 'days') : '').')' : ($methods[$method]['name'] ?? 'Branding').' decoration', 'method' => $method, 'days' => $make, 'closed' => $closed],
         ];
