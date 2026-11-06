@@ -219,7 +219,7 @@ class BrandingTemplates
                     $text = (string) collect($r->json('content', []))->where('type', 'text')->pluck('text')->implode('');
                     $a = strpos($text, '{');
                     $b = strrpos($text, '}');
-                    $json = $a !== false && $b > $a ? json_decode(substr($text, $a, $b - $a + 1), true) : null;
+                    $json = $a !== false && $b > $a ? self::decode(substr($text, $a, $b - $a + 1)) : null;
                     if (is_array($json['positions'] ?? null)) {
                         $row['positions'] = self::rows($json, $job['front'], $job['back']);
                         $done++;
@@ -233,6 +233,18 @@ class BrandingTemplates
         }
 
         return ['done' => $done, 'failed' => $failed];
+    }
+
+    /** Claude's JSON, forgiving the small slips it sometimes makes (a trailing comma, a stray line break). */
+    public static function decode(string $json): ?array
+    {
+        $out = json_decode($json, true);
+        if (! is_array($out)) {
+            $fixed = preg_replace(['/,\s*([}\]])/', '/[\x00-\x1F]+/'], ['$1', ' '], $json);
+            $out = json_decode((string) $fixed, true);
+        }
+
+        return is_array($out) ? $out : null;
     }
 
     /** Templates left "reading" by a run that stopped (out of memory, timed out): set aside as failed. */
@@ -347,7 +359,7 @@ class BrandingTemplates
         // The JSON may come with words or a code fence around it: take the outermost {...}.
         $start = strpos($text, '{');
         $end = strrpos($text, '}');
-        $json = $start !== false && $end > $start ? json_decode(substr($text, $start, $end - $start + 1), true) : null;
+        $json = $start !== false && $end > $start ? self::decode(substr($text, $start, $end - $start + 1)) : null;
         if (! is_array($json['positions'] ?? null)) {
             $why = $r->json('stop_reason') === 'max_tokens' ? 'reply cut off (too long)' : 'not JSON: '.mb_substr(trim(preg_replace('/\s+/', ' ', $text)), 0, 160);
             $template->update(['status' => 'failed', 'message' => 'Claude reply was not usable: '.$why]);
@@ -397,7 +409,8 @@ class BrandingTemplates
      */
     public static function rows(array $json, ?string $front, ?string $back): array
     {
-        $num = fn ($v) => is_numeric($v) && $v > 0 ? (int) round((float) $v) : null;
+        // A size in mm: over 5 m is a misreading (6 Nov 2026: one was too big for the column and failed the read).
+        $num = fn ($v) => is_numeric($v) && $v > 0 && $v <= 5000 ? (int) round((float) $v) : null;
         $out = [];
         foreach (collect($json['positions'] ?? [])->filter(fn ($p) => is_array($p) && filled($p['name'] ?? null))->take(12)->values() as $p) {
             $view = in_array($p['view'] ?? null, self::VIEWS, true) ? $p['view'] : 'front';
