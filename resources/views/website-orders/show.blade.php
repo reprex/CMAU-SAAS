@@ -10,6 +10,8 @@
   <a class="btn" href="{{ route('website-orders.invoice', $o) }}" target="_blank" rel="noopener">Invoice PDF</a>
 </div>
 
+@include('desk._next', ['state' => \App\Desk\JobState::forOrder($o)])
+
 @if(! empty($o->alerts))
   <div class="card" style="background:var(--warn-bg);border-color:#E9D29C"><b>Pre-payment alerts on the invoice</b>
     <ul style="margin:0;padding-left:18px">@foreach($o->alerts as $a)<li>{{ $a['message'] }}</li>@endforeach</ul></div>
@@ -81,7 +83,7 @@
       @if($fb && ! $o->isSamples())<p class="small muted" style="margin:0">{{ $fb['cartons'] ?? '?' }} cartons · {{ $fb['kg'] ?? '?' }} kg · {{ $fb['m3'] ?? '?' }} m³ · charged on {{ $fb['chargeable_kg'] ?? '?' }} kg ({{ $fb['basis'] ?? '' }}) to {{ $fb['zone'] ?? '' }}. Placeholder rates.</p>@endif
     </div>
 
-    <div class="card">
+    <div class="card" id="changes">
       <h2>Change requests</h2>
       @forelse($o->changeRequests as $c)
         <div style="border-top:1px solid var(--line-soft);padding:8px 0">
@@ -121,7 +123,8 @@
           @if($e->sent_at)<br><span class="muted">Sent {{ $e->sent_at->timezone(config('app.timezone'))->format('j M g:ia') }}@if($e->sender) by {{ $e->sender->name }}@endif</span>@endif
           @if($e->error)<br><span style="color:var(--bad)">{{ $e->error }}</span>@endif
           @if(in_array($e->status, ['draft', 'failed'], true) && $canEdit)
-            <form method="post" action="{{ route('website-orders.send', [$o, $e]) }}" style="margin-top:4px">@csrf<button class="btn small primary">Send{{ $e->kind === 'invoice' ? ' invoice' : '' }}</button></form>
+            @if($e->kind === 'change_request')<form method="post" action="{{ route('website-orders.send', [$o, $e]) }}" style="margin-top:4px">@csrf<button class="btn small primary">Send</button></form>
+            @else<a class="btn small primary" style="margin-top:4px" href="{{ route('emails.review', $e) }}">Review &amp; send{{ $e->kind === 'invoice' ? ' invoice' : '' }}</a>@endif
           @endif
         </div>
       @empty
@@ -130,7 +133,7 @@
       @if(! config('website.orders.auto_send_invoice'))<p class="small muted" style="margin:0">Client emails are not sent automatically (REPSTACK principle 6). Check the invoice PDF, then send.</p>@endif
     </div>
 
-    <form method="post" action="{{ route('website-orders.update', $o) }}" class="card">@csrf @method('PUT')
+    <form method="post" action="{{ route('website-orders.update', $o) }}" class="card" id="progress">@csrf @method('PUT')
       <h2>Progress</h2>
       <label class="f">Stage
         <select name="stage" @disabled(! $canEdit)>@foreach($o->stageOptions() as $i => $label)<option value="{{ $i }}" @selected($o->stage === $i)>{{ $loop->iteration }}. {{ $label }}</option>@endforeach</select></label>

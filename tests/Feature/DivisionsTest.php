@@ -54,7 +54,7 @@ class DivisionsTest extends TestCase
     {
         $this->as(['crowdmerch' => 'view', 'shared' => 'view']);
         $this->post(route('quotes.store'), [])->assertForbidden();
-        $this->get('/')->assertRedirect(route('quotes.index'));
+        $this->get('/')->assertRedirect(route('desk'));
     }
 
     public function test_accounts_from_before_divisions_keep_their_access(): void

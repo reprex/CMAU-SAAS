@@ -106,7 +106,7 @@ class QuoteController extends Controller
         $email = PendingEmail::query()->where('quote_id', $quote->id)->where('status', 'draft')->latest('id')->first() ?? $emails->prepareQuote($quote);
         $email->update(['recipient' => $quote->client_email]);
 
-        return back()->with('status', 'Quote email ready to check and send to '.$quote->client_email.'.');
+        return redirect()->route('emails.review', $email);
     }
 
     public function sendEmail(Request $request, Quote $quote, PendingEmail $email, OutboundEmails $emails)

@@ -38,7 +38,7 @@ class WebsiteOrdersAdminTest extends TestCase
 
         $this->get(route('website-orders.index'))->assertOk()->assertSee($order->number)->assertSee('Order received')->assertSee('Fri 4 Dec 2026')->assertSee('invoice to send');
         $order->changeRequests()->create(['message' => 'Please add 10 more size L', 'stage_at_request' => 0]);
-        $this->get(route('website-orders.show', $order))->assertOk()->assertSee('Send invoice')->assertSee('Please add 10 more size L')->assertSee('Mark handled');
+        $this->get(route('website-orders.show', $order))->assertOk()->assertSee('Review & send invoice')->assertSee(route('emails.review', $email))->assertSee('Please add 10 more size L')->assertSee('Mark handled');
 
         $this->post(route('website-orders.send', [$order, $email]))->assertRedirect(route('website-orders.show', $order));
         Mail::assertSent(WebsiteInvoiceMail::class, fn ($m) => $m->hasTo('pat@example.com'));

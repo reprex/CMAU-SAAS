@@ -71,7 +71,7 @@ class PurchaseOrderTest extends TestCase
             $this->assertStringContainsString($text, $html);
         }
         $this->assertNotEmpty(app(QuotePdf::class)->purchaseOrder($po));
-        $this->get(route('purchase-orders.show', $po))->assertOk()->assertSee('Send to supplier')->assertSee('Add the orders email');
+        $this->get(route('purchase-orders.show', $po))->assertOk()->assertSee('Review & send to supplier')->assertSee('Add the orders email');
         $this->get(route('website-orders.show', $order))->assertOk()->assertSee($po->number);
     }
 

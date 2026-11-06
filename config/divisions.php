@@ -12,7 +12,7 @@
 return [
     'list' => [
         'replicat' => ['name' => 'Replicat', 'tagline' => 'Vinyl, CD & DVD', 'home' => 'replicat.home', 'routes' => ['replicat.*']],
-        'crowdmerch' => ['name' => 'CrowdMerch', 'tagline' => 'Branded merchandise', 'home' => 'quotes.index', 'routes' => []],
+        'crowdmerch' => ['name' => 'CrowdMerch', 'tagline' => 'Branded merchandise', 'home' => 'desk', 'routes' => []],
         'crowdlink' => ['name' => 'CrowdLink', 'tagline' => 'Client stores & sales', 'home' => 'crowdlink.home', 'routes' => ['crowdlink.*']],
     ],
     'default' => 'crowdmerch',
