@@ -33,7 +33,7 @@
       <td style="padding-left: 18px; padding-right: 12px">
         <div class="label orange">Item {{ str_pad($n + 1, 2, '0', STR_PAD_LEFT) }}</div>
         <div class="iname">{{ $i->name }}</div>
-        <div class="muted">{{ collect([$i->product_code ? 'Code '.$i->product_code : null, $i->colour])->filter()->implode(' · ') }}</div>
+        <div class="muted">{{ collect([$i->ourCode() ? 'Code '.$i->ourCode() : null, $i->colour])->filter()->implode(' · ') }}</div>
         @if($i->hasDecoration())<div style="margin-top: 3px">{{ $i->decoration_name }}</div>@endif
         @foreach ($row['sizes'] as $colour => $sizes)
           <div style="margin-top: 5px">@if(count($row['sizes']) > 1 || ($colour !== '' && mb_strtolower($colour) !== mb_strtolower((string) $i->colour)))<span class="small muted">{{ $colour }}&nbsp;</span>@endif

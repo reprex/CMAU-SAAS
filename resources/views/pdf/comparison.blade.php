@@ -34,7 +34,7 @@
   <td style="width: 290px"><div class="imgbox"><div class="tag label">Idea {{ str_pad($n + 1, 2, '0', STR_PAD_LEFT) }}</div>@if($card['image'])<img src="{{ $card['image'] }}" alt="">@endif</div></td>
   <td style="padding-left: 22px">
     <div class="pname">{{ $i->name }}</div>
-    <div class="muted" style="margin-top: 2px; line-height: 13px">{{ collect([$i->product_code ? 'Code '.$i->product_code : null, $i->colour])->filter()->implode(' · ') }}</div>
+    <div class="muted" style="margin-top: 2px; line-height: 13px">{{ collect([$i->ourCode() ? 'Code '.$i->ourCode() : null, $i->colour])->filter()->implode(' · ') }}</div>
     @if($card['intro'])<div class="soft" style="margin-top: 4px; line-height: 14px">{{ $card['intro'] }}</div>@endif
     @if($i->hasDecoration())<div style="margin-top: 5px"><b>Branding:</b> {{ $i->decoration_name }}</div>@endif
     <div class="label muted" style="margin: 8px 0 3px">{{ $card['all_in'] ? 'Price each, all in' : 'Price each' }}</div>
