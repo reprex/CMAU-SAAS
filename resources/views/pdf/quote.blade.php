@@ -200,6 +200,7 @@
 </table>
 @if($single && ($similar->isNotEmpty() || $saved->isNotEmpty()))
   <div style="page-break-before: always"></div>
+  @if(collect($similar)->merge($saved)->contains(fn ($c) => $c['at']))<div class="small muted">Prices to compare: each product at the same total quantity as your quote, with one branding position in its standard branding and that setup, before delivery. Your quote's branding may differ; ask us to price it exactly.</div>@endif
   @foreach([['You might also consider', $similar], ['Products you saved', $saved]] as [$heading, $cards])
     @if($cards->isNotEmpty())
       <div class="label orange" style="margin-top: 14px">{{ $heading }}</div>
@@ -213,7 +214,11 @@
                   <td style="padding-left: 10px; vertical-align: top">
                     <div class="iname" style="font-size: 14px">{{ $c['name'] }}</div>
                     <div class="muted small">{{ $c['code'] ? 'Code '.$c['code'] : '' }}</div>
-                    @if($c['from'])<div class="small" style="margin-top: 2px">From ${{ $m($c['from']) }} each, branded, ex GST</div>@endif
+                    @if($c['at'])
+                      <div class="small muted" style="margin-top: 2px">{{ $c['at']['branding'] ? 'Assumes 1 branding position: '.$c['at']['branding'] : 'Unbranded (no standard branding listed)' }}</div>
+                      <div class="small">Qty {{ number_format($c['at']['units']) }} × ${{ $m($c['at']['unit']) }}{{ $c['at']['setup'] > 0 ? ' + $'.$m($c['at']['setup']).' setup' : '' }}</div>
+                      <div class="small"><b>${{ $m($c['at']['ex']) }}</b> ex GST · <b>${{ $m($c['at']['inc']) }}</b> inc GST</div>
+                    @elseif($c['from'])<div class="small" style="margin-top: 2px">From ${{ $m($c['from']) }} each, branded, ex GST</div>@endif
                     <div class="small"><a href="{{ $c['url'] }}" style="color: #D4651F">{{ preg_replace('#^https://#', '', $c['url']) }}</a></div>
                   </td>
                 </tr></table>

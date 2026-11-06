@@ -162,6 +162,17 @@ class WebsiteQuotePdfTest extends TestCase
         $this->assertStringContainsString('Delivery is not included', app(QuotePdf::class)->quoteHtml($q));
     }
 
+    public function test_page_two_prices_each_product_at_the_quotes_quantity(): void
+    {
+        $q = $this->quoteFrom($this->send(['saved' => [self::CAP]]));
+
+        $html = app(QuotePdf::class)->quoteHtml($q);
+        $this->assertStringContainsString('Prices to compare', $html);
+        $this->assertStringContainsString('Unbranded (no standard branding listed)', $html);
+        $this->assertStringContainsString('Qty 110 × $5.00', $html);
+        $this->assertStringContainsString('$550.00</b> ex GST · <b>$605.00</b> inc GST', $html);
+    }
+
     public function test_an_unknown_country_is_refused(): void
     {
         $this->send([], ['wanted' => true, 'country' => 'ZZ', 'postcode' => '1'])->assertStatus(422);
