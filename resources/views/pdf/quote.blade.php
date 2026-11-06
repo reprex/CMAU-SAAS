@@ -201,7 +201,7 @@
 </table>
 @if($single && ($similar->isNotEmpty() || $saved->isNotEmpty()))
   <div style="page-break-before: always"></div>
-  @if(collect($similar)->merge($saved)->contains(fn ($c) => $c['at']))<div class="small muted">Prices to compare: each product at the same total quantity as your quote, with one branding position in its standard branding and that setup, before delivery. Your quote's branding may differ; ask us to price it exactly.</div>@endif
+  <div class="small muted">{{ collect($similar)->merge($saved)->contains(fn ($c) => $c['at']) ? 'Prices to compare: ask' : 'Ask' }} us to quote any of these at your quantity and branding, or click the links below to calculate pricing on screen.</div>
   @foreach([['You might also consider', $similar], ['Products you saved', $saved]] as [$heading, $cards])
     @if($cards->isNotEmpty())
       <div class="label orange" style="margin-top: 14px">{{ $heading }}</div>
@@ -231,6 +231,5 @@
       </table>
     @endif
   @endforeach
-  <div class="small muted" style="margin-top: 10px">Ask us to quote any of these at your quantity and branding, or click the links above to calculate pricing on screen.</div>
 @endif
 </body></html>
