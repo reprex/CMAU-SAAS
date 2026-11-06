@@ -230,6 +230,6 @@
       </table>
     @endif
   @endforeach
-  <div class="small muted" style="margin-top: 10px">Ask us to quote any of these at your quantity and branding.</div>
+  <div class="small muted" style="margin-top: 10px">Ask us to quote any of these at your quantity and branding, or click the links above to calculate pricing on screen.</div>
 @endif
 </body></html>
