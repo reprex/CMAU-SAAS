@@ -78,7 +78,7 @@ class ShopifyAdoptTest extends TestCase
         $set = collect($this->sent)->first(fn ($d) => str_contains((string) $d['query'], 'productSet'));
         $this->assertSame(['id' => 'gid://shopify/Product/9001'], $set['variables']['identifier']);
         $files = $set['variables']['input']['files'];
-        $this->assertSame([['id' => 'gid://shopify/MediaImage/1'], ['id' => 'gid://shopify/MediaImage/2'], ['id' => 'gid://shopify/MediaImage/3']], array_map(fn ($f) => array_intersect_key($f, ['id' => 1]), $files));
+        $this->assertSame([['id' => 'gid://shopify/MediaImage/1'], ['id' => 'gid://shopify/MediaImage/2']], array_map(fn ($f) => array_intersect_key($f, ['id' => 1]), $files), 'the staff picture only live has is replaced');
         $this->assertSame(['id' => 'gid://shopify/MediaImage/2'], $set['variables']['input']['variants'][0]['file']);
         $this->assertTrue(DB::table('shopify_publish_log')->where('action', 'adopt')->where('ok', true)->exists());
     }

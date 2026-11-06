@@ -100,7 +100,7 @@ class ShopifyCarryTagsTest extends TestCase
         $this->assertContains('newtag', $p->fresh()->overrideValue('carried.tags'), 'tags from the second file');
     }
 
-    public function test_live_colour_spelling_is_kept_so_variants_keep_their_ids(): void
+    public function test_promodata_colour_spelling_wins_over_live(): void
     {
         $p = $this->pen();
         $p->colours()->create(['name' => 'Natural/Black', 'image_url' => 'https://x/n.jpg', 'appa_colours' => ['Black'], 'position' => 0]);
@@ -110,7 +110,7 @@ class ShopifyCarryTagsTest extends TestCase
 
         $this->artisan('shopify:carry-tags', ['file' => $path, '--apply' => true])->assertSuccessful();
 
-        $this->assertSame([['label' => 'Natural/black', 'sku' => '2568-naturalblack']], app(ProductPayload::class)->variants($p->fresh()));
+        $this->assertSame([['label' => 'Natural/Black', 'sku' => '2568-naturalblack']], app(ProductPayload::class)->variants($p->fresh()));
     }
 
     public function test_a_product_promodata_lists_no_colours_for_keeps_its_live_colours(): void
