@@ -68,28 +68,25 @@
     @php($names = collect($pictures['artwork'])->pluck('name')->filter()->unique())
     @if($names->isNotEmpty())<div class="small muted" style="margin-top: 4px">Artwork received: {{ $names->implode(', ') }}</div>@endif
   @endif
-  {{-- One line per style, all branding and per-unit options in it; the next two price breaks beside it (Scott, 7 Nov 2026). --}}
+  {{-- One line per style, all branding and per-unit options in it; no price-break columns (Scott, 7 Nov 2026: too confusing). --}}
   @php($styleRows = $items->filter(fn ($r) => count($r['sizes']) > 0))
   @php($runRows = $items->reject(fn ($r) => count($r['sizes']) > 0))
   @php($consolidate = $quote->source === 'website' && $styleRows->isNotEmpty() && $runRows->every(fn ($r) => (float) $r['item']->quantity === (float) $styleRows->sum(fn ($x) => (float) $x['item']->quantity)))
   @if($consolidate)
     @php($runUnit = (float) $runRows->sum(fn ($r) => (float) $r['item']->unitPrice()))
     @php($brandings = $items->map(fn ($r) => $r['item']->decoration_name)->filter()->unique()->values())
-    @php($breaks = collect($quote->price_breaks ?? [])->take(2))
     @php($units = (int) $styleRows->sum(fn ($r) => (int) $r['item']->quantity))
     <table class="lines" style="margin-top: 10px">
-      <tr class="head"><td class="label muted">Item</td><td class="right label" style="width: 112px">{{ number_format($units) }} units</td><td class="right label muted" style="width: 80px">ex GST</td>
-        @foreach($breaks as $b)<td class="right label muted" style="width: 74px">{{ number_format($b['units']) }} units</td>@endforeach</tr>
+      <tr class="head"><td class="label muted">Item</td><td class="right label" style="width: 112px">{{ number_format($units) }} units</td><td class="right label muted" style="width: 80px">ex GST</td></tr>
       @foreach ($styleRows as $row)
         @php($i = $row['item'])
         @php($unit = round((float) $i->unitPrice() + $runUnit, 2))
         <tr><td>{{ $i->name }}, branded</td>
           <td class="right" style="white-space: nowrap">{{ number_format($i->quantity) }} × <b>${{ $m($unit) }}</b></td>
-          <td class="right" style="white-space: nowrap"><b>${{ $m($unit * (float) $i->quantity) }}</b></td>
-          @foreach($breaks as $b)<td class="right muted" style="white-space: nowrap">@if(isset($b['styles'][$i->product_id]))${{ $m($b['styles'][$i->product_id]) }}@endif</td>@endforeach</tr>
+          <td class="right" style="white-space: nowrap"><b>${{ $m($unit * (float) $i->quantity) }}</b></td></tr>
       @endforeach
     </table>
-    <div class="small muted" style="margin-top: 4px">Branding: {{ $brandings->implode('; ') }}.@if($breaks->isNotEmpty()) Prices each at {{ $breaks->pluck('units')->map(fn ($u) => number_format($u))->implode(' and ') }} units in total, for the same branding; setup and delivery extra.@endif</div>
+    <div class="small muted" style="margin-top: 4px">Branding: {{ $brandings->implode('; ') }}.</div>
   @else
   <table class="lines" style="margin-top: 10px">
     @foreach ($items as $row)

@@ -167,14 +167,14 @@ class WebsiteQuotePdfTest extends TestCase
         $this->send([], ['wanted' => true, 'country' => 'ZZ', 'postcode' => '1'])->assertStatus(422);
     }
 
-    public function test_the_next_price_breaks_show_beside_one_line_per_style(): void
+    public function test_one_line_per_style_and_the_next_price_breaks_kept(): void
     {
         $q = $this->quoteFrom($this->send());
 
         $this->assertSame(250, $q->price_breaks[0]['units']);
         $this->assertEquals(15.25, $q->price_breaks[0]['styles'][self::MENS], '7.50 tee + 7.75 DTF at 250');
         $html = app(QuotePdf::class)->quoteHtml($q);
-        $this->assertStringContainsString('250 units', $html);
+        $this->assertStringNotContainsString('250 units', $html, 'breaks are kept with the quote but not shown (Scott, 7 Nov 2026)');
         $this->assertStringContainsString('AS Colour Mens Staple Tee, branded', $html);
     }
 
