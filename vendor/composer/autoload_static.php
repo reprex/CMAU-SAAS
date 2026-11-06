@@ -605,6 +605,7 @@ class ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d
         'App\\Console\\Commands\\CatalogueCheckBrandingCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueCheckBrandingCommand.php',
         'App\\Console\\Commands\\CatalogueCheckImagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueCheckImagesCommand.php',
         'App\\Console\\Commands\\CatalogueClassifyCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueClassifyCommand.php',
+        'App\\Console\\Commands\\CatalogueColourCheckCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueColourCheckCommand.php',
         'App\\Console\\Commands\\CatalogueDemoteCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueDemoteCommand.php',
         'App\\Console\\Commands\\CatalogueFetchTemplatesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueFetchTemplatesCommand.php',
         'App\\Console\\Commands\\CatalogueGarmentSizesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/CatalogueGarmentSizesCommand.php',

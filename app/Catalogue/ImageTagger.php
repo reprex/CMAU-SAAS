@@ -193,6 +193,15 @@ class ImageTagger
         foreach ($colours as $name => $c) {
             $colours[$name]['image'] ??= $hero; // a colour without its own picture shows the hero, rather than being dropped as TOD did
         }
+        if ($colours === [] && $product->colours->isEmpty()) {
+            // Promodata lists no colours, but the live store has them (TOD took them from the supplier's own
+            // text): keep the live colours, so the product keeps its colour choice and variants (7 Nov 2026).
+            foreach ((array) $product->overrideValue('carried.colours', []) as $name) {
+                if (is_string($name) && trim($name) !== '' && ! in_array($name, $hidden, true) && strcasecmp($name, 'Default Title') !== 0 && strcasecmp($name, self::CUSTOM_PRINT) !== 0) {
+                    $colours[$name] = ['families' => [], 'image' => $hero, 'other' => []];
+                }
+            }
+        }
         if ($colours === []) {
             // No colours (or all hidden): one "Custom Print" variant showing the hero, as TOD does.
             $colours[self::CUSTOM_PRINT] = ['families' => [], 'image' => $hero, 'other' => []];
