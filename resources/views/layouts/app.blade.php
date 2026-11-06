@@ -28,6 +28,7 @@
     <label for="navtoggle" class="navbtn">Menu</label>
     <div class="navlinks">
     @if($viewing === 'crowdmerch' && $me->canView('crowdmerch'))
+      <a href="{{ route('desk') }}" class="{{ request()->routeIs('desk') ? 'on' : '' }}">Desk</a>
       <a href="{{ route('quotes.index') }}" class="{{ request()->routeIs('quotes.*') ? 'on' : '' }}">Quotes</a>
       <a href="{{ route('website-orders.index') }}" class="{{ request()->routeIs('website-orders.*') ? 'on' : '' }}">Website orders</a>
       <a href="{{ route('project-requests.index') }}" class="{{ request()->routeIs('project-requests.*') ? 'on' : '' }}">Project requests</a>

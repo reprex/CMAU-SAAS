@@ -15,7 +15,7 @@
     <a class="btn" href="{{ route('quotes.pdf', $quote) }}" target="_blank" rel="noopener">Quote PDF</a>
     <a class="btn" href="{{ route('quotes.comparison', $quote) }}" target="_blank" rel="noopener">Comparison PDF</a>
     @if($edit)
-    <form method="post" action="{{ route('quotes.email', $quote) }}">@csrf<button class="btn" type="submit" @disabled(! $quote->client_email)>Email quote</button></form>
+    <form method="post" action="{{ route('quotes.email', $quote) }}">@csrf<button class="btn" type="submit" @disabled(! $quote->client_email)>Review &amp; send quote</button></form>
     @endif
     @if($edit)
     <form method="post" action="{{ route('quotes.status', $quote) }}" class="row">
@@ -29,13 +29,15 @@
   </div>
 </div>
 
+@include('desk._next', ['state' => \App\Desk\JobState::forQuote($quote)])
+
 @if($emails->isNotEmpty() || $templates->isNotEmpty())
   <div class="card">
     <h2 style="margin:0 0 6px">Quote email</h2>
     @foreach($emails as $e)
       <div class="row between small" style="padding:4px 0;border-top:1px solid var(--line, #E5E3DE)">
         <span>{{ $e->subject }} · to {{ $e->recipient }} · <span class="pill {{ ['sent' => 'ok', 'failed' => 'warn'][$e->status] ?? '' }}">{{ ucfirst($e->status) }}</span>@if($e->sent_at) {{ $e->sent_at->format('j M H:i') }}@endif @if($e->error)<span class="muted">{{ $e->error }}</span>@endif</span>
-        @if($edit && in_array($e->status, ['draft', 'failed'], true))<form method="post" action="{{ route('quotes.email.send', [$quote, $e]) }}">@csrf<button class="btn small dark" type="submit">Send</button></form>@endif
+        @if($edit && in_array($e->status, ['draft', 'failed'], true))<a class="btn small dark" href="{{ route('emails.review', $e) }}">Review &amp; send</a>@endif
       </div>
     @endforeach
     <p class="small muted" style="margin:6px 0 0">Attached: the quote PDF @if($templates->isNotEmpty())and {{ $templates->count() === 1 ? 'the branding template' : $templates->count().' branding templates' }} ({{ $templates->map(fn ($t) => $t->filename ?: basename((string) parse_url($t->url, PHP_URL_PATH)))->implode(', ') }}), up to {{ (int) config('quotes.templates.max_attach_mb') }} MB in all @else(no branding template for these products yet) @endif. Client emails are never sent automatically: check the PDF, then Send.</p>

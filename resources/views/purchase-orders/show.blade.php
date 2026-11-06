@@ -61,10 +61,10 @@
       <label class="f">Notes on the PO<textarea name="notes" rows="3">{{ old('notes', $po->notes) }}</textarea></label>
       <button class="btn small">Save</button>
     </form>
-    <form method="post" action="{{ route('purchase-orders.send', $po) }}" class="card">@csrf
+    <form method="post" action="{{ route('purchase-orders.review', $po) }}" class="card">@csrf
       <h2>Send</h2>
       <p class="small muted" style="margin:0 0 6px">Emails the PO PDF to {{ $s?->orders_email ?: 'the supplier' }} from {{ config('mail.from.address') }}; replies come to {{ config('quotes.pdf.email') }}.</p>
-      <button class="btn small primary" @disabled(! $s?->orders_email)>{{ $po->status === 'sent' ? 'Send again' : 'Send to supplier' }}</button>
+      <button class="btn small primary" @disabled(! $s?->orders_email)>{{ $po->status === 'sent' ? 'Review & send again' : 'Review & send to supplier' }}</button>
       @foreach($po->emails as $e)<div class="small muted" style="margin-top:4px">{{ $e->status }} {{ $e->sent_at?->timezone(config('app.timezone'))->format('j M g:ia') }} to {{ $e->recipient }}@if($e->sender) by {{ $e->sender->name }}@endif @if($e->error)<span style="color:var(--bad)">{{ $e->error }}</span>@endif</div>@endforeach
     </form>
     @endif

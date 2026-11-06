@@ -15,8 +15,10 @@ use App\Http\Controllers\Auth\SetupController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\BrandingTemplateController;
 use App\Http\Controllers\CurationRequestController;
+use App\Http\Controllers\DeskController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DraftOrderController;
+use App\Http\Controllers\EmailReviewController;
 use App\Http\Controllers\LineTransferController;
 use App\Http\Controllers\LogoAreaController;
 use App\Http\Controllers\PdfController;
@@ -150,6 +152,10 @@ Route::middleware(['auth', 'two-factor', 'division'])->group(function () {
     // Divisions and the shared modules (docs/divisions.md).
     Route::get('/division/{division}', [DivisionController::class, 'switch'])->name('division.switch');
     Route::get('/dashboard', [DivisionController::class, 'dashboard'])->name('dashboard');
+    // The CrowdMerch Desk and Review & send (docs/desk.md).
+    Route::get('/desk', [DeskController::class, 'index'])->name('desk');
+    Route::get('/emails/{email}/review', [EmailReviewController::class, 'show'])->whereNumber('email')->name('emails.review');
+    Route::get('/emails/{email}/preview', [EmailReviewController::class, 'preview'])->whereNumber('email')->name('emails.preview');
     Route::get('/reports', [DivisionController::class, 'reports'])->name('reports.index');
     Route::get('/contacts', [DivisionController::class, 'module'])->defaults('module', 'contacts')->name('contacts.index');
     Route::get('/freight', [DivisionController::class, 'module'])->defaults('module', 'freight')->name('freight.index');
@@ -238,6 +244,8 @@ Route::middleware(['auth', 'two-factor', 'division'])->group(function () {
         Route::post('/website-orders/{order}/purchase-order', [PurchaseOrderController::class, 'store'])->whereNumber('order')->name('purchase-orders.store');
         Route::put('/purchase-orders/{po}', [PurchaseOrderController::class, 'update'])->whereNumber('po')->name('purchase-orders.update');
         Route::post('/purchase-orders/{po}/send', [PurchaseOrderController::class, 'send'])->whereNumber('po')->name('purchase-orders.send');
+        Route::post('/purchase-orders/{po}/review', [EmailReviewController::class, 'purchaseOrder'])->whereNumber('po')->name('purchase-orders.review');
+        Route::post('/emails/{email}/send', [EmailReviewController::class, 'send'])->whereNumber('email')->name('emails.send');
         Route::post('/website-orders/{order}/emails/{email}/send', [WebsiteOrderController::class, 'sendEmail'])->whereNumber('order')->name('website-orders.send');
         Route::post('/website-orders/{order}/changes/{change}/handled', [WebsiteOrderController::class, 'handleChange'])->whereNumber('order')->name('website-orders.change-handled');
         Route::post('/range/{product}/action', [RangeController::class, 'action'])->name('range.action');
