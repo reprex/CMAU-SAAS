@@ -63,7 +63,9 @@ class PublishHealth
             ->whereNotExists(fn ($q) => $q->from('shopify_publish_log as l2')->whereColumn('l2.product_id', 'l.product_id')->where('l2.ok', true)->whereColumn('l2.id', '>', 'l.id'))
             ->orderByDesc('l.id')->limit(200)->get(['l.product_id', 'l.action', 'l.message', 'l.created_at', 'p.name'])->unique('product_id')->values();
 
+        $binding = app(StoreBinding::class);
         [$status, $headline] = match (true) {
+            ! $binding->matches() => ['bad', 'The stored Shopify ids belong to '.$binding->bound().', not '.$binding->configured().': nothing can be published until `shopify:switch-store --apply` is run (docs/publisher.md).'],
             ! $cronOk => ['bad', 'The minute cron isn\'t running: nothing is being uploaded. Check the cPanel cron job.'],
             ! $on => [$todo ? 'warn' : 'ok', $todo ? 'Automatic publishing is off, '.number_format($todo).' products waiting.' : 'Automatic publishing is off. Nothing waiting.'],
             (bool) $paused => ['warn', 'Paused until '.Carbon::parse($paused)->format('j M H:i').': Shopify\'s daily limit on new variants.'],

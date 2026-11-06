@@ -32,7 +32,7 @@ The Shopify product contract and DecorationJSON in `docs/contracts/` are unchang
 
    | Issue code | Rule |
    | --- | --- |
-   | `stock` | A SKU line wants more than the supplier has, or the supplier doesn't list that colour and size. Stock is checked **live against Promodata on every request** (`PromodataStock::rows($id, fresh: true)`), never taken from the 5-minute cache or the database |
+   | `stock` | A SKU line wants more than the supplier has, or the supplier doesn't list that colour and size. Stock is checked **live against Promodata on every request** (`PromodataStock::rows($id, fresh: true)`), never taken from the 5-minute cache or the database. A row with no size matches the line size "One size" |
    | `stock_unavailable` | Live stock couldn't be checked (no stock check for the product, or Promodata failed) |
    | `review` | A position uses a method that needs artwork review: screen print, pad print, embroidery, or a decoration no method matches. DTF and oversize DTF don't |
    | `logo` | A position has no logo of the client's own |
@@ -373,5 +373,5 @@ To add or correct holidays: `php artisan holidays:import holidays.csv` (header `
 - **Related styles** need vetting product by product (Range › product). There is no automatic suggestion from Promodata yet.
 - **Payment terms** other than full payment (e.g. deposits for Trends): add them to `payment_terms.options`; the invoice already prints the order's terms.
 - **Samples from Scott:** which suppliers offer samples (switch them on under Admin › Suppliers; Trends and Dex to start), and check each one's sample freight (TOD's values are loaded; a TOD re-import overwrites `sample_freight` but never `offers_samples`) and sample lead time.
-- **The quote PDF and the quote desk** still print the supplier's product code ("Code 5001") on client quotes; they weren't part of this change. Move them to our code too if Scott wants the rule everywhere.
+- **Product names and AI/supplier text on quotes:** the quote and comparison PDFs now print our code ("Code 3-104743", 6 Nov 2026), and the comparison intro drops any sentence naming the supplier. Item names are still the product name as on the website (or the draft order line); if a supplier's name is inside a product name, Scott fixes it with the product's title override.
 - **The theme** (Galleria 4.1.0): the samples cart (one per client, "From factory n"), `checkout/samples/*`, per-order `stages` in My Orders; send `has_logo` on `price`, the files on `order`, keep `account_token` in a cookie, and show `issues`, `alerts`, the estimate and the duty note.

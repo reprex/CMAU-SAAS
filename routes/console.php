@@ -1,5 +1,6 @@
 <?php
 
+use App\Shopify\StoreBinding;
 use Illuminate\Support\Facades\Schedule;
 
 /*
@@ -56,13 +57,13 @@ Schedule::command('catalogue:check-images')
 Schedule::command('shopify:publish --limit=250 --seconds=45 --retry-after=60 --parallel=5')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->when(fn () => (bool) cache()->get('shopify:auto_publish') && ! cache()->get('shopify:publish_paused_until'));
+    ->when(fn () => (bool) cache()->get('shopify:auto_publish') && ! cache()->get('shopify:publish_paused_until') && app(StoreBinding::class)->matches());
 
 // Range collections: keep the product order in each subcategory collection (docs/publisher.md).
 Schedule::command('shopify:collections --sort --seconds=45')
     ->everyThirtyMinutes()
     ->withoutOverlapping(10)
-    ->when(fn () => (bool) cache()->get('shopify:auto_publish'));
+    ->when(fn () => (bool) cache()->get('shopify:auto_publish') && app(StoreBinding::class)->matches());
 
 // Logo areas: re-learn when staff approved one and apply to the range (docs/logo-preview.md).
 // Optional: coverage comes from templates and Promodata print areas; the --sample step is not scheduled.

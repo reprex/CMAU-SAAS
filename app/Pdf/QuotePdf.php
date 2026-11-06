@@ -32,6 +32,12 @@ class QuotePdf
 
     public function quote(Quote $quote): string
     {
+        return $this->pdf($this->quoteHtml($quote));
+    }
+
+    /** The quote PDF's HTML. Clients see our code ("Code 3-104743"), never the supplier's name or code. */
+    public function quoteHtml(Quote $quote): string
+    {
         $quote->load(['items.skus', 'extras']);
 
         $items = $quote->items->map(fn (QuoteItem $i) => [
@@ -59,7 +65,7 @@ class QuotePdf
             $included->push(['label' => $x->description, 'amount' => $x->total(), 'tbc' => (bool) $x->tbc]);
         }
 
-        return $this->render('pdf.quote', [
+        return view('pdf.quote', [
             'quote' => $quote,
             'items' => $items,
             'customs' => $customs,
@@ -68,18 +74,24 @@ class QuotePdf
             'separate' => $quote->decoration_display === 'separate',
             'timing' => $this->timing($quote->lead_time),
             'anyTbc' => $included->contains('tbc', true),
-        ] + $this->common());
+        ] + $this->common())->render();
     }
 
     public function comparison(Quote $quote): string
     {
+        return $this->pdf($this->comparisonHtml($quote));
+    }
+
+    /** The product comparison PDF's HTML: our codes only, no supplier name or code. */
+    public function comparisonHtml(Quote $quote): string
+    {
         $quote->load(['items.skus', 'extras']);
 
-        return $this->render('pdf.comparison', [
+        return view('pdf.comparison', [
             'quote' => $quote,
             'number' => QuoteNumbers::comparisonNumber($quote->number),
             'cards' => $this->comparisonCards($quote),
-        ] + $this->common());
+        ] + $this->common())->render();
     }
 
     /**
@@ -142,7 +154,7 @@ class QuotePdf
                 return [
                     'item' => $first,
                     'image' => $this->images->dataUri($first->image_url),
-                    'intro' => $this->intro($first->description),
+                    'intro' => $this->intro($first->description, $first->supplier_name),
                     'all_in' => $shown->every(fn ($o) => ! $o['freight_tbc']),
                     'options' => $shown->map(fn ($o, $k) => $o + ['best' => $k === $best])->all(),
                     'more' => $options->slice(self::MAX_BREAKS)->values()->all(),
@@ -193,13 +205,22 @@ class QuotePdf
     }
 
     /** First paragraph of a Promodata description (before "Features:"). */
-    private function intro(?string $description): ?string
+    /** The description's opening, without any sentence that names the supplier (clients never see it). */
+    private function intro(?string $description, ?string $supplierName = null): ?string
     {
         if (! $description) {
             return null;
         }
         $text = trim(preg_split('/features\s*:/i', strip_tags($description))[0]);
         $text = preg_replace('/\s+/', ' ', $text);
+        $name = trim((string) $supplierName);
+        if ($name !== '' && mb_stripos($text, $name) !== false) {
+            $sentences = preg_split('/(?<=[.!?])\s+/u', $text) ?: [];
+            $text = trim(implode(' ', array_filter($sentences, fn ($s) => mb_stripos($s, $name) === false)));
+            if ($text === '') {
+                return null;
+            }
+        }
 
         return mb_strlen($text) > 220 ? rtrim(mb_substr($text, 0, 217), ' ,.;').'…' : $text;
     }
@@ -218,6 +239,11 @@ class QuotePdf
 
     private function render(string $view, array $data): string
     {
+        return $this->pdf(view($view, $data)->render());
+    }
+
+    private function pdf(string $html): string
+    {
         $options = new Options;
         $options->setChroot([base_path()]);
         $options->setIsRemoteEnabled(false);
@@ -231,7 +257,7 @@ class QuotePdf
         $options->setFontCache($fontCache);
 
         $dompdf = new Dompdf($options);
-        $dompdf->loadHtml(view($view, $data)->render(), 'UTF-8');
+        $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->setPaper('A4');
         $dompdf->render();
 

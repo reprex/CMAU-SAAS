@@ -8,7 +8,8 @@
   - the **title chip** beside the product name may show the **supplier's own product code** (e.g. `5001`, `104743`), from `custom.supplierproductcode`;
   - the **line under the title** shows **only our code**: "Our code 3-104743" (with Copy), from `custom.ourcode`. No supplier name or supplier code in that line.
 - **Everywhere else client-facing** shows our code only, never the supplier's code or name: collection cards, the stock table, the SaaS checkout replies (`crowdmerch/checkout/*`), the invoice PDF, the emails, My Orders and samples (docs/website-checkout.md, rule 10).
-- **Staff** see everything: supplier name, supplier code and supplier SKUs, on Range, the quote desk and Website orders. Order lines keep the supplier code and SKU for ordering from the supplier.
+- **Quotes** (6 Nov 2026): the quote PDF and the product comparison PDF print our code ("Code 3-104743", `QuoteItem::ourCode()`), never the supplier's code or name. A line with no supplier prints no code (the bare supplier code is never shown on its own). The comparison's intro, taken from the supplier's description, leaves out any sentence that names the supplier. The quote emails carry no codes. Tests: `QuoteDeskHttpTest::test_client_quote_outputs_show_our_code_never_the_suppliers_name_or_code`, `WebsiteSamplesTest` (invoices).
+- **Staff** see everything: supplier name, supplier code and supplier SKUs, on Range, the quote desk and Website orders. Each quote desk line also shows "our code 3-104743": use that, not the supplier's code, when writing to a client. Order lines keep the supplier code and SKU for ordering from the supplier.
 
 ## Live stock, and where the SKUs come from
 
@@ -20,6 +21,8 @@ Stock levels are always live from Promodata (`check-stock-levels`: colour, size,
 Each live check also keeps the SKU codes it returned (codes only, no quantities) in `product_skus`. No extra calls are made to collect them; a product gets its list the first time anyone checks its stock. A changed SKU list marks the product for publishing.
 
 Products whose supplier doesn't support stock checks have only the product code.
+
+Row shapes (`PromodataStock::row`, fixed 6 Nov 2026): the usual row is `[colour, size, qty, sku]`, with an empty or null size for a product with no sizes. Some suppliers leave the size slot out: `[colour, qty, sku]` or `[colour, qty]`. These are recognised from the row's structure (a whole number second, then only a SKU or nothing), not from the value alone, so numeric sizes in full rows (`["Black", "8", 120, sku]`, even with an unknown quantity) stay sizes. Rows keyed by name are read by name. A row without a size gets size null, shown and ordered as "One size". The stock relay rewrites only those short or keyed rows into `[colour, null, qty, sku]` so the theme reads them the same way; other replies are passed through unchanged.
 
 ## What Shopify gets
 

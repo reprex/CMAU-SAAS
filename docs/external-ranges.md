@@ -9,6 +9,7 @@ Must be on CMAU before the site goes live. All five are important.
 | USB flash drives (printing and data load) | Begif (China), 10–15 years | Also used every week for Replicat USB albums. |
 | Power banks | Begif | A range Begif updates often: their data and images in a standard form. |
 | Other electronics (branded cables, small gadgets, luggage and pet trackers) | Begif | As power banks. |
+| Full-coverage printed tea towels (DTG or sublimation, natural or white absorbent fabric) | To choose: Digital Fabrics (Marrickville NSW) or Garment Printing (Castle Hill NSW) | Scott, 6 Nov 2026: none in Promodata fits (Haven is a transfer; Ezitag 33616 discontinued; 118828 and PromoCollection 6565 not suitable). Trade enquiries for 100 units drafted 6 Nov. |
 
 ## Approach
 - **One spreadsheet per supplier**, kept up to date (by us, or from the supplier's own file in a standard

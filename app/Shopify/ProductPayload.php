@@ -21,10 +21,10 @@ use Illuminate\Support\Str;
  * theme reads (docs/contracts/shopify-product.md) plus the new additive fields
  * for the new templates. Pure: no Shopify calls, so it can be previewed and tested.
  *
- * Not yet produced (TOD's tagging tables, "tagging and collections" module):
- * category codes, special and collection tags, essentials/urgent/ecorec
- * subcategories and the master sort order beyond its default. Those fields are
- * sent as "any," or their default so the theme's filters still work.
+ * TOD's tagging (category, special and collection tags, the essentials/urgent/
+ * ecorec subcategories, under-MOQ text, sort order) is carried over from the
+ * live store by shopify:carry-tags; products without it get values worked out
+ * from the Promodata type ("any," where there is nothing to work out).
  */
 class ProductPayload
 {
@@ -74,6 +74,30 @@ class ProductPayload
         return $label;
     }
 
+    /** A variant's SKU, as TOD made it (APPAColStringID): APPAID, a hyphen, the colour in lower case letters and digits. */
+    public static function sku(int $productId, string $label): string
+    {
+        return $productId.'-'.Str::of($label)->lower()->replaceMatches('/[^a-z0-9]+/', '')->toString();
+    }
+
+    /**
+     * The colour variants build() sends, without building the rest (docs/publisher.md, variant match).
+     *
+     * @return list<array{label: string, sku: string}>
+     */
+    public function variants(Product $product): array
+    {
+        $out = [];
+        $used = [];
+        $pos = 0;
+        foreach ($this->images->forShopify($product)['colours'] as $name => $c) {
+            $label = self::optionName((string) $name, ++$pos, $used);
+            $out[] = ['label' => $label, 'sku' => self::sku($product->id, $label)];
+        }
+
+        return $out;
+    }
+
     /**
      * @param  array<string, string>  $mediaIds  image url => existing Shopify media gid (kept, not re-uploaded)
      * @return array{input: array<string, mixed>, files: list<string>}
@@ -100,7 +124,7 @@ class ProductPayload
             $label = self::optionName((string) $name, $pos + 1, $used);
             $v = [
                 'optionValues' => [['optionName' => 'Color', 'name' => $label]],
-                'inventoryItem' => ['sku' => $product->id.'-'.Str::of($label)->lower()->replaceMatches('/[^a-z0-9]+/', '')->toString()],
+                'inventoryItem' => ['sku' => self::sku($product->id, $label)],
                 'position' => ++$pos,
                 'metafields' => array_values(array_filter([
                     $moq ? $this->mf('custom', 'productmoq', 'number_integer', (string) $moq) : null,
@@ -128,24 +152,31 @@ class ProductPayload
             $branding[] = 'anyprint';
         }
         $type = (string) $product->promodata_type_name;
+        // The live store's tagging, carried over by shopify:carry-tags (TOD's tagging tables never
+        // moved here); products without it get the values worked out from the Promodata type.
+        $carried = (array) $product->overrideValue('carried', []);
+        $category = $type !== '' && str_contains($type, '>') ? trim(explode('>', $type)[0]) : '';
+        $sub = $type !== '' ? RangeCollections::subcategory($type) : '';
+        $subTag = app(RangeCollections::class)->tagFor($type);
 
         $metafields = array_values(array_filter([
             $wp?->decoration_json ? $this->mf('custom', 'decorationjson', 'multi_line_text_field', $wp->decoration_json) : null,
             $moq ? $this->mf('custom', 'collectiondisplayqty', 'number_integer', (string) $moq) : null,
             $price !== null ? $this->mf('custom', 'collectiondisplayprice', 'number_decimal', $price) : null,
             $this->mf('custom', 'mastersortorder', 'number_integer', (string) ((int) $product->overrideValue('master_sort_order') ?: 99999)),
-            $this->mf('custom', 'tagcategory', 'single_line_text_field', 'any,'),
-            $this->mf('custom', 'tagsubcategory', 'single_line_text_field', 'any,'.(app(RangeCollections::class)->tagFor($type) ?? '')),
+            $this->mf('custom', 'tagcategory', 'single_line_text_field', $carried['tagcategory'] ?? 'any,'.RangeCollections::slug($category)),
+            $this->mf('custom', 'tagsubcategory', 'single_line_text_field', 'any,'.($subTag ?? '')),
             $this->mf('custom', 'tagcolourgroup', 'single_line_text_field', 'any,'.implode(',', $families)),
             $this->mf('custom', 'tagbrandingoption', 'single_line_text_field', 'any,'.implode(',', array_unique($branding))),
-            $this->mf('custom', 'tagspecial', 'single_line_text_field', 'any,'),
-            $this->mf('custom', 'tagcollection', 'single_line_text_field', 'any,'),
-            $type !== '' ? $this->mf('custom', 'essentialssubcat', 'single_line_text_field', $type) : null,
-            $type !== '' ? $this->mf('custom', 'urgentsubcat', 'single_line_text_field', $type) : null,
-            $type !== '' ? $this->mf('custom', 'ecorecsubcat', 'single_line_text_field', $type) : null,
+            $this->mf('custom', 'tagspecial', 'single_line_text_field', $carried['tagspecial'] ?? 'any,'),
+            $this->mf('custom', 'tagcollection', 'single_line_text_field', $carried['tagcollection'] ?? 'any,'),
+            ($v = $carried['essentialssubcat'] ?? ($category ?: $sub)) !== '' ? $this->mf('custom', 'essentialssubcat', 'single_line_text_field', $v) : null,
+            ($v = $carried['urgentsubcat'] ?? $sub) !== '' ? $this->mf('custom', 'urgentsubcat', 'single_line_text_field', $v) : null,
+            ($v = $carried['ecorecsubcat'] ?? $sub) !== '' ? $this->mf('custom', 'ecorecsubcat', 'single_line_text_field', $v) : null,
+            filled($carried['undermoqtext'] ?? null) ? $this->mf('custom', 'undermoqtext', 'single_line_text_field', (string) $carried['undermoqtext']) : null,
             $product->supplier?->stock_columns ? $this->mf('custom', 'stockcolumns', 'single_line_text_field', $product->supplier->stock_columns) : null,
             $this->mf('custom', 'nostockmessage', 'single_line_text_field', self::NO_STOCK_MESSAGE),
-            $type !== '' ? $this->mf('my_fields', 'pdpcollectionname', 'single_line_text_field', $type) : null,
+            ($v = $carried['pdpcollectionname'] ?? $subTag ?? '') !== '' ? $this->mf('my_fields', 'pdpcollectionname', 'single_line_text_field', $v) : null,
             // New, additive (the live theme ignores them)
             $codes['supplier_code'] !== '' ? $this->mf('custom', 'suppliercode', 'single_line_text_field', $codes['supplier_code']) : null,
             $codes['skus'] ? $this->mf('custom', 'supplierskus', 'json', json_encode($codes['skus'])) : null,
@@ -233,6 +264,12 @@ class ProductPayload
         }
         foreach (array_filter(array_map('trim', explode(',', (string) $product->overrideValue('extra_tags', '')))) as $t) {
             $tags[] = $t;
+        }
+        // Tags the live store's collections may rely on (urgent, ecorec, brand ranges...), carried by shopify:carry-tags.
+        foreach ((array) $product->overrideValue('carried.tags', []) as $t) {
+            if (is_string($t) && trim($t) !== '' && ! in_array(mb_strtolower(trim($t)), array_map('mb_strtolower', $tags), true)) {
+                $tags[] = trim($t);
+            }
         }
 
         return array_values(array_unique(array_map(fn ($t) => mb_substr($t, 0, 255), $tags)));
