@@ -36,6 +36,7 @@ class Quote extends Model
             'mockups' => 'array',
             'similar_products' => 'array',
             'saved_products' => 'array',
+            'cart_state' => 'array',
             'valid_until' => 'date',
             'sent_at' => 'datetime',
             'won_at' => 'datetime',
@@ -86,5 +87,18 @@ class Quote extends Model
     public function nextPosition(): int
     {
         return (int) max($this->items()->max('position'), $this->extras()->max('position')) + 1;
+    }
+
+    /**
+     * The website quote's "complete the online checkout" link: the storefront's cart page rebuilds the
+     * shopper's cart from this quote (Scott, 7 Nov 2026). Null when the quote has no website cart.
+     */
+    public function checkoutUrl(): ?string
+    {
+        if (empty($this->cart_state) || ! $this->public_token) {
+            return null;
+        }
+
+        return rtrim((string) config('website.storefront_url'), '/').'/'.ltrim((string) config('website.cart_path'), '/').'?quote='.$this->public_token;
     }
 }

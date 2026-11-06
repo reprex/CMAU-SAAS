@@ -5,7 +5,10 @@ Thanks for your quote request. Your instant quote {{ $quote->number }} is attach
 
 Prices are subject to sighting your artwork. To go ahead, or to change anything, just reply to this email or call {{ config('quotes.pdf.phone') }}.
 
-@if($quote->shopify_invoice_url)
+@if($quote->checkoutUrl())
+Or complete the online checkout, with your cart ready to go: {{ $quote->checkoutUrl() }}
+
+@elseif($quote->shopify_invoice_url)
 You can also complete your order online: {{ $quote->shopify_invoice_url }}
 
 @endif

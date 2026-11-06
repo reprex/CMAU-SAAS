@@ -131,11 +131,21 @@
       @if($timing)<div class="label orange">Timing</div><div class="soft" style="margin: 3px 0 12px">{{ $timing }}</div>@endif
       @foreach ($info as $line)<div class="soft" style="margin: 0 0 8px">{{ $line->description }}</div>@endforeach
       <div class="label orange">How to go ahead</div>
+      @if($quote->source === 'website')
+        {{-- Reply, or check out online with this quote's cart rebuilt; payment comes before the proof (Scott, 7 Nov 2026). --}}
+        @php($checkout = $quote->checkoutUrl())
+        <ol class="soft" style="margin: 3px 0 14px; padding-left: 16px">
+          <li>Simply reply to this email{{ $checkout ? ',' : '.' }} @if($checkout)or complete the <a href="{{ $checkout }}" style="color: #D4651F; font-weight: 600">online checkout</a>.@endif</li>
+          <li>Pay the invoice.</li>
+          <li>Approve the digital proof of your branding and we start production.</li>
+        </ol>
+      @else
       <ol class="soft" style="margin: 3px 0 14px; padding-left: 16px">
         <li>Reply to accept, or tell us any changes.</li>
         <li>Approve the digital proof of your branding.</li>
         <li>Pay the invoice and we start production.</li>
       </ol>
+      @endif
       <table style="width: auto"><tr>
         @if($signature)<td style="padding-right: 12px"><img src="{{ $signature }}" alt="" style="height: 40px"></td>@endif
         <td style="padding-top: 12px"><b>{{ $brand['signed_by'] }}</b><br><span class="muted">{{ $brand['signed_title'] }}</span></td>

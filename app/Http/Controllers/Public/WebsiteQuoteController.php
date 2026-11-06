@@ -246,6 +246,7 @@ class WebsiteQuoteController extends Controller
                 'logos.*' => "file|mimes:{$mimes}|max:".(int) config('website.orders.logo_max_kb'),
                 'mockups' => 'array|max:4',
                 'mockups.*' => 'file|mimes:jpg,jpeg,png,webp|max:3072',
+                'cart_state' => 'nullable|string|max:200000',
             ]);
         if ($v->fails()) {
             return $this->reply($request, ['success' => false, 'message' => 'Please check your details.', 'errors' => $v->errors()], 422);
@@ -277,12 +278,46 @@ class WebsiteQuoteController extends Controller
             $mockups[] = ['path' => $path, 'view' => $i === 0 ? 'front' : 'back'];
         }
         $ids = fn ($key, $max) => array_values(array_slice(array_unique(array_filter(array_map('intval', (array) $request->input($key, [])), fn ($id) => $id !== (int) $cart['product_id'])), 0, $max));
-        $quote->forceFill(['mockups' => $mockups ?: null, 'similar_products' => $ids('similar', 4) ?: null, 'saved_products' => $ids('saved', 12) ?: null])->save();
+        // The cart as the shopper built it, for the PDF's "complete the online checkout" link (Scott, 7 Nov 2026).
+        $state = json_decode((string) $request->input('cart_state', ''), true);
+        $quote->forceFill(['mockups' => $mockups ?: null, 'similar_products' => $ids('similar', 4) ?: null, 'saved_products' => $ids('saved', 12) ?: null,
+            'cart_state' => is_array($state) && isset($state['product']) ? $state : null,
+            'public_token' => is_array($state) && isset($state['product']) ? ($quote->public_token ?: Str::random(40)) : $quote->public_token])->save();
         if (config('shopify.website_api.email_instant_quote')) {
             SendInstantQuote::dispatch($quote->id);
         }
 
         return $this->reply($request, ['success' => true, 'quoteNumber' => $quote->number, 'emailed' => (bool) config('shopify.website_api.email_instant_quote'), 'issues' => array_column($r['issues'], 'message')]);
+    }
+
+    /**
+     * The cart behind a website quote, for its "complete the online checkout" link: the cart as the shopper
+     * built it, their logos (by position) and their contact details. The storefront rebuilds the cart from it
+     * and the checkout prices it again (Scott, 7 Nov 2026).
+     */
+    public function quoteCart(Request $request)
+    {
+        if ($blocked = $this->guard($request, 'read', 60)) {
+            return $blocked;
+        }
+        $token = (string) $request->query('quote', '');
+        $quote = preg_match('/^[A-Za-z0-9]{40}$/', $token)
+            ? Quote::query()->where('public_token', $token)->where('source', 'website')->whereNotNull('cart_state')->first() : null;
+        if (! $quote) {
+            return $this->reply($request, ['success' => false, 'message' => 'We can\'t find that quote. Reply to its email and we\'ll set up your order.'], 404);
+        }
+        $disk = Storage::disk(config('website.orders.artwork_disk'));
+        $logos = [];
+        foreach ((array) ($quote->artwork ?? []) as $a) {
+            $path = (string) ($a['path'] ?? '');
+            if ($path !== '' && $disk->exists($path) && $disk->size($path) <= 6_000_000) {
+                $mime = $disk->mimeType($path) ?: 'application/octet-stream';
+                $logos[] = ['position' => (string) ($a['position'] ?? ''), 'name' => (string) ($a['name'] ?? 'logo'), 'data' => 'data:'.$mime.';base64,'.base64_encode((string) $disk->get($path))];
+            }
+        }
+
+        return $this->reply($request, ['success' => true, 'quoteNumber' => $quote->number, 'cart' => $quote->cart_state, 'logos' => $logos,
+            'contact' => ['name' => $quote->client_name, 'organisation' => $quote->client_company, 'email' => $quote->client_email, 'phone' => $quote->client_phone]]);
     }
 
     public function preflight(Request $request)

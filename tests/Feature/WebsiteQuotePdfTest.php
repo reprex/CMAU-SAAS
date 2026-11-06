@@ -89,6 +89,34 @@ class WebsiteQuotePdfTest extends TestCase
         }
     }
 
+    public function test_the_checkout_link_rebuilds_the_cart_with_its_logos(): void
+    {
+        $state = ['product' => ['appaid' => self::MENS, 'title' => 'AS Colour Mens Staple Tee'], 'colour' => 'Black', 'pqty' => 110,
+            'branding' => ['positions' => [['name' => 'Front centre', 'decID' => self::MENS.'-dtf', 'logoId' => 'Labc', 's' => 0.8]]], 'lines' => [], 'rel' => []];
+        $res = $this->send(['cart_state' => json_encode($state)])->assertOk();
+        $q = Quote::query()->where('number', $res->json('quoteNumber'))->firstOrFail();
+
+        $url = $q->checkoutUrl();
+        $this->assertSame('https://crowdmerch.com.au/pages/cart?quote='.$q->public_token, $url);
+        $this->assertStringContainsString(e($url), app(QuotePdf::class)->quoteHtml($q));
+        $this->assertStringContainsString('Simply reply to this email', app(QuotePdf::class)->quoteHtml($q));
+
+        $cart = $this->withHeaders(['Origin' => self::ORIGIN, 'Accept' => 'application/json'])->get('/crowdmerch/homepage/quote-cart?quote='.$q->public_token)
+            ->assertOk()->assertJsonPath('cart.branding.positions.0.logoId', 'Labc')->assertJsonPath('contact.email', 'alex@example.com');
+        $this->assertSame('Front centre', $cart->json('logos.0.position'));
+        $this->assertStringStartsWith('data:image/png;base64,', $cart->json('logos.0.data'));
+
+        $this->withHeaders(['Origin' => self::ORIGIN, 'Accept' => 'application/json'])->get('/crowdmerch/homepage/quote-cart?quote='.str_repeat('a', 40))->assertNotFound();
+    }
+
+    public function test_without_a_cart_the_quote_just_asks_for_a_reply(): void
+    {
+        $q = Quote::query()->where('number', $this->send()->json('quoteNumber'))->firstOrFail();
+
+        $this->assertNull($q->checkoutUrl());
+        $this->assertStringNotContainsString('online checkout', app(QuotePdf::class)->quoteHtml($q));
+    }
+
     public function test_bad_requests_are_refused(): void
     {
         $this->send(['email' => 'nope'])->assertStatus(422);
