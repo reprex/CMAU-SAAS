@@ -21,6 +21,8 @@ Each live check also keeps the SKU codes it returned (codes only, no quantities)
 
 Products whose supplier doesn't support stock checks have only the product code.
 
+Row shapes (`PromodataStock::row`, fixed 6 Nov 2026): the usual row is `[colour, size, qty, sku]`, with an empty or null size for a product with no sizes. Some suppliers leave the size slot out: `[colour, qty, sku]` or `[colour, qty]`. These are recognised from the row's structure (a whole number second, then only a SKU or nothing), not from the value alone, so numeric sizes in full rows (`["Black", "8", 120, sku]`, even with an unknown quantity) stay sizes. Rows keyed by name are read by name. A row without a size gets size null, shown and ordered as "One size". The stock relay rewrites only those short or keyed rows into `[colour, null, qty, sku]` so the theme reads them the same way; other replies are passed through unchanged.
+
 ## What Shopify gets
 
 | Metafield | Value | The theme |

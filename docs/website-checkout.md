@@ -32,7 +32,7 @@ The Shopify product contract and DecorationJSON in `docs/contracts/` are unchang
 
    | Issue code | Rule |
    | --- | --- |
-   | `stock` | A SKU line wants more than the supplier has, or the supplier doesn't list that colour and size. Stock is checked **live against Promodata on every request** (`PromodataStock::rows($id, fresh: true)`), never taken from the 5-minute cache or the database |
+   | `stock` | A SKU line wants more than the supplier has, or the supplier doesn't list that colour and size. Stock is checked **live against Promodata on every request** (`PromodataStock::rows($id, fresh: true)`), never taken from the 5-minute cache or the database. A row with no size matches the line size "One size" |
    | `stock_unavailable` | Live stock couldn't be checked (no stock check for the product, or Promodata failed) |
    | `review` | A position uses a method that needs artwork review: screen print, pad print, embroidery, or a decoration no method matches. DTF and oversize DTF don't |
    | `logo` | A position has no logo of the client's own |
