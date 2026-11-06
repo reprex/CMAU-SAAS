@@ -6,6 +6,7 @@
 - [x] **Delivery on website quotes** (Scott, 7 Nov 2026): yes/no, Australia by postcode or any country; exports GST-free with the duties note; estimated weights flagged; next price breaks on the quote.
 - [x] **Supplier purchase orders** (Scott, 7 Nov 2026; docs/purchase-orders.md): built 7 Nov from website orders. Scott fills each supplier's orders contact and email (`st po` lists them).
 - [ ] **Switch to the live store** (docs/publisher.md, "Switching to the live store"): variant-match and carry-tags reports from a live Matrixify export, then switch-store, metafield definitions, collections sync, a first batch of 50.
+- [ ] **Store menus** (docs/menus.md): add the navigation scopes to the app, then `st menus` and `st menusgo` on CMAU_DEV now, and again on the live store after the switch.
 
 Things needed before crowdmerch.com.au goes live on the new theme. Add to this list; tick off in the commit that does it.
 
