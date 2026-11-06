@@ -24,4 +24,9 @@ class BrandingTemplate extends Model
     {
         return $this->hasMany(BrandingPosition::class);
     }
+
+    public function comparisons(): HasMany
+    {
+        return $this->hasMany(TemplateComparison::class);
+    }
 }

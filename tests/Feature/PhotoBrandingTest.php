@@ -8,6 +8,7 @@ use App\Models\BrandingPosition;
 use App\Models\BrandingTemplate;
 use App\Models\PhotoBranding;
 use App\Models\Product;
+use App\Models\TemplateComparison;
 use App\Shopify\ProductPayload;
 use App\Support\ClaudeLimit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -177,5 +178,30 @@ class PhotoBrandingTest extends TestCase
         Http::fake();
         $this->artisan('catalogue:read-templates', ['--limit' => 5])->assertSuccessful();
         Http::assertNothingSent();                                          // while paused, nothing is tried
+    }
+
+    public function test_fifty_on_haiku_are_kept_beside_the_sonnet_reading_to_compare(): void
+    {
+        config(['images.branding.enabled' => false]);
+        $p = $this->pen();
+        $t = BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/p1.pdf', 'source' => 'promodata', 'status' => 'read', 'read_at' => now()]);
+        BrandingPosition::query()->create(['product_id' => $p->id, 'branding_template_id' => $t->id, 'position' => 0, 'name' => 'Barrel', 'view' => 'front',
+            'image_url' => self::CDN.'black.jpg', 'left' => 30, 'top' => 40, 'width' => 40, 'source' => 'template']);
+        $sent = [];
+        Http::fake(['api.anthropic.com/*' => function ($request) use (&$sent) {
+            $sent[] = $request['model'];
+
+            return Http::response(['content' => [['type' => 'text', 'text' => json_encode(['positions' => [['name' => 'Barrel', 'view' => 'front', 'max_width_mm' => 45, 'max_height_mm' => 7,
+                'methods' => ['Pad print'], 'box' => ['left' => 32, 'top' => 41, 'width' => 36], 'confidence' => 'high']]])]]]);
+        }]);
+
+        $this->artisan('catalogue:read-templates', ['--compare' => 'claude-haiku-5-5', '--limit' => 50])->expectsOutputToContain('Read 1 templates with claude-haiku-5-5')->assertSuccessful();
+        $this->assertSame(['claude-haiku-5-5'], $sent);
+        $this->assertSame(30.0, (float) BrandingPosition::query()->value('left'));     // the reading in use is untouched
+        $c = TemplateComparison::query()->first();
+        $this->assertSame(45, $c->positions[0]['max_width_mm']);
+
+        $this->staff();
+        $this->get(route('range.template-reads', ['compare' => 'claude-haiku-5-5']))->assertOk()->assertSee('stroke-dasharray', false)->assertSee('45 × 7 mm');
     }
 }
