@@ -27,6 +27,9 @@ use RuntimeException;
  */
 class TodPricingImporter
 {
+    /** The override keys this import sets; any other key on a product's overrides is kept. */
+    private const TOD_OVERRIDE_KEYS = ['moq_one', 'carried_default_decoration_option_id', 'decoration_option_id', 'decoration_product_id', 'actual_moq', 'collection_moq'];
+
     /** @var callable(string): void */
     private $log;
 
@@ -433,6 +436,11 @@ class TodPricingImporter
                 'collection_moq' => ((int) $r['CollectionMOQ'] > 0 && (int) $r['CollectionMOQ'] !== (int) $ruleMoq) ? (int) $r['CollectionMOQ'] : null,
             ], fn ($v) => $v !== null);
 
+            // Keep what the TOD import doesn't own (staff overrides, tags carried from the live store,
+            // the master sort order): a re-import before go-live must not wipe them.
+            $old = DB::table('product_overrides')->where('product_id', $id)->value('data');
+            $keep = array_diff_key((array) json_decode((string) $old, true), array_flip(self::TOD_OVERRIDE_KEYS));
+            $data = $keep + $data;
             DB::table('product_overrides')->where('product_id', $id)->delete();
             if ($data !== []) {
                 DB::table('product_overrides')->insert([
