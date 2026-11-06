@@ -15,7 +15,7 @@ class TemplateReviewTest extends TestCase
 
     public function test_template_reads_show_print_areas_on_the_photo(): void
     {
-        config(['app.admin_allowed_ips' => []]);
+        config(['app.admin_allowed_ips' => [], 'shopify.dev_store' => 'cmau-dev.myshopify.com']);
         $this->supplier(19, 'Dex');
         $p = Product::create(['id' => 8443, 'supplier_id' => 19, 'name' => 'Flurr Bamboo Pen', 'code' => 'BP002', 'tier' => 'live', 'hydrated_at' => now()]);
         $t = BrandingTemplate::query()->create(['product_id' => $p->id, 'url' => 'https://cdn.example/t.pdf', 'source' => 'promodata', 'status' => 'read', 'read_at' => now()]);
@@ -27,6 +27,6 @@ class TemplateReviewTest extends TestCase
         $this->get(route('range.template-reads'))->assertOk()
             ->assertSee('Flurr Bamboo Pen')->assertSee('https://cdn.example/black.jpg', false)->assertSee('<polygon points="30,40 70,40 70,46 30,46"', false)
             ->assertSee('50 × 8 mm')->assertSee('cylinder h')->assertSee('Pad print')->assertSee('tread-logo', false)->assertSee('data-surface="cylinder_h"', false)
-            ->assertSee(route('range.templates.download', [8443, $t->id]), false)->assertSee('Show the CrowdMerch logo');
+            ->assertSee(route('range.templates.download', [8443, $t->id]), false)->assertSee('Show the CrowdMerch logo')->assertSee('https://cmau-dev.myshopify.com/products/8443', false);
     }
 }
