@@ -37,6 +37,15 @@ return [
 
     'mailers' => [
 
+        // Microsoft 365 through Microsoft Graph (docs/stack-and-security.md, "Email"): MAIL_MAILER=graph.
+        'graph' => [
+            'transport' => 'graph',
+            'tenant' => env('MSGRAPH_TENANT_ID'),
+            'client_id' => env('MSGRAPH_CLIENT_ID'),
+            'client_secret' => env('MSGRAPH_CLIENT_SECRET'),
+            'mailbox' => env('MSGRAPH_MAILBOX', env('MAIL_FROM_ADDRESS')),
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
@@ -113,6 +122,8 @@ return [
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+        // Quotes come from a person (Scott, 7 Nov 2026): people reply to people.
+        'quote_name' => env('MAIL_QUOTE_FROM_NAME', 'Scott at CrowdMerch'),
     ],
 
 ];

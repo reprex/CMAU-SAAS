@@ -7,6 +7,7 @@ use App\Models\Quote;
 use App\Pdf\QuotePdf;
 use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
@@ -24,7 +25,7 @@ class QuoteMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: self::subjectFor($this->quote), replyTo: [config('quotes.pdf.email')]);
+        return new Envelope(from: new Address((string) config('mail.from.address'), (string) config('mail.from.quote_name')), subject: self::subjectFor($this->quote), replyTo: [config('quotes.pdf.email')]);
     }
 
     public function content(): Content

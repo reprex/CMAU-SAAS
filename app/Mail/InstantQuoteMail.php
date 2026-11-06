@@ -7,6 +7,7 @@ use App\Models\Quote;
 use App\Pdf\QuotePdf;
 use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
@@ -18,7 +19,7 @@ class InstantQuoteMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "Your CrowdMerch quote {$this->quote->number}", replyTo: [config('quotes.pdf.email')]);
+        return new Envelope(from: new Address((string) config('mail.from.address'), (string) config('mail.from.quote_name')), subject: "Your CrowdMerch quote {$this->quote->number}", replyTo: [config('quotes.pdf.email')]);
     }
 
     public function content(): Content
