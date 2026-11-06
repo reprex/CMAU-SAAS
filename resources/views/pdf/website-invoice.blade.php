@@ -22,8 +22,8 @@
 .lthumb img { max-width: 40px; max-height: 38px; margin-top: 2px; }
 .tiny { font-size: 8px; }
 .center { text-align: center; }
-.thumb { width: 150px; height: 150px; }
-.thumb img { max-width: 142px; max-height: 142px; }
+.thumb { width: 124px; height: 124px; }
+.thumb img { max-width: 116px; max-height: 116px; }
 </style></head>
 <body>
 <div class="footer"><table><tr><td>{{ $brand['signed_by'] }} · {{ $brand['phone'] }} · {{ $brand['email'] }}</td><td class="right">{{ $brand['legal'] }}</td></tr></table></div>
@@ -100,7 +100,7 @@
   <tr><td>Delivery · {{ $o->freight_name }}</td><td class="right muted"></td><td class="right">{{ $m($o->freight) }}</td></tr>
 </table>
 
-<table style="margin-top: 18px; page-break-inside: avoid">
+<table style="margin-top: 10px; page-break-inside: avoid">
   <tr>
     <td style="padding-right: 30px">
       <div class="label orange">Delivery</div>
