@@ -196,9 +196,19 @@ class WebsiteQuotePdfTest extends TestCase
         $q = $this->quoteFrom($this->send());
 
         $html = (new InstantQuoteMail($q))->render();
-        foreach (['Hi Alex,', 'Please find the quote PDF attached.', 'detailed pricing, order instructions, mock-ups, and branding templates', 'follow the links in the quote document', 'Scott Wilson', 'font-family:Arial'] as $text) {
+        foreach (['Hi Alex,', 'Please find the quote PDF attached.', 'including detailed pricing, order instructions, and mock-ups.', 'follow the links in the quote document', 'Scott Wilson', 'font-family:Arial'] as $text) {
             $this->assertStringContainsString($text, $html);
         }
+
+        // Only what the quote has: no mock-ups, no templates.
+        $plain = $this->quoteFrom($this->send(['mockups' => []]));
+        $this->assertStringContainsString('including detailed pricing and order instructions.', (new InstantQuoteMail($plain))->render());
+
+        // A branding template on the product.
+        Storage::fake('templates');
+        Storage::disk('templates')->put('t/5001.pdf', str_repeat('%PDF-template ', 30));
+        BrandingTemplate::query()->create(['product_id' => self::MENS, 'filename' => '5001 Staple.pdf', 'file_path' => 't/5001.pdf', 'url' => 'file:5001', 'status' => 'imported']);
+        $this->assertStringContainsString('including detailed pricing, order instructions, mock-ups, and branding templates.', (new InstantQuoteMail($q))->render());
     }
 
     public function test_an_unknown_country_is_refused(): void
