@@ -2,29 +2,22 @@
 Hi {{ explode(' ', trim($o->contact_name))[0] ?: 'there' }},
 
 @if($o->isSamples())
-Thanks for your sample order {{ $o->number }}. One invoice for all your samples is attached: ${{ number_format((float) $o->total, 2) }} inc GST.
+Invoice PDF attached for your sample order {{ $o->number }}.
 
-Estimated delivery: {{ $o->eta->format('l j F Y') }}. Samples from each factory ship together, so they may arrive separately.
-
-{{ config('website.samples.note') }}
-
-Pay by card or bank transfer from the invoice. Once you've paid, the factories send your samples.
+Please pay in full to the bank account listed on the invoice.
+On receipt of payment, the factories will send your samples. {{ config('website.samples.note') }}
 @else
-Thanks for your order {{ $o->number }}. Your invoice is attached: ${{ number_format((float) $o->total, 2) }} {{ $o->export ? 'ex GST (GST-free export)' : 'inc GST' }}.
+Invoice PDF attached.
 
-Estimated delivery: {{ $o->eta->format('l j F Y') }}@if($o->need_by), for your date of {{ $o->need_by->format('j F Y') }}@endif.
-@foreach($o->alerts ?? [] as $alert)
-
-Please note: {{ $alert['message'] }}
-@endforeach
-
-Pay by card or bank transfer from the invoice. Once you've paid, we will provide a digital proof for your approval before proceeding with production.
-@include('mail.partials.templates')
+Please pay in full to the bank account listed on the invoice.
+On receipt of payment, we will prepare a digital proof for your approval prior to production.
 @endif
 
-To change anything, reply to this email or use My Orders on crowdmerch.com.au before your order is dispatched.
+If you have any questions or need to make changes prior to payment, please contact us via return email.
 
-Kind regards,
-{{ config('quotes.pdf.signed_by') }}
-{{ config('quotes.pdf.signed_title') }}
-{{ config('quotes.pdf.phone') }} · {{ config('quotes.pdf.website') }}
+Kind Regards
+
+Scott Wilson
+Owner / Director
+Phone: +61 3 8456 7515, 1300 727 685, 0400 383 330
+www.replicat.com.au · www.crowdmerch.com.au
