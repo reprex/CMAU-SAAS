@@ -81,14 +81,6 @@ class ProductPayload
         return mb_strtolower(preg_replace('/[^\p{L}\p{N}]+/u', '', preg_replace('/\.png$/i', '', $name)) ?? $name);
     }
 
-    /** The live store's spelling of this colour, carried by shopify:carry-tags, so its variant is kept. */
-    private function liveSpelling(Product $product, string $name): string
-    {
-        $live = (array) $product->overrideValue('carried.colours', []);
-
-        return (string) ($live[self::looseColour($name)] ?? $name);
-    }
-
     /** A variant's SKU, as TOD made it (APPAColStringID): APPAID, a hyphen, the colour in lower case letters and digits. */
     public static function sku(int $productId, string $label): string
     {
@@ -106,7 +98,7 @@ class ProductPayload
         $used = [];
         $pos = 0;
         foreach ($this->images->forShopify($product)['colours'] as $name => $c) {
-            $label = self::optionName($this->liveSpelling($product, (string) $name), ++$pos, $used);
+            $label = self::optionName((string) $name, ++$pos, $used);
             $out[] = ['label' => $label, 'sku' => self::sku($product->id, $label)];
         }
 
@@ -136,7 +128,7 @@ class ProductPayload
         $pos = 0;
         $used = [];
         foreach ($img['colours'] as $name => $c) {
-            $label = self::optionName($this->liveSpelling($product, (string) $name), $pos + 1, $used);
+            $label = self::optionName((string) $name, $pos + 1, $used);
             $v = [
                 'optionValues' => [['optionName' => 'Color', 'name' => $label]],
                 'inventoryItem' => ['sku' => self::sku($product->id, $label)],

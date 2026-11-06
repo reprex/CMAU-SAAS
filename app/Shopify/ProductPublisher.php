@@ -245,18 +245,15 @@ class ProductPublisher
                 }
             }
         }
-        foreach ($live as $i => $l) { // pictures only the store has (staff added them): kept
-            if (! isset($used[$i])) {
-                $rows[] = ['product_id' => $product->id, 'url_hash' => sha1($l['url']), 'url' => mb_substr($l['url'], 0, 1024), 'media_gid' => $l['id']];
-            }
-        }
+        // Pictures only the store has are not kept: Promodata's pictures replace them (Scott, 7 Nov 2026: the
+        // SaaS's data overrides the live store's), so old copies don't pile up beside the new ones.
         DB::table('shopify_media')->where('product_id', $product->id)->delete();
         foreach ($rows as $r) {
             DB::table('shopify_media')->insert($r + ['created_at' => now(), 'updated_at' => now()]);
         }
         $product->forceFill(['shopify_product_id' => $this->numericId((string) $node['id'])]);
         DB::table('products')->where('id', $product->id)->update(['shopify_product_id' => $product->shopify_product_id]);
-        $this->log($product, 'adopt', true, 'found by handle ('.strtolower((string) ($node['status'] ?? '')).'); '.count($used).' of '.count($live).' pictures matched, '.(count($live) - count($used)).' kept', null, $userId);
+        $this->log($product, 'adopt', true, 'found by handle ('.strtolower((string) ($node['status'] ?? '')).'); '.count($used).' of '.count($live).' pictures matched, '.(count($live) - count($used)).' replaced', null, $userId);
 
         return true;
     }
