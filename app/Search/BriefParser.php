@@ -2,6 +2,8 @@
 
 namespace App\Search;
 
+use Carbon\CarbonImmutable;
+
 /**
  * Reads the useful facts out of what a visitor typed, without AI: quantity,
  * budget, colour, eco, the product types mentioned (via synonyms for the
@@ -29,12 +31,13 @@ class BriefParser
 
     /**
      * @return array{text:string, qty:?int, budget:?float, budget_min:?float, under:bool, colours:list<string>, eco:bool, types:list<string>, terms:list<string>,
-     *   groups:list<string>, negatives:list<string>, briefLike:bool, tags:list<string>, occasions:list<string>, rest:list<string>}
+     *   groups:list<string>, negatives:list<string>, briefLike:bool, tags:list<string>, occasions:list<string>, rest:list<string>, need_by:?string}
      */
     public function parse(string $text): array
     {
         $t = mb_strtolower(trim(preg_replace('/\s+/', ' ', $text)));
         [$budget, $budgetMin, $under, $noMoney] = self::budget($t);
+        $noMoney = preg_replace('/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b|\b(?:in|within)\s+\d{1,2}\s+(?:day|week)s?\b/', ' ', $noMoney); // dates aren't quantities
         $qty = preg_match('/\b(\d{1,3}(?:,\d{3})+|\d{2,6})\b(?!\s*(?:mm|cm|ml|l|gsm|mah|th|st|nd|rd)\b|\s*%|\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))/', $noMoney, $m)
             ? (int) str_replace(',', '', $m[1]) : null;
 
@@ -77,7 +80,59 @@ class BriefParser
             'tags' => $syn['tags'],
             'occasions' => $occasions,
             'rest' => array_values(array_filter($syn['rest'], fn ($w) => strlen($w) >= 3 && ! ctype_digit($w) && ! in_array($w, self::COLOURS, true) && ! in_array($w, self::BRIEF_WORDS, true))),
+            'need_by' => self::needBy($t),
         ];
+    }
+
+    /**
+     * The date the visitor needs it by (docs/lead-times.md, search by date): "by 20 Nov", "by 20th
+     * November", "by 20/11", "before Christmas", "by Friday", "in 3 weeks", "within 10 days".
+     * Returns Y-m-d, or null.
+     */
+    public static function needBy(string $t, ?CarbonImmutable $today = null): ?string
+    {
+        $today = ($today ?? CarbonImmutable::now(config('app.timezone')))->startOfDay();
+        $months = ['jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4, 'may' => 5, 'jun' => 6, 'jul' => 7, 'aug' => 8, 'sep' => 9, 'oct' => 10, 'nov' => 11, 'dec' => 12];
+        $next = function (int $m, int $d) use ($today): ?string {
+            if (! checkdate($m, $d, $today->year)) {
+                return null;
+            }
+            $date = CarbonImmutable::create($today->year, $m, $d)->startOfDay();
+
+            return ($date->lt($today) ? $date->addYear() : $date)->toDateString();
+        };
+        $lead = '(?:by|before|for|on|need(?:ed)?(?: it)?(?: by)?|deliver(?:ed|y)?(?: by)?|arrive(?: by)?|due)\s+(?:the\s+)?(?:(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?\s+)?';
+        if (preg_match('/'.$lead.'(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]{3})[a-z]*\b/', $t, $m) && isset($months[$m[2]])) {
+            return $next($months[$m[2]], (int) $m[1]);
+        }
+        if (preg_match('/'.$lead.'([a-z]{3})[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?\b/', $t, $m) && isset($months[$m[1]])) {
+            return $next($months[$m[1]], (int) $m[2]);
+        }
+        if (preg_match('/'.$lead.'(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?\b/', $t, $m)) {
+            return $next((int) $m[2], (int) $m[1]); // Australian day/month
+        }
+        if (preg_match('/\b(?:before|by|for)\s+(?:xmas|christmas)\b/', $t)) {
+            return $next(12, 24);
+        }
+        if (preg_match('/\b(?:in|within)\s+(\d{1,2}|a|one|two|three|four|five|six)\s+(day|week)s?\b/', $t, $m)) {
+            $n = ['a' => 1, 'one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5, 'six' => 6][$m[1]] ?? (int) $m[1];
+
+            return $today->addDays($m[2] === 'week' ? $n * 7 : $n)->toDateString();
+        }
+        if (preg_match('/\b(?:by|before|for)\s+(?:next\s+)?(mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?\b/', $t, $m)) {
+            $map = ['mon' => 1, 'tue' => 2, 'tues' => 2, 'wed' => 3, 'wednes' => 3, 'thu' => 4, 'thurs' => 4, 'fri' => 5, 'sat' => 6, 'satur' => 6, 'sun' => 0];
+            $dow = $map[$m[1]] ?? null;
+            if ($dow !== null) {
+                $d = $today->addDay();
+                while ((int) $d->dayOfWeek !== $dow) {
+                    $d = $d->addDay();
+                }
+
+                return $d->toDateString();
+            }
+        }
+
+        return null;
     }
 
     /**

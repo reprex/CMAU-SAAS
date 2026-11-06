@@ -2,6 +2,7 @@
 
 namespace App\Search;
 
+use App\Checkout\LeadTimes;
 use App\Models\Product;
 use App\Quotes\WebsiteLinePricer;
 use App\Shopify\RangeCollections;
@@ -191,6 +192,11 @@ class KeywordSearch
             if (! empty($brief['budget_min']) && $price !== null && $price < $brief['budget_min'] * 0.85) {
                 return null;
             }
+            // Search by date (docs/lead-times.md): leave out what can't arrive in time.
+            $earliest = ! empty($brief['need_by']) ? app(LeadTimes::class)->earliest($p) : null;
+            if ($earliest !== null && $earliest > $brief['need_by']) {
+                return null;
+            }
             $score = 0;
             foreach ($words as $w) {
                 $score += str_contains(mb_strtolower((string) $p->promodata_type_name), $w) ? 3 : (str_contains($hay, $w) ? 1 : 0);
@@ -206,7 +212,7 @@ class KeywordSearch
                 'id' => $p->id, 'name' => $p->name, 'type' => $p->promodata_type_name, 'group' => $p->promodata_type_name ? RangeCollections::subcategory($p->promodata_type_name) : null, 'tag' => app(RangeCollections::class)->tagFor($p->promodata_type_name), 'material' => $p->material,
                 'image' => $p->hero_image_url, 'qty' => max($at, $moq), 'price' => $price !== null ? round($price, 2) : null,
                 'moq' => $moq, 'lead_days' => $p->lead_time_days, 'score' => $score,
-            ];
+            ] + ($earliest !== null ? ['earliest' => $earliest] : []);
         })->filter()->when($sort, fn ($c) => $c->sortBy([['score', 'desc'], ['price', 'asc']]))->values();
     }
 }

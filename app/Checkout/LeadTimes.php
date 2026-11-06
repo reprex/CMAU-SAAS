@@ -209,4 +209,27 @@ class LeadTimes
             'closed' => $ranges,
         ];
     }
+
+    /**
+     * The earliest delivery for a product (search by date): order check, stock, its fastest branding
+     * (Promodata's fastest lead time, else the fastest method), the Christmas rush, transit, typical freight.
+     */
+    public function earliest(Product $product, ?CarbonImmutable $today = null): string
+    {
+        $today = ($today ?? CarbonImmutable::now(config('app.timezone')))->startOfDay();
+        $supplier = $product->supplier;
+        $state = (string) ($supplier?->state ?: config('website.lead_times.default_state'));
+        $fastest = $product->lead_time_days ? (int) ceil((float) $product->lead_time_days) : (int) min((array) config('website.lead_times.decoration'));
+        $days = (int) config('website.lead_times.typical_freight_days', 3);
+        $e = app(DeliveryEstimator::class)->estimate($state, '', $supplier?->stockLeadDays() ?? (int) config('website.lead_times.stock_default'), 'dtf',
+            ['id' => 'typical', 'name' => 'Freight', 'days' => [$days, $days]], $today, null, [
+                'decoration_days' => $fastest,
+                'christmas_days' => $this->christmasDays($today),
+                'transit_days' => (int) ($supplier?->transit_days ?? 0),
+                'ships_from' => $supplier?->ships_from,
+                'closed' => $this->closedDays($supplier, $today, $today->addDays(120)),
+            ]);
+
+        return $e['delivery_date'];
+    }
 }

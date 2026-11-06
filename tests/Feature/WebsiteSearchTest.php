@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Product;
 use App\Models\SearchLog;
 use App\Search\BriefParser;
 use App\Search\PageToken;
 use App\Search\Synonyms;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\QuoteFixtures;
 use Tests\TestCase;
@@ -110,6 +113,22 @@ class WebsiteSearchTest extends TestCase
         $this->assertEqualsCanonicalizing([101, 102], array_column($res->json('results'), 'id'));
         $this->assertNotNull($res->json('results.0.price'));
         Http::assertNothingSent();
+    }
+
+    public function test_search_by_date_leaves_out_what_cannot_arrive_in_time(): void
+    {
+        Http::fake();
+        Carbon::setTestNow(Carbon::parse('2026-11-06 10:00', 'Australia/Melbourne'));
+        Product::query()->whereKey(101)->update(['lead_time_days' => 5]);
+        Product::query()->whereKey(102)->update(['lead_time_days' => 30]);
+
+        $res = $this->search(['q' => '100 caps by 30 nov'])->assertOk()->assertJsonPath('understood.needed_by', '2026-11-30')->assertJsonPath('understood.qty', 100);
+
+        $this->assertSame([101], array_column($res->json('results'), 'id'));
+        $this->assertLessThanOrEqual('2026-11-30', $res->json('results.0.earliest'));
+        $this->assertSame('2026-12-04', BriefParser::needBy('tees by 4/12', CarbonImmutable::parse('2026-11-06')));
+        $this->assertNull((new BriefParser)->parse('tees by 4/12')['qty'], 'a date is not a quantity');
+        Carbon::setTestNow();
     }
 
     public function test_brief_without_turnstile_falls_back_to_keyword(): void
