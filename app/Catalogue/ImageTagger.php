@@ -5,6 +5,7 @@ namespace App\Catalogue;
 use App\Models\ImageCheck;
 use App\Models\Product;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Tags every product image as hero style, other style, colour or other colour
@@ -119,7 +120,7 @@ class ImageTagger
                 };
             }
 
-            return ['url' => $url, 'role' => $role, 'colour' => $colour, 'by' => $by, 'auto_role' => $role, 'auto_colour' => $colour, 'review' => $review, 'seen' => $seen];
+            return ['url' => $url, 'role' => $role, 'colour' => $colour, 'by' => $by, 'auto_role' => $role, 'auto_colour' => $colour, 'review' => $review === null ? null : Str::limit($review, 157), 'seen' => $seen]; // column is 160
         });
 
         // Staff tags win. A staff "hero style" replaces the automatic hero.
