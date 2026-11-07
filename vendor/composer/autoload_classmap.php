@@ -167,6 +167,7 @@ return array(
     'App\\Jobs\\SendProjectRequestEmails' => $baseDir . '/app/Jobs/SendProjectRequestEmails.php',
     'App\\Mail\\AccountCodeMail' => $baseDir . '/app/Mail/AccountCodeMail.php',
     'App\\Mail\\Concerns\\AttachesTemplates' => $baseDir . '/app/Mail/Concerns/AttachesTemplates.php',
+    'App\\Mail\\Concerns\\EmbroideryNote' => $baseDir . '/app/Mail/Concerns/EmbroideryNote.php',
     'App\\Mail\\InstantQuoteMail' => $baseDir . '/app/Mail/InstantQuoteMail.php',
     'App\\Mail\\ProjectRequestConfirmationMail' => $baseDir . '/app/Mail/ProjectRequestConfirmationMail.php',
     'App\\Mail\\ProjectRequestStaffMail' => $baseDir . '/app/Mail/ProjectRequestStaffMail.php',

@@ -9,6 +9,8 @@
 @else
 <p>Invoice PDF attached.</p>
 <p>Please pay in full to the bank account listed on the invoice.</p>
+@if($embroidery ?? null)<p>{{ $embroidery }}</p>
+@endif
 <p>On receipt of payment, we will prepare a digital proof for your approval prior to production.</p>
 @endif
 <p>If you have any questions or need to make changes prior to payment, please contact us via return email.</p>

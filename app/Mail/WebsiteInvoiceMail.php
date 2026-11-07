@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Checkout\InvoiceFiles;
 use App\Mail\Concerns\AttachesTemplates;
+use App\Mail\Concerns\EmbroideryNote;
 use App\Models\WebsiteOrder;
 use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
@@ -29,7 +30,7 @@ class WebsiteInvoiceMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(html: 'mail.html.website-invoice', text: 'mail.website-invoice', with: ['templates' => $this->templates()]);
+        return new Content(html: 'mail.html.website-invoice', text: 'mail.website-invoice', with: ['templates' => $this->templates(), 'embroidery' => EmbroideryNote::forOrder($this->order)]);
     }
 
     public function attachments(): array

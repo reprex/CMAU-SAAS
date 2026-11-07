@@ -4,6 +4,10 @@ Please find the quote PDF attached.
 
 It contains everything you need, including {{ $contains }}.
 
+@if($embroidery ?? null)
+{{ $embroidery }}
+
+@endif
 If you need anything else, please reply to this email or follow the links in the quote document.
 
 Kind Regards

@@ -718,6 +718,7 @@ class ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d
         'App\\Jobs\\SendProjectRequestEmails' => __DIR__ . '/../..' . '/app/Jobs/SendProjectRequestEmails.php',
         'App\\Mail\\AccountCodeMail' => __DIR__ . '/../..' . '/app/Mail/AccountCodeMail.php',
         'App\\Mail\\Concerns\\AttachesTemplates' => __DIR__ . '/../..' . '/app/Mail/Concerns/AttachesTemplates.php',
+        'App\\Mail\\Concerns\\EmbroideryNote' => __DIR__ . '/../..' . '/app/Mail/Concerns/EmbroideryNote.php',
         'App\\Mail\\InstantQuoteMail' => __DIR__ . '/../..' . '/app/Mail/InstantQuoteMail.php',
         'App\\Mail\\ProjectRequestConfirmationMail' => __DIR__ . '/../..' . '/app/Mail/ProjectRequestConfirmationMail.php',
         'App\\Mail\\ProjectRequestStaffMail' => __DIR__ . '/../..' . '/app/Mail/ProjectRequestStaffMail.php',
