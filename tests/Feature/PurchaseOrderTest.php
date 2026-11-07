@@ -75,6 +75,21 @@ class PurchaseOrderTest extends TestCase
         $this->get(route('website-orders.show', $order))->assertOk()->assertSee($po->number);
     }
 
+    public function test_a_supplier_ordered_through_another_sends_its_po_there(): void
+    {
+        // AS Colour and JB's are ordered through Melbourne Merch (Scott, 7 Nov 2026).
+        $mm = $this->supplier(999, 'Melbourne Merch');
+        $mm->update(['is_decorator' => true, 'orders_email' => 'chris@mm.example', 'dispatch_suburb' => 'Brunswick', 'dispatch_postcode' => '3056']);
+        $order = $this->order();
+        $order->supplier->update(['po_supplier_id' => 999]);
+        $this->staff('sales');
+
+        $this->post(route('purchase-orders.store', $order))->assertRedirect();
+
+        $this->assertSame(999, PurchaseOrder::query()->firstOrFail()->supplier_id);
+        $this->assertSame('3056', $order->supplier->fresh()->dispatchOrigin()['postcode']);
+    }
+
     public function test_freight_is_added_later_and_the_po_is_emailed_to_the_supplier(): void
     {
         Mail::fake();

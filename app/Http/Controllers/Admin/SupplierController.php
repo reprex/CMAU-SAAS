@@ -75,6 +75,7 @@ class SupplierController extends Controller
             'orders_contact' => 'nullable|string|max:120',
             'orders_email' => 'nullable|email:rfc|max:190',
             'our_account_number' => 'nullable|string|max:60',
+            'po_supplier_id' => 'nullable|integer|exists:suppliers,id',
             // Dispatch address for delivery prices (docs/freight.md).
             'dispatch_suburb' => 'nullable|string|max:80',
             'dispatch_postcode' => ['nullable', 'regex:/^\d{4}$/'],

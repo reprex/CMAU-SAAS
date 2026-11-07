@@ -18,3 +18,8 @@ Scott, 7 Nov 2026: as simple as possible. From a website order (Website orders �
   `st po` (`php artisan suppliers:po-check`) lists suppliers with live products and what's missing.
 
 Not yet: POs from quote desk orders, decorators separate from the supplier, PO numbers in Xero.
+
+## Purchase orders through another supplier (Scott, 7 Nov 2026)
+- Admin › Suppliers › "Purchase orders go to": e.g. AS Colour (88) and JB's Wear (68) go to Melbourne
+  Merch (999, a decorator). The PO, its email and the dispatch address used for delivery prices are
+  Melbourne Merch's. `st po` shows the "PO to" supplier and its details.
