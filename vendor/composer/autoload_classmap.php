@@ -65,6 +65,7 @@ return array(
     'App\\Console\\Commands\\CatalogueReadTemplatesCommand' => $baseDir . '/app/Console/Commands/CatalogueReadTemplatesCommand.php',
     'App\\Console\\Commands\\CatalogueRestoreHeroesCommand' => $baseDir . '/app/Console/Commands/CatalogueRestoreHeroesCommand.php',
     'App\\Console\\Commands\\CatalogueTagImagesCommand' => $baseDir . '/app/Console/Commands/CatalogueTagImagesCommand.php',
+    'App\\Console\\Commands\\DecoratorsCheckCommand' => $baseDir . '/app/Console/Commands/DecoratorsCheckCommand.php',
     'App\\Console\\Commands\\FreightTestCommand' => $baseDir . '/app/Console/Commands/FreightTestCommand.php',
     'App\\Console\\Commands\\HolidaysImportCommand' => $baseDir . '/app/Console/Commands/HolidaysImportCommand.php',
     'App\\Console\\Commands\\LeadTimeReportCommand' => $baseDir . '/app/Console/Commands/LeadTimeReportCommand.php',
