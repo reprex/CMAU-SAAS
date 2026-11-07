@@ -163,6 +163,7 @@ class ImageVision
             .'"other_style": the product in the same colour as the HERO (a different angle, a close-up of a feature, the product in use), or a photo that is not about any one colour. '
             .'"other_colour": the product clearly shown in a different colour from the HERO; give that colour, using a name from the colour list exactly. '
             .'Also set "colour" on other_style images when the product is shown in exactly one colour from the list (so a colour with no picture of its own can borrow one); null when it shows several colours or none matches. The tag still says whether it is a style or colour photo. '
+            .'Suppliers often shoot every colour as a near-identical photo, the same angle with only the colour changed: compare the product\'s colours (body, trims, handles, print) with the HERO and the colour list, not the angle. Two-tone names (e.g. Natural/Black) name the main colour then the trim. '
             .'File names are hints only; trust what you see, and say so in the note if they disagree. '
             .'If Promodata says an image is the hero but it is not a clear picture of the whole product, or says it is a colour image but it shows a different colour, say so in the note. '
             .'Reply with JSON only: {"images":[{"n":number,"tag":"other_style"|"other_colour","colour":string|null,"shows":"'.implode('"|"', self::SHOWS).'","confidence":number 0-1,"note":string}]}. '
