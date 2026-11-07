@@ -80,7 +80,8 @@ class PurchaseOrders
         $po = new PurchaseOrder([
             'number' => $n ? $number.'-'.($n + 1) : $number,
             'website_order_id' => $order->id,
-            'supplier_id' => $order->supplier_id,
+            // To the supplier's PO recipient (AS Colour and JB's go to Melbourne Merch).
+            'supplier_id' => $order->supplier?->poRecipient()->id ?? $order->supplier_id,
             'deliver_to' => [
                 'name' => $order->contact_name, 'organisation' => $order->organisation, 'unit' => $order->address_unit, 'street' => $order->address_street,
                 'suburb' => $order->address_suburb, 'state' => $order->address_state, 'postcode' => $order->address_postcode, 'country' => $order->address_country, 'phone' => $order->phone,

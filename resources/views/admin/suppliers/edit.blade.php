@@ -33,6 +33,7 @@
       <label class="f">Orders contact (purchase orders)<input name="orders_contact" value="{{ old('orders_contact', $supplier->orders_contact) }}" maxlength="120" placeholder="e.g. Sam Lee"></label>
       <label class="f">Orders email<input name="orders_email" type="email" value="{{ old('orders_email', $supplier->orders_email) }}" maxlength="190" placeholder="orders@supplier.com.au"></label>
       <label class="f">Our account number with them<input name="our_account_number" value="{{ old('our_account_number', $supplier->our_account_number) }}" maxlength="60"></label>
+      <label class="f">Purchase orders go to<select name="po_supplier_id"><option value="">This supplier</option>@foreach(\App\Models\Supplier::query()->where('id', '!=', $supplier->id)->where(fn ($q) => $q->where('is_decorator', true)->orWhere('id', $supplier->po_supplier_id))->orderBy('name')->get(['id', 'name']) as $o)<option value="{{ $o->id }}" @selected((int) old('po_supplier_id', $supplier->po_supplier_id) === $o->id)>{{ $o->name }}</option>@endforeach</select><span class="small muted">E.g. AS Colour → Melbourne Merch. The PO, its email and the dispatch address are that supplier's. Listed: suppliers marked as decorators.</span></label>
     </div>
     <div class="fgrid">
       <label class="f">Dispatches from: suburb<input name="dispatch_suburb" value="{{ old('dispatch_suburb', $supplier->dispatch_suburb) }}" maxlength="80" placeholder="e.g. DERRIMUT"></label>

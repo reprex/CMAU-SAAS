@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Supplier extends Model
@@ -78,6 +79,10 @@ class Supplier extends Model
      */
     public function dispatchOrigin(): ?array
     {
+        // Ordered through another supplier (AS Colour via Melbourne Merch): it ships from there.
+        if ($this->po_supplier_id && $this->po_supplier_id !== $this->id && ($via = $this->poSupplier) !== null) {
+            return $via->dispatchOrigin() ?? null;
+        }
         if (! preg_match('/^\d{4}$/', (string) $this->dispatch_postcode) || ! filled($this->dispatch_suburb) || $this->ships_from === 'NZ') {
             return null;
         }
@@ -98,5 +103,17 @@ class Supplier extends Model
         }
 
         return ['price' => (float) $this->flat_freight_price, 'cost' => (float) ($this->flat_freight_cost ?? 0), 'days' => (int) ($this->flat_freight_days ?? 0)];
+    }
+
+    /** Who purchase orders for this supplier's products go to (docs/purchase-orders.md); null = the supplier itself. */
+    public function poSupplier(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'po_supplier_id');
+    }
+
+    /** The supplier that receives the purchase order. */
+    public function poRecipient(): self
+    {
+        return ($this->po_supplier_id && $this->po_supplier_id !== $this->id ? $this->poSupplier : null) ?? $this;
     }
 }

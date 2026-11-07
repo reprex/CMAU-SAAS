@@ -3,7 +3,7 @@
         'name' => 'reprex/cmau-saas',
         'pretty_version' => 'dev-release',
         'version' => 'dev-release',
-        'reference' => '263e753a73ce663f86fad9297adffe1d0cd9ab82',
+        'reference' => '334e91c6e3c5401869b3b7ca8bfcfd1966d5cc3e',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -777,7 +777,7 @@
         'reprex/cmau-saas' => array(
             'pretty_version' => 'dev-release',
             'version' => 'dev-release',
-            'reference' => '263e753a73ce663f86fad9297adffe1d0cd9ab82',
+            'reference' => '334e91c6e3c5401869b3b7ca8bfcfd1966d5cc3e',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
