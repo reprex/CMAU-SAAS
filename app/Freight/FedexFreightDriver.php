@@ -3,6 +3,7 @@
 namespace App\Freight;
 
 use App\Pricing\Money;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -33,9 +34,22 @@ class FedexFreightDriver implements FreightDriver
             if ($token === null) {
                 return $fail;
             }
-            $r = Http::baseUrl(rtrim((string) config('freight.fedex.base_url'), '/'))->withToken($token)->acceptJson()
-                ->withHeaders(['X-locale' => 'en_US'])->timeout((int) config('freight.fedex.timeout'))->connectTimeout(5)
-                ->post('/rate/v1/rates/quotes', $this->request($c, $country, $postcode));
+            // FedEx refuses some payment set-ups per account (RATE.PAYMENTTYPE.NOTALLOWED, 7 Nov 2026):
+            // try as built, then without the duties payment, then with the sender paying transport.
+            $body = $this->request($c, $country, $postcode);
+            $variants = [$body, Arr::except($body, 'requestedShipment.customsClearanceDetail.dutiesPayment')];
+            $variants[2] = $variants[1];
+            $variants[2]['requestedShipment']['shippingChargesPayment'] = ['paymentType' => 'SENDER', 'payor' => ['responsibleParty' => ['accountNumber' => ['value' => (string) config('freight.fedex.account_number')]]]];
+            foreach ($variants as $n => $try) {
+                $r = Http::baseUrl(rtrim((string) config('freight.fedex.base_url'), '/'))->withToken($token)->acceptJson()
+                    ->withHeaders(['X-locale' => 'en_US'])->timeout((int) config('freight.fedex.timeout'))->connectTimeout(5)
+                    ->post('/rate/v1/rates/quotes', $try);
+                $codes = collect((array) $r->json('errors'))->pluck('code')->implode(',');
+                if ($r->successful() || ! str_contains($codes, 'PAYMENTTYPE')) {
+                    break;
+                }
+                Log::info('fedex rate retry', ['variant' => $n, 'errors' => $codes]);
+            }
             $details = $r->json('output.rateReplyDetails');
             if (! $r->successful() || ! is_array($details)) {
                 Log::warning('fedex rate failed', ['status' => $r->status(), 'errors' => $r->json('errors')]);
