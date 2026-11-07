@@ -625,6 +625,7 @@ class ComposerStaticInitc78dd00f1a3b4b4163d7bd0f23cdba6d
         'App\\Console\\Commands\\PricingRecalculateCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingRecalculateCommand.php',
         'App\\Console\\Commands\\PricingVerifyPagesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PricingVerifyPagesCommand.php',
         'App\\Console\\Commands\\PromodataCheckCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PromodataCheckCommand.php',
+        'App\\Console\\Commands\\PromodataSupplierAddressesCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PromodataSupplierAddressesCommand.php',
         'App\\Console\\Commands\\PromodataSyncCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PromodataSyncCommand.php',
         'App\\Console\\Commands\\PromodataSyncStepCommand' => __DIR__ . '/../..' . '/app/Console/Commands/PromodataSyncStepCommand.php',
         'App\\Console\\Commands\\QuotesImportDraftsCommand' => __DIR__ . '/../..' . '/app/Console/Commands/QuotesImportDraftsCommand.php',

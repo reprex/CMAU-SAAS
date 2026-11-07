@@ -75,6 +75,9 @@ class SupplierController extends Controller
             'orders_contact' => 'nullable|string|max:120',
             'orders_email' => 'nullable|email:rfc|max:190',
             'our_account_number' => 'nullable|string|max:60',
+            // Dispatch address for delivery prices (docs/freight.md).
+            'dispatch_suburb' => 'nullable|string|max:80',
+            'dispatch_postcode' => ['nullable', 'regex:/^\d{4}$/'],
         ]);
         $closures = $this->closures((string) $request->input('closures', ''));
         if ($closures === null) {
@@ -85,6 +88,9 @@ class SupplierController extends Controller
         $data['payment_terms'] = $data['payment_terms'] ?? $supplier->payment_terms ?? config('website.payment_terms.default');
         $data['freight_decorator_leg'] = $request->boolean('freight_decorator_leg');
         $data['is_decorator'] = $request->boolean('is_decorator');
+        if (($data['dispatch_postcode'] ?? null) !== $supplier->dispatch_postcode || ($data['dispatch_suburb'] ?? null) !== $supplier->dispatch_suburb) {
+            $data['dispatch_source'] = filled($data['dispatch_postcode'] ?? null) ? 'staff' : null;
+        }
 
         $before = $supplier->only(array_keys($data));
         $supplier->update($data);

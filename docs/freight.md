@@ -40,3 +40,12 @@ overseas (Replicat's account rates). The SaaS does the pricing; the website neve
   one delivery line with its ETA. The suppliers' standard freight lines are not used (`quotes.freight_source`).
 - Outside Australia: no GST (`quotes.gst_free_export`), and the quote and email say local duties and taxes are payable
   to the carrier before delivery.
+
+## Ships from the supplier (Scott, 7 Nov 2026)
+- Each supplier has a dispatch suburb and postcode (Admin › Suppliers). When every style in a quote or
+  cart comes from one supplier, MachShip and FedEx price from that address; a mix of suppliers, or a
+  supplier with no dispatch address, is priced from `FREIGHT_FROM_*` (Derrimut 3026).
+- `st suppaddr` reads the suppliers' addresses from Promodata and shows what it holds; `st suppaddrgo`
+  fills them in, **only where both suburb and postcode are empty in the SaaS**. Anything staff have
+  entered or edited is never overwritten (source shown as "staff" or "Promodata").
+- `st freight` now prints the carriers' own replies when a price fails.

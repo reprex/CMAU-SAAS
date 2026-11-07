@@ -55,7 +55,7 @@ class FedexFreightDriver implements FreightDriver
     /** @return array<string, mixed> */
     public function request(Consignment $c, string $country, ?string $postcode): array
     {
-        $from = config('freight.from');
+        $from = $c->shipsFrom();
         $packages = [];
         foreach ($c->items as $i) {
             for ($k = 0; $k < $i['quantity']; $k++) {

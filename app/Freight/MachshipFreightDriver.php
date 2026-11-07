@@ -32,7 +32,7 @@ class MachshipFreightDriver implements FreightDriver
             if ($to === null) {
                 return $base + ['ok' => false, 'message' => 'We don\'t recognise that postcode. Check it, or ask us to confirm delivery.', 'zone' => null, 'options' => []];
             }
-            $from = config('freight.from');
+            $from = $c->shipsFrom();
             $body = array_filter([
                 'companyId' => config('freight.machship.company_id') ? (int) config('freight.machship.company_id') : null,
                 'fromLocation' => ['suburb' => $from['suburb'], 'postcode' => $from['postcode']],
