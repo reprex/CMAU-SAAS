@@ -78,7 +78,15 @@ class SupplierController extends Controller
             // Dispatch address for delivery prices (docs/freight.md).
             'dispatch_suburb' => 'nullable|string|max:80',
             'dispatch_postcode' => ['nullable', 'regex:/^\d{4}$/'],
-        ]);
+            // Flat delivery instead of carrier rates (docs/freight.md).
+            'flat_freight_countries' => ['nullable', 'regex:/^\s*[A-Za-z]{2}(\s*,\s*[A-Za-z]{2})*\s*$/'],
+            'flat_freight_cost' => 'nullable|numeric|min:0|max:9999',
+            'flat_freight_price' => 'nullable|numeric|min:0|max:9999|required_with:flat_freight_countries',
+            'flat_freight_days' => 'nullable|integer|min:0|max:30',
+        ], ['flat_freight_countries.regex' => 'Write the countries as 2-letter codes, e.g. AU, NZ.', 'flat_freight_price.required_with' => 'Enter the flat delivery price for those countries.']);
+        if (filled($data['flat_freight_countries'] ?? null)) {
+            $data['flat_freight_countries'] = implode(',', array_map(fn ($c) => mb_strtoupper(trim($c)), explode(',', $data['flat_freight_countries'])));
+        }
         $closures = $this->closures((string) $request->input('closures', ''));
         if ($closures === null) {
             return back()->withInput()->withErrors(['closures' => 'Write each closure as "2026-12-18 to 2027-01-11 Christmas shutdown" (first and last day closed).']);

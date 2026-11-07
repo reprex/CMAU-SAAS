@@ -84,4 +84,19 @@ class Supplier extends Model
 
         return ['suburb' => mb_strtoupper(trim((string) $this->dispatch_suburb)), 'postcode' => (string) $this->dispatch_postcode, 'state' => $this->state];
     }
+
+    /**
+     * The supplier's flat delivery for this country (docs/freight.md), or null to use the carriers.
+     *
+     * @return array{price: float, cost: float, days: int}|null
+     */
+    public function flatFreight(string $country): ?array
+    {
+        $countries = array_filter(array_map('trim', explode(',', mb_strtoupper((string) $this->flat_freight_countries))));
+        if ($this->flat_freight_price === null || ! in_array(mb_strtoupper($country), $countries, true)) {
+            return null;
+        }
+
+        return ['price' => (float) $this->flat_freight_price, 'cost' => (float) ($this->flat_freight_cost ?? 0), 'days' => (int) ($this->flat_freight_days ?? 0)];
+    }
 }
