@@ -98,14 +98,30 @@ class MachshipFreightDriver implements FreightDriver
         if (Cache::has($key)) {
             return Cache::get($key);
         }
-        $r = $this->http()->get('locations/getLocationsWithSearchOptions', ['s' => $postcode]);
+        // MachShip's location search (7 Nov 2026): returnLocations is POST-only and needs a suburb, and a
+        // bare GET of getLocationsWithSearchOptions gave 415, so try the search forms in turn.
+        $tries = [
+            fn () => $this->http()->post('locations/returnLocationsWithSearchOptions?'.http_build_query(['s' => $postcode]), (object) []),
+            fn () => $this->http()->withBody('{}', 'application/json')->get('locations/getLocationsWithSearchOptions', ['s' => $postcode]),
+            fn () => $this->http()->get('locations/getLocationsWithSearchOptions', ['s' => $postcode]),
+        ];
+        $r = null;
+        $failed = [];
+        foreach ($tries as $n => $try) {
+            $r = $try();
+            if ($r->successful()) {
+                break;
+            }
+            $failed[] = '#'.($n + 1).' HTTP '.$r->status().' '.mb_substr($r->body(), 0, 120);
+        }
         if (! $r->successful()) {
             // A bad token or an outage is never cached against a postcode, and shows as "couldn't price".
-            throw new \RuntimeException('machship getLocationsWithSearchOptions failed: HTTP '.$r->status().' '.mb_substr($r->body(), 0, 300));
+            throw new \RuntimeException('machship location search failed: '.implode(' | ', $failed));
         }
-        $hit = collect((array) $r->json('object'))->first(fn ($l) => (string) ($l['postcode'] ?? '') === $postcode);
+        $hit = collect((array) $r->json('object'))->map(fn ($l) => is_array($l['location'] ?? null) ? $l['location'] : $l)
+            ->first(fn ($l) => is_array($l) && (string) ($l['postcode'] ?? '') === $postcode);
         if (! $hit) {
-            Log::info('machship getLocationsWithSearchOptions: no match', ['postcode' => $postcode, 'body' => mb_substr($r->body(), 0, 500)]);
+            Log::info('machship location search: no match', ['postcode' => $postcode, 'body' => mb_substr($r->body(), 0, 500)]);
 
             return null;
         }
