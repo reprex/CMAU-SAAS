@@ -139,7 +139,7 @@ class FedexFreightDriver implements FreightDriver
                 'grant_type' => 'client_credentials', 'client_id' => config('freight.fedex.client_id'), 'client_secret' => config('freight.fedex.client_secret'),
             ]);
             if (! $r->successful() || ! $r->json('access_token')) {
-                Log::warning('fedex token failed', ['status' => $r->status()]);
+                Log::warning('fedex token failed', ['status' => $r->status(), 'body' => mb_substr($r->body(), 0, 500)]);
 
                 throw new \RuntimeException('FedEx sign-in failed');
             }

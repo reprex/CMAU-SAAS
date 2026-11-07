@@ -94,12 +94,25 @@ class MachshipFreightDriver implements FreightDriver
     /** @return array{suburb: string, state: ?string}|null the first MachShip location for the postcode */
     private function location(string $postcode): ?array
     {
-        return Cache::remember('machship-loc:'.$postcode, 86400 * 30, function () use ($postcode) {
-            $r = $this->http()->get('locations/returnLocations', ['s' => $postcode]);
-            $hit = collect((array) $r->json('object'))->first(fn ($l) => (string) ($l['postcode'] ?? '') === $postcode);
+        $key = 'machship-loc:'.$postcode;
+        if (Cache::has($key)) {
+            return Cache::get($key);
+        }
+        $r = $this->http()->get('locations/returnLocations', ['s' => $postcode]);
+        if (! $r->successful()) {
+            // A bad token or an outage is never cached against a postcode, and shows as "couldn't price".
+            throw new \RuntimeException('machship returnLocations failed: HTTP '.$r->status().' '.mb_substr($r->body(), 0, 300));
+        }
+        $hit = collect((array) $r->json('object'))->first(fn ($l) => (string) ($l['postcode'] ?? '') === $postcode);
+        if (! $hit) {
+            Log::info('machship returnLocations: no match', ['postcode' => $postcode, 'body' => mb_substr($r->body(), 0, 500)]);
 
-            return $hit ? ['suburb' => (string) $hit['suburb'], 'state' => $hit['state']['code'] ?? ($hit['state']['name'] ?? null)] : null;
-        });
+            return null;
+        }
+        $loc = ['suburb' => (string) $hit['suburb'], 'state' => $hit['state']['code'] ?? ($hit['state']['name'] ?? null)];
+        Cache::put($key, $loc, 86400 * 30);
+
+        return $loc;
     }
 
     private function http()
