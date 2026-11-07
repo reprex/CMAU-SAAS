@@ -103,6 +103,26 @@ class ImageTaggerTest extends TestCase
         $this->assertNotContains(self::CDN.'4001_maple_tee_pistacio_back__89157.jpg', $out['media']); // other colour stays out of product media
     }
 
+    public function test_colour_without_its_own_picture_uses_its_other_colour_picture_not_the_hero(): void
+    {
+        // Modena Jute Tote 115000: Promodata points every colour at the hero.
+        $hero = self::CDN.'115000-0.jpg';
+        $p = Product::create(['id' => 3112, 'supplier_id' => 88, 'name' => 'Modena Jute Tote Bag', 'code' => '115000', 'tier' => 'live', 'hydrated_at' => now(), 'hero_image_url' => $hero]);
+        foreach (['115000-0.jpg', '115000_natural_white.jpg', '115000_natural_black.jpg'] as $i => $f) {
+            $p->images()->create(['url' => self::CDN.$f, 'role' => $i ? 'other_style' : 'hero_style', 'position' => $i]);
+        }
+        foreach (['Natural/White', 'Natural/Blue', 'Natural/Black'] as $name) {
+            $p->colours()->create(['name' => $name, 'image_url' => $hero, 'position' => 0]);
+        }
+        app(ImageTagger::class)->apply($p);
+        $out = app(ImageTagger::class)->forShopify($p->fresh(['images', 'colours', 'override']));
+
+        $this->assertSame(self::CDN.'115000_natural_black.jpg', $out['colours']['Natural/Black']['image']);
+        $this->assertSame([], $out['colours']['Natural/Black']['other']);
+        $this->assertSame(self::CDN.'115000_natural_white.jpg', $out['colours']['Natural/White']['image']); // the shared hero is no one colour's
+        $this->assertSame($hero, $out['colours']['Natural/Blue']['image']); // nothing better: the hero
+    }
+
     public function test_staff_tags_win_and_only_differences_are_stored(): void
     {
         $p = $this->mapleTee();
