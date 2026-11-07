@@ -67,3 +67,13 @@ To try Claude on one product first: `cd ~/saas-app && /usr/local/bin/ea-php84 ar
 - On load: `product.featured_media` (hero style) and the other style images, that is product media that is not any variant's `featured_media`.
 - When a colour is picked: that variant's `featured_media`, then the URLs in `variant.metafields.custom.altimages`.
 - One variant only (a Custom Print product, or a single colour): no colour step; the product page shows the style images and the variant is already chosen. A single real colour shows its name as a label instead of a picker.
+
+## Colours with no picture: the AI maps them (Scott, 7 Nov 2026)
+
+Staff never map colour pictures by hand (the live site took that work; it is not repeated). Where Promodata gives a colour no picture of its own, or one picture shared by several colours (e.g. Modena Jute Tote 115000 points every colour at the hero):
+
+- That shared picture belongs to no colour.
+- Claude's image check names, for every image, the one listed colour the product is shown in (`image_checks.colour_name`), not only for "other colour" images.
+- A colour with no picture of its own takes the image Claude saw in that colour (tagged `ai`), before the file-name rules fall back to the hero.
+- `catalogue:check-images` first scans the range (60 products a minute, own cursor) for colours that would still show the hero and re-checks up to 2 of those products a minute; checks made before `images.check.colour_question_since` are redone for them. Products publish their new variant pictures as normal.
+- Staff tags still win; a colour Claude can't place keeps the hero and shows on the product's image tags.

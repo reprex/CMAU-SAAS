@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Catalogue\Backdrop;
 use App\Catalogue\ImageTagger;
+use App\Catalogue\ImageVision;
+use App\Models\ImageCheck;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductOverride;
@@ -121,6 +123,30 @@ class ImageTaggerTest extends TestCase
         $this->assertSame([], $out['colours']['Natural/Black']['other']);
         $this->assertSame(self::CDN.'115000_natural_white.jpg', $out['colours']['Natural/White']['image']); // the shared hero is no one colour's
         $this->assertSame($hero, $out['colours']['Natural/Blue']['image']); // nothing better: the hero
+    }
+
+    public function test_claude_maps_a_colour_with_no_picture_even_when_it_calls_the_photo_the_heros_style(): void
+    {
+        $hero = self::CDN.'115000-0.jpg';
+        $p = Product::create(['id' => 3112, 'supplier_id' => 88, 'name' => 'Modena Jute Tote Bag', 'code' => '115000', 'tier' => 'live', 'hydrated_at' => now(), 'hero_image_url' => $hero]);
+        foreach (['115000-0.jpg', '115000-4.jpg', '115000-5.jpg'] as $i => $f) {
+            $p->images()->create(['url' => self::CDN.$f, 'role' => $i ? 'other_style' : 'hero_style', 'position' => $i]);
+        }
+        foreach (['Natural/White', 'Natural/Blue'] as $name) {
+            $p->colours()->create(['name' => $name, 'image_url' => $hero, 'position' => 0]);
+        }
+        $this->assertSame(['Natural/White', 'Natural/Blue'], app(ImageVision::class)->colourGaps($p->fresh(['images', 'colours', 'override'])));
+        foreach (['115000-4.jpg' => 'Natural/Blue', '115000-5.jpg' => null] as $f => $colour) {
+            ImageCheck::query()->create(['url_hash' => ImageCheck::hashOf(self::CDN.$f), 'url' => self::CDN.$f, 'product_id' => 3112,
+                'tag' => 'other_style', 'colour_name' => $colour, 'shows' => 'whole_product', 'confidence' => 0.9, 'model' => 'test', 'checked_at' => now()]);
+        }
+        app(ImageTagger::class)->apply($p);
+        $fresh = $p->fresh(['images', 'colours', 'override']);
+        $out = app(ImageTagger::class)->forShopify($fresh);
+
+        $this->assertSame(self::CDN.'115000-4.jpg', $out['colours']['Natural/Blue']['image']);
+        $this->assertSame($hero, $out['colours']['Natural/White']['image']);
+        $this->assertSame(['Natural/White'], app(ImageVision::class)->colourGaps($fresh));
     }
 
     public function test_staff_tags_win_and_only_differences_are_stored(): void

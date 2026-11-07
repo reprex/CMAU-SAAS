@@ -26,6 +26,40 @@ class ImageVision
         return config('images.check.enabled') && filled(config('search.anthropic.key'));
     }
 
+    /**
+     * Colour names that would show the hero because nothing gives them a picture of their own (Scott, 7 Nov 2026:
+     * the AI maps these, never staff by hand).
+     *
+     * @return list<string>
+     */
+    public function colourGaps(Product $product): array
+    {
+        $out = app(ImageTagger::class)->forShopify($product);
+        $hero = $out['style'][0] ?? null;
+        if (count($out['colours']) < 2 || $hero === null) {
+            return [];
+        }
+
+        return array_values(array_keys(array_filter($out['colours'], fn ($c) => ($c['image'] ?? null) === $hero || ($c['image'] ?? null) === null)));
+    }
+
+    /**
+     * Look again at a product whose colours still lack pictures, with the colour question asked of every image.
+     * Earlier checks (before 7 Nov 2026) only named a colour for "other colour" images.
+     */
+    public function recheckForColours(Product $product): int
+    {
+        $product->loadMissing(['images', 'colours', 'override']);
+        if ($this->colourGaps($product) === []) {
+            return 0;
+        }
+        $urls = $product->images->where('role', '!=', 'line_art')->pluck('url')->filter()->unique();
+        ImageCheck::query()->whereIn('url_hash', $urls->map(fn ($u) => ImageCheck::hashOf($u)))
+            ->where('checked_at', '<', (string) config('images.check.colour_question_since'))->delete();
+
+        return $this->check($product->fresh(['images', 'colours', 'override']));
+    }
+
     /** Image URLs of this product that Claude hasn't looked at yet. */
     public function unchecked(Product $product): array
     {
@@ -128,6 +162,7 @@ class ImageVision
         $system = 'You sort product photos for an Australian branded merchandise store. '
             .'"other_style": the product in the same colour as the HERO (a different angle, a close-up of a feature, the product in use), or a photo that is not about any one colour. '
             .'"other_colour": the product clearly shown in a different colour from the HERO; give that colour, using a name from the colour list exactly. '
+            .'For every image, set "colour" to the one colour from the colour list the product is shown in, even for other_style (this maps colours that have no picture of their own); null when it shows several colours or none matches. '
             .'File names are hints only; trust what you see, and say so in the note if they disagree. '
             .'If Promodata says an image is the hero but it is not a clear picture of the whole product, or says it is a colour image but it shows a different colour, say so in the note. '
             .'Reply with JSON only: {"images":[{"n":number,"tag":"other_style"|"other_colour","colour":string|null,"shows":"'.implode('"|"', self::SHOWS).'","confidence":number 0-1,"note":string}]}. '
@@ -161,6 +196,7 @@ class ImageVision
             if ($tag === ImageTagger::OTHER_COLOUR && $colour === null) {
                 $tag = null; // a colour we don't sell: leave it to the file-name rules
             }
+            // The colour is kept for other_style too: ImageTagger uses it for a colour with no picture of its own.
             $out[$url] = [
                 'tag' => $tag,
                 'colour' => $colour,

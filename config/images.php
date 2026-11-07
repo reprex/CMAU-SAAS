@@ -15,6 +15,11 @@ return [
         'images_per_day' => (int) env('IMAGE_CHECK_PER_DAY', 3000),
         'colour_references' => 12,     // send colour images as references when a product has this many colours or fewer
         'min_confidence' => 0.7,       // below this Claude's view is shown but not used
+        // Checks before this asked for a colour only on "other colour" images; products whose colours still lack
+        // pictures are looked at again (catalogue:check-images, first each minute).
+        'colour_question_since' => env('IMAGE_COLOUR_QUESTION_SINCE', '2026-11-07 21:00:00'),
+        'colour_rechecks_per_run' => (int) env('IMAGE_COLOUR_RECHECKS_PER_RUN', 2),
+        'colour_scan_per_run' => 60,
     ],
 
     /*
