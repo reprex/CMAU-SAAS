@@ -36,7 +36,7 @@ class FreightTestCommand extends Command
 
             return self::FAILURE;
         }
-        $this->table(['Service', 'Price ex GST', 'Cost', 'Business days'], array_map(fn ($o) => [$o['name'], number_format($o['price'], 2), isset($o['cost']) ? number_format((float) $o['cost'], 2) : '-', $o['days'][0].'-'.$o['days'][1]], $r['options']));
+        $this->table(['Service', 'Price ex GST', 'Cost ex GST', 'Business days', 'Cost includes'], array_map(fn ($o) => [$o['name'], number_format($o['price'], 2), isset($o['cost']) ? number_format((float) $o['cost'], 2) : '-', $o['days'][0].'-'.$o['days'][1], mb_strimwidth((string) ($o['includes'] ?? '-'), 0, 70, '…')], $r['options']));
 
         return self::SUCCESS;
     }

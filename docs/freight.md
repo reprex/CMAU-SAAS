@@ -15,7 +15,7 @@ overseas (Replicat's account rates). The SaaS does the pricing; the website neve
 ## MachShip
 - `POST routes/returnroutes` with header `token`; `fromLocation` = `FREIGHT_FROM_SUBURB` / `FREIGHT_FROM_POSTCODE`
   (default Derrimut 3026, Scott to confirm), `toLocation` = the postcode's first suburb (`GET locations/returnLocations?s=`,
-  cached 30 days), `carrierIds` = `MACHSHIP_CARRIER_IDS` (11 TNT), one item per carton size (cm, kg).
+  cached 30 days), `carrierIds` = `MACHSHIP_CARRIER_IDS` (empty = all carriers; TNT Road / Overnight and Capital Transport car / wagon offered), one item per carton size (cm, kg).
 - Services kept: 540 TNT Road Express (`tnt_road`), 538 TNT Overnight Express (`tnt_overnight`) (config/freight.php).
 - Price = `totalSellBeforeTax` (else sell − tax) × (1 + `MACHSHIP_MARKUP_PERCENT`); cost = `totalCostBeforeTax`;
   days = `despatchOptions[0].totalBusinessDays`.
@@ -62,3 +62,13 @@ overseas (Replicat's account rates). The SaaS does the pricing; the website neve
   Set to 30: $1 cost → $1.30. MachShip cost is its cost figure when the account returns one, else its
   sell price (Replicat's account returns 0 cost). FedEx cost is the account net charge. Flat supplier
   delivery (Trends) is not marked up: its own price and cost apply.
+
+## Services shown (Scott, 7 Nov 2026)
+- **Quotes:** Australia always TNT Road Express (even if cheaper options exist); overseas FedEx
+  International Economy; a supplier's flat delivery where set (Trends AU/NZ).
+- **Checkout:** Australia: TNT Road, TNT Overnight and, where MachShip returns them for the address
+  and size (Melbourne metro), Capital Transport car or station wagon. Overseas: FedEx Priority and
+  Economy only. Default selection: TNT Road / FedEx Economy.
+- **Cost** is ex GST and includes every surcharge: MachShip's consignment total before tax (fuel levy
+  included; `st freight` shows the fuel line), FedEx's net charge without taxes (fuel and the
+  **adult signature**, requested on every FedEx package, included; `st freight` lists the surcharges).

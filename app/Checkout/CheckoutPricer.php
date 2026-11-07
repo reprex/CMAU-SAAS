@@ -221,7 +221,10 @@ class CheckoutPricer
         }
         $chosen = null;
         if ($freight && $freight['ok']) {
-            $chosen = collect($freight['options'])->firstWhere('id', $in['freight_service'] ?? null) ?? $freight['options'][0] ?? null;
+            // Default: TNT Road / FedEx Economy / the supplier's flat delivery, else the cheapest.
+            $chosen = collect($freight['options'])->firstWhere('id', $in['freight_service'] ?? null)
+                ?? collect($freight['options'])->first(fn ($o) => in_array($o['id'], ['supplier', config('freight.machship.quote_service'), config('freight.fedex.quote_service')], true))
+                ?? $freight['options'][0] ?? null;
             if (($in['freight_service'] ?? null) && $chosen['id'] !== $in['freight_service']) {
                 $issue('freight', 'That delivery option is not available for this address.');
             }
