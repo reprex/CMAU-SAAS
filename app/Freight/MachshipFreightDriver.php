@@ -63,10 +63,13 @@ class MachshipFreightDriver implements FreightDriver
         $services = config('freight.machship.services');
         $markup = 1 + (float) config('freight.machship.markup_percent') / 100;
         $out = [];
+        $skipped = [];
         foreach ($routes as $route) {
             $sid = (int) ($route['carrierService']['id'] ?? 0);
             $service = $services[$sid] ?? $this->byName($route);
             if ($service === null) {
+                $skipped[] = trim(($route['carrier']['name'] ?? '?').' / '.($route['carrierService']['name'] ?? '?').' #'.$sid);
+
                 continue;
             }
             $t = (array) ($route['consignmentTotal'] ?? []);
@@ -90,6 +93,9 @@ class MachshipFreightDriver implements FreightDriver
                 'price' => Money::roundToCent($base * $markup),
                 'cost' => Money::roundToCent($base),
             ];
+        }
+        if ($skipped) {
+            Log::debug('machship services not offered', ['services' => $skipped]);
         }
         $out = array_values($out);
         usort($out, fn ($a, $b) => $a['price'] <=> $b['price']);
