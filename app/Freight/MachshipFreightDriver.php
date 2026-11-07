@@ -98,14 +98,14 @@ class MachshipFreightDriver implements FreightDriver
         if (Cache::has($key)) {
             return Cache::get($key);
         }
-        $r = $this->http()->get('locations/returnLocations', ['s' => $postcode]);
+        $r = $this->http()->get('locations/getLocationsWithSearchOptions', ['s' => $postcode]);
         if (! $r->successful()) {
             // A bad token or an outage is never cached against a postcode, and shows as "couldn't price".
-            throw new \RuntimeException('machship returnLocations failed: HTTP '.$r->status().' '.mb_substr($r->body(), 0, 300));
+            throw new \RuntimeException('machship getLocationsWithSearchOptions failed: HTTP '.$r->status().' '.mb_substr($r->body(), 0, 300));
         }
         $hit = collect((array) $r->json('object'))->first(fn ($l) => (string) ($l['postcode'] ?? '') === $postcode);
         if (! $hit) {
-            Log::info('machship returnLocations: no match', ['postcode' => $postcode, 'body' => mb_substr($r->body(), 0, 500)]);
+            Log::info('machship getLocationsWithSearchOptions: no match', ['postcode' => $postcode, 'body' => mb_substr($r->body(), 0, 500)]);
 
             return null;
         }

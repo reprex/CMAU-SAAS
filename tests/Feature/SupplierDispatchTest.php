@@ -40,8 +40,11 @@ class SupplierDispatchTest extends TestCase
         $kept = $this->supplier(2, 'Edited By Staff');
         $kept->update(['dispatch_suburb' => 'DERRIMUT', 'dispatch_postcode' => '3026', 'dispatch_source' => 'staff']);
         Http::fake(['*/suppliers' => Http::response(['data' => [
-            ['id' => 1, 'name' => 'Empty One', 'address' => ['suburb' => 'Brisbane', 'postcode' => '4000']],
-            ['id' => 2, 'name' => 'Edited By Staff', 'address' => ['suburb' => 'Perth', 'postcode' => '6000']],
+            ['id' => 1, 'name' => 'Empty One', 'details' => ['addresses' => [
+                ['type' => 'Postal', 'address' => 'PO Box 12', 'suburb' => 'Liverpool', 'postcode' => '1871', 'state' => 'NSW', 'country' => 'Australia'],
+                ['type' => 'Warehouse', 'address' => '1 Main St', 'suburb' => 'Brisbane', 'postcode' => '4000', 'state' => 'QLD', 'country' => 'Australia'],
+            ]]],
+            ['id' => 2, 'name' => 'Edited By Staff', 'details' => ['addresses' => [['type' => 'Head office', 'address' => '2 High St', 'suburb' => 'Perth', 'postcode' => '6000', 'country' => 'Australia']]]],
         ]])]);
 
         $this->artisan('promodata:supplier-addresses --apply')->expectsOutputToContain('Filled 1.')->assertSuccessful();
