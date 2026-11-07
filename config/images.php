@@ -19,7 +19,8 @@ return [
         // pictures are looked at again (catalogue:check-images, first each minute).
         'colour_question_since' => env('IMAGE_COLOUR_QUESTION_SINCE', '2026-11-07 21:00:00'),
         'colour_rechecks_per_run' => (int) env('IMAGE_COLOUR_RECHECKS_PER_RUN', 2),
-        'colour_scan_per_run' => 60,
+        'colour_scan_per_run' => (int) env('IMAGE_COLOUR_SCAN_PER_RUN', 60),
+        'colour_seconds' => (int) env('IMAGE_COLOUR_SECONDS', 15),
     ],
 
     /*

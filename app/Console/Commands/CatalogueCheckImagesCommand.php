@@ -17,7 +17,7 @@ use Throwable;
  */
 class CatalogueCheckImagesCommand extends Command
 {
-    protected $signature = 'catalogue:check-images {--product= : One product (any tier)} {--products= : Products to check this run}';
+    protected $signature = 'catalogue:check-images {--product= : One product (any tier)} {--products= : Products to check this run} {--gaps : Report products whose colours still show the hero, and the images a re-check would send}';
 
     protected $description = 'Have Claude look at unsure product images';
 
@@ -25,6 +25,24 @@ class CatalogueCheckImagesCommand extends Command
     {
         if (! $vision->enabled()) {
             $this->line('Image check is off (IMAGE_CHECK and ANTHROPIC_API_KEY).');
+
+            return self::SUCCESS;
+        }
+        if ($this->option('gaps')) {
+            $products = $colours = $images = 0;
+            Product::query()->where('tier', Product::TIER_LIVE)->whereNotNull('hydrated_at')->with(['images', 'colours', 'override'])
+                ->chunkById(200, function ($chunk) use ($vision, &$products, &$colours, &$images) {
+                    foreach ($chunk as $product) {
+                        $gaps = $vision->colourGaps($product);
+                        if ($gaps !== []) {
+                            $products++;
+                            $colours += count($gaps);
+                            $images += $product->images->where('role', '!=', 'line_art')->count();
+                        }
+                    }
+                });
+            $this->info("{$products} products have {$colours} colours showing the hero; a re-check sends about {$images} images.");
+            $this->line('Daily image limit: '.config('images.check.images_per_day').' (IMAGE_CHECK_PER_DAY); re-checks a minute: '.config('images.check.colour_rechecks_per_run').' (IMAGE_COLOUR_RECHECKS_PER_RUN), up to '.config('images.check.colour_seconds').'s (IMAGE_COLOUR_SECONDS).');
 
             return self::SUCCESS;
         }
@@ -101,7 +119,7 @@ class CatalogueCheckImagesCommand extends Command
         $done = 0;
         $started = microtime(true);
         foreach ($products as $product) {
-            if ($done >= (int) config('images.check.colour_rechecks_per_run') || microtime(true) - $started > 15) {
+            if ($done >= (int) config('images.check.colour_rechecks_per_run') || microtime(true) - $started > (int) config('images.check.colour_seconds')) {
                 break;
             }
             $cursor = $product->id;
