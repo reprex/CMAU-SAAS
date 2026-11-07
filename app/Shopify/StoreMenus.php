@@ -98,6 +98,16 @@ class StoreMenus
         if (array_key_exists($target, $this->resolved)) {
             return $this->resolved[$target];
         }
+        if (str_contains($target, '|')) {
+            // "a|b": the first target that is on the store.
+            foreach (explode('|', $target) as $one) {
+                if ($found = $this->resolve($one)) {
+                    return $this->resolved[$target] = $found;
+                }
+            }
+
+            return $this->resolved[$target] = null;
+        }
         [$kind, $value] = explode(':', $target, 2);
 
         return $this->resolved[$target] = match ($kind) {

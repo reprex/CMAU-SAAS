@@ -10,34 +10,40 @@
  *   collection:<handle>  a store collection
  *   pick:<key>           the first collection found for the key in `picks` below, else its fallback
  *   url:<path>           a plain link
+ *   a|b                  the first of these that is on the store
  */
 
 $categories = [
-    ['Clothing', 'collection:clothing'],
-    ['Headwear', 'collection:headwear'],
-    ['Bags', 'collection:bags'],
-    ['Drinkware', 'collection:drinkware'],
-    ['Tech', 'collection:tech'],
-    ['Office & print', 'collection:office'],
-    ['Events', 'collection:events'],
-    ['Home & personal', 'collection:home-personal'],
-    ['Outdoors & golf', 'collection:outdoors-golf'],
-    ['Confectionery', 'collection:confectionery'],
+    // The category landing pages (live: /pages/custom-branded-…), else a collection of that name.
+    ['Clothing', 'page:custom-branded-clothing|collection:clothing'],
+    ['Headwear', 'page:custom-branded-headwear|collection:headwear'],
+    ['Bags', 'page:custom-branded-bags|collection:bags'],
+    ['Drinkware', 'page:custom-branded-drinkware|collection:drinkware'],
+    ['Tech', 'page:custom-branded-tech-merch|collection:tech'],
+    ['Office & stationery', 'page:custom-branded-office-stationery|collection:office'],
+    ['Pens & pencils', 'page:custom-branded-pens-pencils'],
+    ['Event merch', 'page:custom-branded-event-merch|collection:events'],
+    ['Home & living', 'page:custom-branded-home-living-merch|collection:home-personal'],
+    ['Health & personal', 'page:custom-branded-health-personal-merch'],
+    ['Leisure & outdoors', 'page:custom-branded-leisure-outdoors-merch|collection:outdoors-golf'],
+    ['Keyrings & tools', 'page:custom-branded-keyrings-tools'],
+    ['Stress shapes & toys', 'page:custom-branded-stress-shapes-balls-toys'],
+    ['Food & drink', 'page:custom-branded-food-drink-by-replicat|collection:confectionery'],
 ];
 
 return [
     // Popular product collections: matched by the range's subcategory tag (shopify_collections),
     // then by collection title; otherwise the fallback link.
     'picks' => [
-        'tshirts' => ['tags' => ['tshirts', 'tees'], 'titles' => ['T-Shirts', 'T-shirts', 'Tees'], 'fallback' => 'collection:clothing'],
-        'polos' => ['tags' => ['poloshirts', 'polos'], 'titles' => ['Polo Shirts', 'Polos'], 'fallback' => 'collection:clothing'],
-        'hoodies' => ['tags' => ['hoodies', 'hoodiesjumpers', 'jumpershoodies', 'sweatshirts'], 'titles' => ['Hoodies', 'Hoodies & Jumpers'], 'fallback' => 'collection:clothing'],
-        'caps' => ['tags' => ['caps', 'baseballcaps', 'truckercaps'], 'titles' => ['Caps', 'Baseball Caps', 'Trucker Caps'], 'fallback' => 'collection:headwear'],
-        'buckethats' => ['tags' => ['buckethats', 'hats', 'sunhats', 'buckethatssunhats'], 'titles' => ['Bucket Hats', 'Hats', 'Sun Hats'], 'fallback' => 'collection:headwear'],
-        'totebags' => ['tags' => ['totebags', 'tote', 'totes'], 'titles' => ['Tote Bags', 'Totes'], 'fallback' => 'collection:bags'],
-        'stubbies' => ['tags' => ['stubbyholders', 'stubbycoolers', 'stubbies'], 'titles' => ['Stubby Holders', 'Stubby Coolers'], 'fallback' => 'collection:drinkware'],
-        'lanyards' => ['tags' => ['lanyards'], 'titles' => ['Lanyards'], 'fallback' => 'collection:events'],
-        'workwear' => ['tags' => ['workwear', 'uniforms', 'corporateuniforms'], 'titles' => ['Workwear', 'Uniforms'], 'fallback' => 'collection:clothing'],
+        'tshirts' => ['tags' => ['tshirts', 'tees'], 'titles' => ['T-Shirts', 'T-shirts', 'Tees'], 'fallback' => 'page:custom-branded-clothing|collection:clothing'],
+        'polos' => ['tags' => ['poloshirts', 'polos'], 'titles' => ['Polo Shirts', 'Polos'], 'fallback' => 'page:custom-branded-clothing|collection:clothing'],
+        'hoodies' => ['tags' => ['hoodies', 'hoodiesjumpers', 'jumpershoodies', 'sweatshirts'], 'titles' => ['Hoodies', 'Hoodies & Jumpers'], 'fallback' => 'page:custom-branded-clothing|collection:clothing'],
+        'caps' => ['tags' => ['caps', 'baseballcaps', 'truckercaps'], 'titles' => ['Caps', 'Baseball Caps', 'Trucker Caps'], 'fallback' => 'page:custom-branded-headwear|collection:headwear'],
+        'buckethats' => ['tags' => ['buckethats', 'hats', 'sunhats', 'buckethatssunhats'], 'titles' => ['Bucket Hats', 'Hats', 'Sun Hats'], 'fallback' => 'page:custom-branded-headwear|collection:headwear'],
+        'totebags' => ['tags' => ['totebags', 'tote', 'totes'], 'titles' => ['Tote Bags', 'Totes'], 'fallback' => 'page:custom-branded-bags|collection:bags'],
+        'stubbies' => ['tags' => ['stubbyholders', 'stubbycoolers', 'stubbies'], 'titles' => ['Stubby Holders', 'Stubby Coolers'], 'fallback' => 'page:custom-branded-drinkware|collection:drinkware'],
+        'lanyards' => ['tags' => ['lanyards'], 'titles' => ['Lanyards'], 'fallback' => 'page:custom-branded-event-merch|collection:events'],
+        'workwear' => ['tags' => ['workwear', 'tradework', 'uniforms', 'corporateuniforms'], 'titles' => ['Workwear', 'Trade Work', 'Uniforms'], 'fallback' => 'page:custom-branded-clothing|collection:clothing'],
     ],
 
     'menus' => [
@@ -81,19 +87,19 @@ return [
             ['Custom printed T-shirts', 'pick:tshirts'],
             ['Embroidered polo shirts', 'pick:polos'],
             ['Custom hoodies & jumpers', 'pick:hoodies'],
-            ['Branded caps & hats', 'collection:headwear'],
+            ['Branded caps & hats', 'page:custom-branded-headwear|collection:headwear'],
             ['Workwear & uniforms', 'pick:workwear'],
             ['AS Colour range', 'page:custom-branded-as-colour-range'],
-            ['All clothing', 'collection:clothing'],
+            ['All clothing', 'page:custom-branded-clothing|collection:clothing'],
         ]],
 
         'cm-foot-merch' => ['title' => 'Footer: Merch & gifts', 'items' => [
             ['Printed tote bags', 'pick:totebags'],
             ['Stubby holders', 'pick:stubbies'],
-            ['Branded drinkware', 'collection:drinkware'],
+            ['Branded drinkware', 'page:custom-branded-drinkware|collection:drinkware'],
             ['Custom lanyards', 'pick:lanyards'],
-            ['Tech & USB', 'collection:tech'],
-            ['Event & conference merch', 'collection:events'],
+            ['Tech & USB', 'page:custom-branded-tech-merch|collection:tech'],
+            ['Event & conference merch', 'page:custom-branded-event-merch|collection:events'],
             ['All products', 'page:find-products'],
         ]],
 

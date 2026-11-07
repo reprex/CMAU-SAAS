@@ -51,7 +51,7 @@ class ShopifyMenusTest extends TestCase
         $this->artisan('shopify:menus')
             ->expectsOutputToContain('T-shirts -> /collections/custom-printed-tshirts')
             ->expectsOutputToContain('Samples" left out')
-            ->expectsOutputToContain('lanyards: no collection found, linked to collection:events')
+            ->expectsOutputToContain('lanyards: no collection found, linked to page:custom-branded-event-merch|collection:events')
             ->assertSuccessful();
         $this->assertSame([], $this->writes);
     }
@@ -66,7 +66,8 @@ class ShopifyMenusTest extends TestCase
         $this->assertStringContainsString('menuCreate', $this->writes[1]['query']);
         $main = $this->writes[0]['variables']['items'];
         $this->assertSame(['Find products', 'Get started', 'Case studies', 'Services', 'Help'], array_column($main, 'title'));
-        $this->assertCount(10, $main[0]['items']);
+        $this->assertCount(14, $main[0]['items']);
+        $this->assertSame('PAGE', $main[0]['items'][1]['type']);
         $this->assertSame('PAGE', $main[0]['type']);
         $this->assertArrayHasKey('resourceId', $main[0]);
         $this->assertSame(['type' => 'HTTP', 'url' => '/#cases'], ['type' => $main[2]['type'], 'url' => $main[2]['url']]);
