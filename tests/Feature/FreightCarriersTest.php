@@ -52,7 +52,8 @@ class FreightCarriersTest extends TestCase
         $this->assertTrue($r['ok']);
         $this->assertSame('machship', $r['source']);
         $this->assertSame(['tnt_road', 'tnt_overnight'], array_column($r['options'], 'id'));
-        $this->assertEquals([22.0, 44.0], array_column($r['options'], 'price'), 'ex GST + 10%');
+        // Cost × 1.10: Road cost 15 → 16.50; Overnight cost 33 - 3 tax = 30 → 33.00.
+        $this->assertEquals([16.5, 33.0], array_column($r['options'], 'price'), 'cost ex GST + 10%');
         $this->assertEquals(15.0, $r['options'][0]['cost']);
         $this->assertSame([2, 2], $r['options'][0]['days']);
         Http::assertSent(fn ($req) => str_contains($req->url(), 'returnroutes') && $req->header('token')[0] === 'tok'

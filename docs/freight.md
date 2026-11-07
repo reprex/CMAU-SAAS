@@ -56,3 +56,9 @@ overseas (Replicat's account rates). The SaaS does the pricing; the website neve
   "Standard delivery". Other countries still go by the carriers.
 - Trends: AU and NZ, price AUD 25, cost AUD 15 (Trends builds freight into its prices); elsewhere FedEx.
   Set by migration 000037 only if Trends had no flat delivery yet.
+
+## Markup (Scott, 7 Nov 2026)
+- Client freight price = our cost × (1 + `MACHSHIP_MARKUP_PERCENT` / `FEDEX_MARKUP_PERCENT` ÷ 100), ex GST.
+  Set to 30: $1 cost → $1.30. MachShip cost is its cost figure when the account returns one, else its
+  sell price (Replicat's account returns 0 cost). FedEx cost is the account net charge. Flat supplier
+  delivery (Trends) is not marked up: its own price and cost apply.
