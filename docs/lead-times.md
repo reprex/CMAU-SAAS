@@ -18,7 +18,7 @@ should lift quote-to-order and general conversion on crowdmerch.com.au. To be re
   times of the decoration they are branded with (Melbourne Merch's methods).
 
 ## Figures (Scott, 5 Nov 2026)
-- **Trends:** ships from New Zealand straight to the client: **4 working days** transit, on top of production.
+- **Trends:** ships from New Zealand straight to the client: **3 working days** transit from dispatch, on top of production (was 4; set from two FedEx shipments, 7 Nov 2026: label Thu, pickup Fri Christchurch, delivered Mon Dandenong South = 2, Tue Lismore Heights = 3).
   Trends publishes every decoration's lead time on its site and keeps them accurate: poll those pages for the
   Trends range (rather than Promodata). The page is trends.nz/lead-times; it can't be read from the server's
   side without a browser (probably the distributor login), so it is read in Scott's Chrome, signed in.
@@ -58,7 +58,7 @@ else the method default) + extra days for each further decoration; + stock days 
 Dex: the chosen production speed instead.
 
 ## Built (v1, 7 Nov 2026)
-- **Checkout** (`LeadTimes`, `DeliveryEstimator`): branding = Promodata's lead time on each chosen decoration's price line (matched by description), else the method's days (config/website.php); the slowest sets it and each further position adds `extra_decoration_days` (1). Christmas rush: +2 working days for orders started from 31 Oct until the January restart (not with a chosen Dex speed). Overseas: a supplier's `transit_days` and `ships_from` (Trends: 4, NZ, set by the migration; production counts NZ holidays, transit and freight Australian ones). Closures: Admin › Suppliers › Closures (one per line, `2026-12-18 to 2027-01-11 Christmas shutdown`), else the standard closure; skipped by the stock, branding and rush stages.
+- **Checkout** (`LeadTimes`, `DeliveryEstimator`): branding = Promodata's lead time on each chosen decoration's price line (matched by description), else the method's days (config/website.php); the slowest sets it and each further position adds `extra_decoration_days` (1). Christmas rush: +2 working days for orders started from 31 Oct until the January restart (not with a chosen Dex speed). Overseas: a supplier's `transit_days` and `ships_from` (Trends: 3, NZ, set by the migrations; production counts NZ holidays, transit and freight Australian ones). Closures: Admin › Suppliers › Closures (one per line, `2026-12-18 to 2027-01-11 Christmas shutdown`), else the standard closure; skipped by the stock, branding and rush stages.
 - **Product page**: additive metafield `custom.leadtimes` (days per DecorationJSON DecID, the rules, holidays and closed ranges for this year and next, stable for the year); the theme's `CM.leadEstimate` shows "Estimated delivery" for the branding chosen, "exact date at checkout".
 - **Search by date**: "by 20 Nov", "by 4/12", "before Christmas", "in 3 weeks", "by Friday" (or Claude's needed_by) leave out products whose earliest delivery (order check, stock, fastest branding, rush, transit, typical freight 3 days) is later; results carry `earliest`.
 - **Holidays**: New Zealand added (national + Auckland Anniversary, 2026–27).
