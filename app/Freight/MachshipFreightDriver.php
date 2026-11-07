@@ -74,6 +74,9 @@ class MachshipFreightDriver implements FreightDriver
                 continue;
             }
             $costEx = $t['totalCostBeforeTax'] ?? (isset($t['totalCostPrice']) ? (float) $t['totalCostPrice'] - (float) ($t['totalTaxCostPrice'] ?? 0) : null);
+            // Our cost is MachShip's cost when it gives one, else its sell price (Scott's account returns no
+            // cost); the client price is that × (1 + MACHSHIP_MARKUP_PERCENT), e.g. $1 at 30% = $1.30.
+            $base = $costEx !== null && (float) $costEx > 0 ? (float) $costEx : (float) $sell;
             $days = (int) ($route['despatchOptions'][0]['totalBusinessDays'] ?? 0);
             $id = $services[$sid]['id'] ?? 'ms_'.$sid;
             $out[$id] ??= [
@@ -81,8 +84,8 @@ class MachshipFreightDriver implements FreightDriver
                 'name' => $services[$sid]['name'] ?? trim(($route['carrier']['name'] ?? '').' '.($route['carrierService']['name'] ?? '')),
                 'carrier' => (string) ($route['carrier']['name'] ?? 'MachShip'),
                 'days' => [max(1, $days), max(1, $days)],
-                'price' => Money::roundToCent((float) $sell * $markup),
-                'cost' => $costEx !== null ? Money::roundToCent((float) $costEx) : null,
+                'price' => Money::roundToCent($base * $markup),
+                'cost' => Money::roundToCent($base),
             ];
         }
         $out = array_values($out);
