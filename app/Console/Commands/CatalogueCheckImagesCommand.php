@@ -38,6 +38,9 @@ class CatalogueCheckImagesCommand extends Command
             return self::SUCCESS;
         }
 
+        // First: products whose colours still show the hero, looked at again with the colour question (7 Nov 2026).
+        $rechecked = $this->colourGapPass($vision, $tagger);
+
         $want = (int) ($this->option('products') ?: config('images.check.products_per_run'));
         $cursor = (int) Cache::get('image-check:cursor', 0);
         $started = microtime(true);
@@ -78,8 +81,41 @@ class CatalogueCheckImagesCommand extends Command
             }
         }
         Cache::forever('image-check:cursor', $cursor);
-        $this->info("Checked {$images} images on {$checkedProducts} products ({$scanned} looked at).");
+        $this->info("Checked {$images} images on {$checkedProducts} products ({$scanned} looked at); {$rechecked} products re-checked for colour pictures.");
 
         return self::SUCCESS;
+    }
+
+    /** Scan a slice of the range for colours with no picture and re-check a few of those products. */
+    private function colourGapPass(ImageVision $vision, ImageTagger $tagger): int
+    {
+        $cursor = (int) Cache::get('image-check:colour-cursor', 0);
+        $products = Product::query()->where('tier', Product::TIER_LIVE)->whereNotNull('hydrated_at')
+            ->where('id', '>', $cursor)->orderBy('id')->limit((int) config('images.check.colour_scan_per_run'))
+            ->with(['images', 'colours', 'override'])->get();
+        if ($products->isEmpty()) {
+            Cache::forget('image-check:colour-cursor');
+
+            return 0;
+        }
+        $done = 0;
+        $started = microtime(true);
+        foreach ($products as $product) {
+            if ($done >= (int) config('images.check.colour_rechecks_per_run') || microtime(true) - $started > 15) {
+                break;
+            }
+            $cursor = $product->id;
+            try {
+                if ($vision->recheckForColours($product) > 0) {
+                    $tagger->apply($product->fresh());
+                    $done++;
+                }
+            } catch (Throwable $e) {
+                $this->error("Product {$product->id} colour pictures: {$e->getMessage()}");
+            }
+        }
+        Cache::forever('image-check:colour-cursor', $cursor);
+
+        return $done;
     }
 }
