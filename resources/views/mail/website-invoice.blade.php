@@ -12,6 +12,10 @@ Invoice PDF attached.
 
 Please pay in full to the bank account listed on the invoice.
 
+@if($embroidery ?? null)
+{{ $embroidery }}
+
+@endif
 On receipt of payment, we will prepare a digital proof for your approval prior to production.
 @endif
 

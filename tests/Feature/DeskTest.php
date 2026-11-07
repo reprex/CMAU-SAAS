@@ -62,7 +62,9 @@ class DeskTest extends TestCase
         $this->staff('sales');
 
         $this->get(route('emails.review', $email))->assertOk()->assertSee(route('website-orders.invoice', $order))->assertSee(route('emails.preview', $email))->assertSee('Send invoice');
-        $this->get(route('emails.preview', $email))->assertOk()->assertSee('Please pay in full');
+        $this->get(route('emails.preview', $email))->assertOk()->assertSee('Please pay in full')->assertDontSee('5000 stitch count');
+        $order->positions()->create(['position' => 'Left chest', 'method' => 'embroidery', 'unit_ex_gst' => 6.75, 'setup_ex_gst' => 35]);
+        $this->get(route('emails.preview', $email))->assertSee('please hold off making payment until we confirm the price');
         Mail::assertNothingSent();
 
         $this->post(route('emails.send', $email), ['recipient' => 'accounts@example.com'])->assertRedirect(route('website-orders.show', $order));

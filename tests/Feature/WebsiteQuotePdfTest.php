@@ -200,6 +200,11 @@ class WebsiteQuotePdfTest extends TestCase
             $this->assertStringContainsString($text, $html);
         }
 
+        // No embroidery: no stitch-count note; with embroidery it's there (Scott, 7 Nov 2026).
+        $this->assertStringNotContainsString('5000 stitch count', $html);
+        $q->items()->first()->update(['decoration_name' => 'Embroidery (to pocket size)']);
+        $this->assertStringContainsString('based on a 5000 stitch count (small) embroidery', (new InstantQuoteMail($q->fresh()))->render());
+
         // Only what the quote has: no mock-ups, no templates.
         $plain = $this->quoteFrom($this->send(['mockups' => []]));
         $this->assertStringContainsString('including detailed pricing and order instructions.', (new InstantQuoteMail($plain))->render());

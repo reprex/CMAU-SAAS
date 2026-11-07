@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Catalogue\TemplateFiles;
 use App\Mail\Concerns\AttachesTemplates;
+use App\Mail\Concerns\EmbroideryNote;
 use App\Models\Quote;
 use App\Pdf\QuotePdf;
 use Illuminate\Mail\Attachment;
@@ -25,7 +26,7 @@ class InstantQuoteMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(html: 'mail.html.instant-quote', text: 'mail.instant-quote', with: ['templates' => $this->templates(), 'contains' => $this->contains()]);
+        return new Content(html: 'mail.html.instant-quote', text: 'mail.instant-quote', with: ['templates' => $this->templates(), 'contains' => $this->contains(), 'embroidery' => EmbroideryNote::forQuote($this->quote)]);
     }
 
     public function attachments(): array

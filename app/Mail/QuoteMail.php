@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Mail\Concerns\AttachesTemplates;
+use App\Mail\Concerns\EmbroideryNote;
 use App\Models\Quote;
 use App\Pdf\QuotePdf;
 use Illuminate\Mail\Attachment;
@@ -30,7 +31,7 @@ class QuoteMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'mail.quote', with: ['templates' => $this->templates()]);
+        return new Content(text: 'mail.quote', with: ['templates' => $this->templates(), 'embroidery' => EmbroideryNote::forQuote($this->quote)]);
     }
 
     protected function templateProductIds(): array
