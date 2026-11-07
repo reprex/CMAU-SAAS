@@ -44,6 +44,7 @@ class FreightCarriersTest extends TestCase
                 ['carrier' => ['id' => 11, 'name' => 'TNT'], 'carrierService' => ['id' => 538, 'name' => 'Overnight Express'], 'consignmentTotal' => ['totalSellPrice' => 44.0, 'totalTaxSellPrice' => 4.0, 'totalCostPrice' => 33.0, 'totalTaxCostPrice' => 3.0], 'despatchOptions' => [['totalBusinessDays' => 1]]],
                 ['carrier' => ['id' => 11, 'name' => 'TNT'], 'carrierService' => ['id' => 540, 'name' => 'Road Express'], 'consignmentTotal' => ['totalSellBeforeTax' => 20.0, 'totalCostBeforeTax' => 15.0], 'despatchOptions' => [['totalBusinessDays' => 2]]],
                 ['carrier' => ['id' => 11, 'name' => 'TNT'], 'carrierService' => ['id' => 999, 'name' => 'Something else'], 'consignmentTotal' => ['totalSellBeforeTax' => 5.0], 'despatchOptions' => [['totalBusinessDays' => 9]]],
+                ['carrier' => ['id' => 77, 'name' => 'Capital Transport'], 'carrierService' => ['id' => 701, 'name' => 'Station Wagon'], 'consignmentTotal' => ['totalSellBeforeTax' => 60.0, 'fuelLevySellPrice' => 6.0], 'despatchOptions' => [['totalBusinessDays' => 1]]],
             ]]]),
         ]);
 
@@ -51,13 +52,14 @@ class FreightCarriersTest extends TestCase
 
         $this->assertTrue($r['ok']);
         $this->assertSame('machship', $r['source']);
-        $this->assertSame(['tnt_road', 'tnt_overnight'], array_column($r['options'], 'id'));
+        $this->assertSame(['tnt_road', 'tnt_overnight', 'capital_wagon'], array_column($r['options'], 'id'));
+        $this->assertStringContainsString('fuel', (string) $r['options'][2]['includes']);
         // Cost × 1.10: Road cost 15 → 16.50; Overnight cost 33 - 3 tax = 30 → 33.00.
-        $this->assertEquals([16.5, 33.0], array_column($r['options'], 'price'), 'cost ex GST + 10%');
+        $this->assertEquals([16.5, 33.0, 66.0], array_column($r['options'], 'price'), 'cost ex GST + 10%');
         $this->assertEquals(15.0, $r['options'][0]['cost']);
         $this->assertSame([2, 2], $r['options'][0]['days']);
         Http::assertSent(fn ($req) => str_contains($req->url(), 'returnroutes') && $req->header('token')[0] === 'tok'
-            && $req['toLocation'] === ['suburb' => 'COLLINGWOOD', 'postcode' => '3066'] && count($req['items']) === 2 && $req['carrierIds'] === [11]);
+            && $req['toLocation'] === ['suburb' => 'COLLINGWOOD', 'postcode' => '3066'] && count($req['items']) === 2 && ! isset($req['carrierIds']));
     }
 
     public function test_machship_down_means_delivery_to_be_confirmed(): void
@@ -92,7 +94,8 @@ class FreightCarriersTest extends TestCase
         Http::assertSent(fn ($req) => str_contains($req->url(), 'rates/quotes') && $req['accountNumber']['value'] === '123456789'
             && $req['requestedShipment']['recipient']['address'] === ['postalCode' => '1010', 'countryCode' => 'NZ']
             && $req['requestedShipment']['customsClearanceDetail']['commodities'][0]['customsValue'] == ['amount' => 1710, 'currency' => 'AUD']
-            && count($req['requestedShipment']['requestedPackageLineItems']) === 2);
+            && count($req['requestedShipment']['requestedPackageLineItems']) === 2
+            && $req['requestedShipment']['requestedPackageLineItems'][0]['packageSpecialServices']['signatureOptionType'] === 'ADULT');
     }
 
     public function test_without_keys_the_estimate_is_used(): void

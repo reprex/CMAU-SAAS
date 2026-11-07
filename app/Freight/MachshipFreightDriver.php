@@ -65,7 +65,8 @@ class MachshipFreightDriver implements FreightDriver
         $out = [];
         foreach ($routes as $route) {
             $sid = (int) ($route['carrierService']['id'] ?? 0);
-            if ($services && ! isset($services[$sid])) {
+            $service = $services[$sid] ?? $this->byName($route);
+            if ($service === null) {
                 continue;
             }
             $t = (array) ($route['consignmentTotal'] ?? []);
@@ -78,10 +79,12 @@ class MachshipFreightDriver implements FreightDriver
             // cost); the client price is that × (1 + MACHSHIP_MARKUP_PERCENT), e.g. $1 at 30% = $1.30.
             $base = $costEx !== null && (float) $costEx > 0 ? (float) $costEx : (float) $sell;
             $days = (int) ($route['despatchOptions'][0]['totalBusinessDays'] ?? 0);
-            $id = $services[$sid]['id'] ?? 'ms_'.$sid;
+            $id = $service['id'];
+            $fuel = collect($t)->filter(fn ($v, $k) => is_numeric($v) && (float) $v != 0 && preg_match('/fuel/i', (string) $k))->map(fn ($v, $k) => $k.' '.number_format((float) $v, 2))->implode(', ');
             $out[$id] ??= [
+                'includes' => $fuel !== '' ? $fuel : null,
                 'id' => $id,
-                'name' => $services[$sid]['name'] ?? trim(($route['carrier']['name'] ?? '').' '.($route['carrierService']['name'] ?? '')),
+                'name' => $service['name'],
                 'carrier' => (string) ($route['carrier']['name'] ?? 'MachShip'),
                 'days' => [max(1, $days), max(1, $days)],
                 'price' => Money::roundToCent($base * $markup),
@@ -95,6 +98,25 @@ class MachshipFreightDriver implements FreightDriver
     }
 
     /** @return array{suburb: string, state: ?string}|null the first MachShip location for the postcode */
+    /**
+     * Services offered besides the mapped ids, by carrier and service name (config freight.machship.by_name):
+     * Capital Transport's car and station wagon in Melbourne metro, only where MachShip returns them.
+     *
+     * @return array{id: string, name: string}|null
+     */
+    private function byName(array $route): ?array
+    {
+        $carrier = (string) ($route['carrier']['name'] ?? '');
+        $name = (string) ($route['carrierService']['name'] ?? '');
+        foreach ((array) config('freight.machship.by_name') as $rule) {
+            if (preg_match($rule['carrier'], $carrier) && preg_match($rule['service'], $name)) {
+                return ['id' => $rule['id'], 'name' => $rule['name']];
+            }
+        }
+
+        return null;
+    }
+
     private function location(string $postcode): ?array
     {
         $key = 'machship-loc:'.$postcode;

@@ -28,12 +28,21 @@ return [
         'token' => env('MACHSHIP_TOKEN'),
         'base_url' => env('MACHSHIP_BASE_URL', 'https://live.machship.com/apiv2/'),
         'company_id' => env('MACHSHIP_COMPANY_ID'),
-        'carrier_ids' => array_values(array_filter(array_map('intval', explode(',', (string) env('MACHSHIP_CARRIER_IDS', '11'))))),
+        // Empty = every carrier on the account (TNT and Capital Transport); only the services below are offered.
+        'carrier_ids' => array_values(array_filter(array_map('intval', explode(',', (string) env('MACHSHIP_CARRIER_IDS', ''))))),
         // MachShip carrier service id => our service id (and name shown to clients).
         'services' => [
             540 => ['id' => 'tnt_road', 'name' => 'TNT Road Express'],
             538 => ['id' => 'tnt_overnight', 'name' => 'TNT Overnight Express'],
         ],
+        // Melbourne metro couriers (Scott, 7 Nov 2026): offered at checkout when MachShip returns them for
+        // the address and size (car for small consignments, station wagon for larger).
+        'by_name' => [
+            ['carrier' => '/capital/i', 'service' => '/wagon/i', 'id' => 'capital_wagon', 'name' => 'Capital Transport station wagon (Melbourne metro)'],
+            ['carrier' => '/capital/i', 'service' => '/\bcar\b/i', 'id' => 'capital_car', 'name' => 'Capital Transport car (Melbourne metro)'],
+        ],
+        // Quotes always show this service for Australia (Scott, 7 Nov 2026); checkout lists all of them.
+        'quote_service' => 'tnt_road',
         'markup_percent' => (float) env('MACHSHIP_MARKUP_PERCENT', 0),
         'timeout' => 12,
     ],
@@ -50,6 +59,8 @@ return [
             'INTERNATIONAL_ECONOMY' => 'fedex_ie', 'FEDEX_INTERNATIONAL_ECONOMY' => 'fedex_ie',
         ],
         'commodity' => env('FEDEX_COMMODITY', 'Promotional merchandise'),
+        // Quotes use Economy; checkout lists Priority and Economy only (Scott, 7 Nov 2026).
+        'quote_service' => 'fedex_ie',
         'markup_percent' => (float) env('FEDEX_MARKUP_PERCENT', 0),
         'timeout' => 15,
     ],

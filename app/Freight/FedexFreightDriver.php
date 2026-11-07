@@ -74,7 +74,9 @@ class FedexFreightDriver implements FreightDriver
         foreach ($c->items as $i) {
             for ($k = 0; $k < $i['quantity']; $k++) {
                 $packages[] = ['weight' => ['units' => 'KG', 'value' => max(0.1, round($i['weight'], 1))],
-                    'dimensions' => ['length' => (int) ceil($i['length']), 'width' => (int) ceil($i['width']), 'height' => (int) ceil($i['height']), 'units' => 'CM']];
+                    'dimensions' => ['length' => (int) ceil($i['length']), 'width' => (int) ceil($i['width']), 'height' => (int) ceil($i['height']), 'units' => 'CM'],
+                    // Adult signature on every FedEx delivery (Scott, 7 Nov 2026), so its charge is in the rate.
+                    'packageSpecialServices' => ['specialServiceTypes' => ['SIGNATURE_OPTION'], 'signatureOptionType' => 'ADULT']];
             }
         }
         $value = max(1.0, round($c->value, 2));
@@ -122,8 +124,13 @@ class FedexFreightDriver implements FreightDriver
                 continue;
             }
             $days = $this->days($d) ?? ($id === 'fedex_ip' ? 5 : 9);
-            $cost = Money::roundToCent((float) $pick['totalNetCharge']);
-            $out[$id] = ['id' => $id, 'name' => $names[$id], 'carrier' => 'FedEx', 'days' => [$days, $days], 'price' => Money::roundToCent($cost * $markup), 'cost' => $cost];
+            // Our cost: FedEx's net charge with all surcharges (fuel, adult signature…) and without taxes:
+            // totalNetFedExCharge where given, else totalNetCharge less any taxes (Scott, 7 Nov 2026).
+            $taxes = (float) ($pick['totalTaxes'] ?? $pick['shipmentRateDetail']['totalTaxes'] ?? 0);
+            $cost = Money::roundToCent((float) ($pick['totalNetFedExCharge'] ?? ((float) $pick['totalNetCharge'] - $taxes)));
+            $sur = collect((array) ($pick['shipmentRateDetail']['surCharges'] ?? []))->map(fn ($x) => ($x['type'] ?? '?').' '.number_format((float) ($x['amount'] ?? 0), 2))->implode(', ');
+            $out[$id] = ['id' => $id, 'name' => $names[$id], 'carrier' => 'FedEx', 'days' => [$days, $days], 'price' => Money::roundToCent($cost * $markup), 'cost' => $cost,
+                'includes' => $sur !== '' ? $sur : null];
         }
         $out = array_values($out);
         usort($out, fn ($a, $b) => $a['price'] <=> $b['price']);

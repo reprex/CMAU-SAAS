@@ -226,8 +226,13 @@ class StaffQuotes
         $options = collect($freight['ok'] ?? false ? $freight['options'] : []);
         $chosen = null;
         if ($options->isNotEmpty()) {
+            // Quotes use one standard service (Scott, 7 Nov 2026): TNT Road in Australia, FedEx Economy
+            // overseas, or the supplier's flat delivery; checkout offers the others.
+            foreach (['supplier', config('freight.machship.quote_service'), config('freight.fedex.quote_service')] as $want) {
+                $chosen ??= $options->firstWhere('id', $want);
+            }
             $byPrice = $options->sortBy('price');
-            $chosen = $needBy ? $byPrice->first(fn ($o) => ! empty($o['delivery_date']) && $o['delivery_date'] <= $needBy) : null;
+            $chosen ??= $needBy ? $byPrice->first(fn ($o) => ! empty($o['delivery_date']) && $o['delivery_date'] <= $needBy) : null;
             $chosen ??= $needBy ? $options->sortBy('delivery_date')->first() : $byPrice->first();
         }
         $where = $country === 'AU' ? trim(($postcode ?? '').' '.($freight['zone'] ?? '')) : trim(($freight['zone'] ?? $country).' '.($postcode ?? ''));
