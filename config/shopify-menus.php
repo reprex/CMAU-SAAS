@@ -14,7 +14,9 @@
  */
 
 $categories = [
-    // The category landing pages (live: /pages/custom-branded-…), else a collection of that name.
+    // Smart Search first (Scott, 7 Nov), then the category landing pages (live: /pages/custom-branded-…),
+    // else a collection of that name.
+    ['Smart Search', 'page:find-products'],
     ['Clothing', 'page:custom-branded-clothing|collection:clothing'],
     ['Headwear', 'page:custom-branded-headwear|collection:headwear'],
     ['Bags', 'page:custom-branded-bags|collection:bags'],

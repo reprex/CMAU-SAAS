@@ -66,7 +66,8 @@ class ShopifyMenusTest extends TestCase
         $this->assertStringContainsString('menuCreate', $this->writes[1]['query']);
         $main = $this->writes[0]['variables']['items'];
         $this->assertSame(['Find products', 'Get started', 'Case studies', 'Services', 'Help'], array_column($main, 'title'));
-        $this->assertCount(14, $main[0]['items']);
+        $this->assertCount(15, $main[0]['items']);
+        $this->assertSame('Smart Search', $main[0]['items'][0]['title']);
         $this->assertSame('PAGE', $main[0]['items'][1]['type']);
         $this->assertSame('PAGE', $main[0]['type']);
         $this->assertArrayHasKey('resourceId', $main[0]);
