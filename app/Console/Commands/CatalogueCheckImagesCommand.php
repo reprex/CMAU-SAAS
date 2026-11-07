@@ -29,19 +29,28 @@ class CatalogueCheckImagesCommand extends Command
             return self::SUCCESS;
         }
         if ($this->option('gaps')) {
-            $products = $colours = $images = 0;
+            // Report the backlog and queue the products with more than one colour on the hero first (Scott, 7 Nov 2026).
+            $by = [];
+            $images = [];
             Product::query()->where('tier', Product::TIER_LIVE)->whereNotNull('hydrated_at')->with(['images', 'colours', 'override'])
-                ->chunkById(200, function ($chunk) use ($vision, &$products, &$colours, &$images) {
+                ->chunkById(200, function ($chunk) use ($vision, &$by, &$images) {
                     foreach ($chunk as $product) {
-                        $gaps = $vision->colourGaps($product);
-                        if ($gaps !== []) {
-                            $products++;
-                            $colours += count($gaps);
-                            $images += $product->images->where('role', '!=', 'line_art')->count();
+                        $n = count($vision->colourGaps($product));
+                        if ($n > 0) {
+                            $by[$product->id] = $n;
+                            $images[$product->id] = $product->images->where('role', '!=', 'line_art')->count();
                         }
                     }
                 });
-            $this->info("{$products} products have {$colours} colours showing the hero; a re-check sends about {$images} images.");
+            arsort($by);
+            $multi = array_filter($by, fn ($n) => $n > 1);
+            $this->table(['', 'Products', 'Colours on the hero', 'Images a re-check sends'], [
+                ['More than one colour', count($multi), array_sum($multi), array_sum(array_intersect_key($images, $multi))],
+                ['One colour', count($by) - count($multi), array_sum($by) - array_sum($multi), array_sum($images) - array_sum(array_intersect_key($images, $multi))],
+                ['All', count($by), array_sum($by), array_sum($images)],
+            ]);
+            Cache::put('image-check:colour-queue', array_keys($multi), now()->addDays(3));
+            $this->info(count($multi).' products with more than one colour on the hero are queued first (most colours first); then the rest by the normal scan.');
             $this->line('Daily image limit: '.config('images.check.images_per_day').' (IMAGE_CHECK_PER_DAY); re-checks a minute: '.config('images.check.colour_rechecks_per_run').' (IMAGE_COLOUR_RECHECKS_PER_RUN), up to '.config('images.check.colour_seconds').'s (IMAGE_COLOUR_SECONDS).');
 
             return self::SUCCESS;
@@ -107,6 +116,27 @@ class CatalogueCheckImagesCommand extends Command
     /** Scan a slice of the range for colours with no picture and re-check a few of those products. */
     private function colourGapPass(ImageVision $vision, ImageTagger $tagger): int
     {
+        // A queue from `st gaps` (products with more than one colour on the hero) goes first.
+        $queue = (array) Cache::get('image-check:colour-queue', []);
+        if ($queue !== []) {
+            $done = 0;
+            $started = microtime(true);
+            while ($queue !== [] && $done < (int) config('images.check.colour_rechecks_per_run') && microtime(true) - $started <= (int) config('images.check.colour_seconds')) {
+                $product = Product::query()->find(array_shift($queue));
+                try {
+                    if ($product && $vision->recheckForColours($product) > 0) {
+                        $tagger->apply($product->fresh());
+                        $done++;
+                    }
+                } catch (Throwable $e) {
+                    $this->error("Product {$product?->id} colour pictures: {$e->getMessage()}");
+                }
+            }
+            $queue === [] ? Cache::forget('image-check:colour-queue') : Cache::put('image-check:colour-queue', $queue, now()->addDays(3));
+
+            return $done;
+        }
+
         $cursor = (int) Cache::get('image-check:colour-cursor', 0);
         $products = Product::query()->where('tier', Product::TIER_LIVE)->whereNotNull('hydrated_at')
             ->where('id', '>', $cursor)->orderBy('id')->limit((int) config('images.check.colour_scan_per_run'))
