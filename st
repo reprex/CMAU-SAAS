@@ -14,6 +14,7 @@
 #   st mfd      metafield definitions;  st cols  collections --sync;  st pub50  publish 50 and stop
 #   st menus    store menus (report);  st menusgo  create or replace the menus
 #   st decos    which decorations AS Colour, JB's and Shiny products use (Decorators tab check)
+#   st gaps     products whose colours still show the main photo (AI colour mapping backlog)
 #   st suppcont supplier orders contacts from Promodata (report);  st suppcontgo  fill the empty ones
 #   st suppaddr supplier dispatch addresses from Promodata (report);  st suppaddrgo  fill the empty ones
 #   st health   publishing status
@@ -41,6 +42,7 @@ case "$1" in
   mfd) $PHP artisan shopify:metafield-definitions ;;
   cols) $PHP artisan shopify:collections --sync ;;
   decos) $PHP artisan pricing:decorators-check ;;
+  gaps) $PHP artisan catalogue:check-images --gaps ;;
   suppcont) $PHP artisan promodata:supplier-contacts ;;
   suppcontgo) $PHP artisan promodata:supplier-contacts --apply ;;
   suppaddr) $PHP artisan promodata:supplier-addresses ;;
