@@ -78,8 +78,10 @@ class ImageTagger
         $heroOverride = $product->overrideValue('hero_image_url');
         $hero = $heroOverride ?: $product->hero_image_url;
         $colourImage = [];
+        // A picture Promodata gives several colours (115000 points every colour at the hero) belongs to none of them.
+        $shared = $product->colours->unique('name')->pluck('image_url')->filter()->countBy()->filter(fn ($n) => $n > 1)->keys()->all();
         foreach ($product->colours as $c) {
-            if ($c->image_url && ! isset($colourImage[$c->image_url])) {
+            if ($c->image_url && ! isset($colourImage[$c->image_url]) && ! in_array($c->image_url, $shared, true)) {
                 $colourImage[$c->image_url] = $c->name;
             }
         }
@@ -176,21 +178,26 @@ class ImageTagger
         $tags = $this->tags($product);
         $hidden = (array) $product->overrideValue('hidden_colours', []);
         $style = $tags->where('role', self::HERO_STYLE)->merge($tags->where('role', self::OTHER_STYLE))->pluck('url')->values()->all();
+        $hero = $style[0] ?? null;
         $colours = [];
         foreach ($product->colours->unique('name') as $c) {
             if (in_array($c->name, $hidden, true)) {
                 continue;
             }
+            $other = $tags->filter(fn ($t) => $t['role'] === self::OTHER_COLOUR && $t['colour'] === $c->name)->pluck('url')->values()->all();
+            // No Promodata picture for the colour (e.g. Modena Jute Tote 115000, where every colour points at the
+            // hero): its first "other colour" picture, from the file name or Claude's look, beats the hero (7 Nov 2026).
             $image = $tags->first(fn ($t) => $t['role'] === self::COLOUR && $t['colour'] === $c->name)['url']
                 ?? $tags->first(fn ($t) => $t['role'] === self::HERO_STYLE && $t['colour'] === $c->name)['url']
+                ?? ($c->image_url && $c->image_url !== $hero ? $c->image_url : null)
+                ?? ($other[0] ?? null)
                 ?? $c->image_url;
             $colours[$c->name] = [
                 'families' => array_values(array_filter((array) $c->appa_colours)),
                 'image' => $image,
-                'other' => $tags->filter(fn ($t) => $t['role'] === self::OTHER_COLOUR && $t['colour'] === $c->name)->pluck('url')->values()->all(),
+                'other' => array_values(array_diff($other, [$image])),
             ];
         }
-        $hero = $style[0] ?? null;
         foreach ($colours as $name => $c) {
             $colours[$name]['image'] ??= $hero; // a colour without its own picture shows the hero, rather than being dropped as TOD did
         }
