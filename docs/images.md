@@ -73,7 +73,7 @@ To try Claude on one product first: `cd ~/saas-app && /usr/local/bin/ea-php84 ar
 Staff never map colour pictures by hand (the live site took that work; it is not repeated). Where Promodata gives a colour no picture of its own, or one picture shared by several colours (e.g. Modena Jute Tote 115000 points every colour at the hero):
 
 - That shared picture belongs to no colour.
-- Claude's image check names, for every image, the one listed colour the product is shown in (`image_checks.colour_name`), not only for "other colour" images.
-- A colour with no picture of its own takes the image Claude saw in that colour (tagged `ai`), before the file-name rules fall back to the hero.
+- Style photos stay style photos. Claude's image check still tags each image style or colour, and now also notes the single listed colour a style photo shows (`image_checks.colour_name`).
+- Every colour should have at least one colour picture: a colour still without one borrows ONE style photo Claude saw showing the whole product (or an angle) in exactly that colour, at or above the confidence bar, never the hero (tagged `ai`). Details, in-use shots and the rest stay style.
 - `catalogue:check-images` first scans the range (60 products a minute, own cursor) for colours that would still show the hero and re-checks up to 2 of those products a minute; checks made before `images.check.colour_question_since` are redone for them. Products publish their new variant pictures as normal.
 - Staff tags still win; a colour Claude can't place keeps the hero and shows on the product's image tags.

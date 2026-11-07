@@ -95,7 +95,7 @@ class ImageTagger
         $sure = (float) config('images.check.min_confidence', 0.7);
         // Colours with no picture of their own from Promodata (none, or one shared with other colours).
         $needsPicture = $colours->pluck('name')->reject(fn ($n) => in_array($n, $colourImage, true))->values()->all();
-        $tags = $urls->map(function (string $url) use ($hero, $colourImage, $matchers, $nameTokens, $checks, $sure, $needsPicture) {
+        $tags = $urls->map(function (string $url) use ($hero, $colourImage, $matchers, $nameTokens, $checks, $sure) {
             [$role, $colour] = match (true) {
                 isset($colourImage[$url]) && $url !== $hero => [self::COLOUR, $colourImage[$url]],
                 $url === $hero => [self::HERO_STYLE, $colourImage[$url] ?? null],
@@ -119,15 +119,30 @@ class ImageTagger
                     // The file name named a colour: keep it when Claude agrees, flag it when not.
                     self::OTHER_COLOUR => $saw === $colour ? [$role, $colour, 'ai', null]
                         : [$role, $colour, 'auto', $saw ? "Claude sees {$saw}, the file name says {$colour}" : "Claude sees the hero's colour; the file name says {$colour}"],
-                    // Nothing in the file name: Claude decides. A photo of a colour with no picture of its own is
-                    // that colour's, even when Claude called it the hero's style (Scott, 7 Nov 2026: AI maps colours).
-                    default => $saw ? [self::OTHER_COLOUR, $saw, 'ai', null]
-                        : (($check->colour_name && in_array($check->colour_name, $needsPicture, true)) ? [self::OTHER_COLOUR, $check->colour_name, 'ai', null] : [self::OTHER_STYLE, null, 'ai', null]),
+                    // Nothing in the file name: Claude decides.
+                    default => $saw ? [self::OTHER_COLOUR, $saw, 'ai', null] : [self::OTHER_STYLE, null, 'ai', null],
                 };
             }
 
             return ['url' => $url, 'role' => $role, 'colour' => $colour, 'by' => $by, 'auto_role' => $role, 'auto_colour' => $colour, 'review' => $review === null ? null : Str::limit($review, 157), 'seen' => $seen]; // column is 160
         });
+
+        // Every colour should have at least one colour picture (Scott, 7 Nov 2026), but style photos stay style.
+        // A colour still without one borrows ONE photo: a style photo Claude saw showing the whole product (or an
+        // angle of it) in exactly that colour, the surest first; never the hero. The rest stay style.
+        $placed = $tags->whereIn('role', [self::COLOUR, self::OTHER_COLOUR])->pluck('colour')->filter()->unique()->all();
+        foreach ($needsPicture as $name) {
+            if (in_array($name, $placed, true)) {
+                continue;
+            }
+            $pick = $tags->filter(fn ($t) => $t['role'] === self::OTHER_STYLE && $t['url'] !== $hero && $t['review'] === null
+                && ($t['seen']['colour'] ?? null) === $name && in_array($t['seen']['shows'] ?? null, ['whole_product', 'angle'], true)
+                && (float) ($t['seen']['confidence'] ?? 0) >= $sure)
+                ->sortBy(fn ($t) => [($t['seen']['shows'] ?? '') === 'whole_product' ? 0 : 1, -(float) ($t['seen']['confidence'] ?? 0)])->keys()->first();
+            if ($pick !== null) {
+                $tags[$pick] = ['role' => self::OTHER_COLOUR, 'colour' => $name, 'by' => 'ai', 'auto_role' => self::OTHER_COLOUR, 'auto_colour' => $name] + $tags[$pick];
+            }
+        }
 
         // Staff tags win. A staff "hero style" replaces the automatic hero.
         $colourNames = $colours->pluck('name')->all();

@@ -129,16 +129,17 @@ class ImageTaggerTest extends TestCase
     {
         $hero = self::CDN.'115000-0.jpg';
         $p = Product::create(['id' => 3112, 'supplier_id' => 88, 'name' => 'Modena Jute Tote Bag', 'code' => '115000', 'tier' => 'live', 'hydrated_at' => now(), 'hero_image_url' => $hero]);
-        foreach (['115000-0.jpg', '115000-4.jpg', '115000-5.jpg'] as $i => $f) {
+        foreach (['115000-0.jpg', '115000-4.jpg', '115000-5.jpg', '115000-6.jpg', '115000-7.jpg'] as $i => $f) {
             $p->images()->create(['url' => self::CDN.$f, 'role' => $i ? 'other_style' : 'hero_style', 'position' => $i]);
         }
         foreach (['Natural/White', 'Natural/Blue'] as $name) {
             $p->colours()->create(['name' => $name, 'image_url' => $hero, 'position' => 0]);
         }
         $this->assertSame(['Natural/White', 'Natural/Blue'], app(ImageVision::class)->colourGaps($p->fresh(['images', 'colours', 'override'])));
-        foreach (['115000-4.jpg' => 'Natural/Blue', '115000-5.jpg' => null] as $f => $colour) {
+        foreach (['115000-4.jpg' => ['Natural/Blue', 'whole_product', 0.9], '115000-5.jpg' => [null, 'whole_product', 0.9],
+            '115000-6.jpg' => ['Natural/Blue', 'detail', 0.95], '115000-7.jpg' => ['Natural/Blue', 'whole_product', 0.8]] as $f => [$colour, $shows, $conf]) {
             ImageCheck::query()->create(['url_hash' => ImageCheck::hashOf(self::CDN.$f), 'url' => self::CDN.$f, 'product_id' => 3112,
-                'tag' => 'other_style', 'colour_name' => $colour, 'shows' => 'whole_product', 'confidence' => 0.9, 'model' => 'test', 'checked_at' => now()]);
+                'tag' => 'other_style', 'colour_name' => $colour, 'shows' => $shows, 'confidence' => $conf, 'model' => 'test', 'checked_at' => now()]);
         }
         app(ImageTagger::class)->apply($p);
         $fresh = $p->fresh(['images', 'colours', 'override']);
@@ -146,6 +147,8 @@ class ImageTaggerTest extends TestCase
 
         $this->assertSame(self::CDN.'115000-4.jpg', $out['colours']['Natural/Blue']['image']);
         $this->assertSame($hero, $out['colours']['Natural/White']['image']);
+        // One photo borrowed for the colour; the detail and the less sure whole-product photo stay style photos.
+        $this->assertSame([$hero, self::CDN.'115000-5.jpg', self::CDN.'115000-6.jpg', self::CDN.'115000-7.jpg'], $out['style']);
         $this->assertSame(['Natural/White'], app(ImageVision::class)->colourGaps($fresh));
     }
 
