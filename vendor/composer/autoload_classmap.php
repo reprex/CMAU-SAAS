@@ -75,6 +75,7 @@ return array(
     'App\\Console\\Commands\\PricingVerifyPagesCommand' => $baseDir . '/app/Console/Commands/PricingVerifyPagesCommand.php',
     'App\\Console\\Commands\\PromodataCheckCommand' => $baseDir . '/app/Console/Commands/PromodataCheckCommand.php',
     'App\\Console\\Commands\\PromodataSupplierAddressesCommand' => $baseDir . '/app/Console/Commands/PromodataSupplierAddressesCommand.php',
+    'App\\Console\\Commands\\PromodataSupplierContactsCommand' => $baseDir . '/app/Console/Commands/PromodataSupplierContactsCommand.php',
     'App\\Console\\Commands\\PromodataSyncCommand' => $baseDir . '/app/Console/Commands/PromodataSyncCommand.php',
     'App\\Console\\Commands\\PromodataSyncStepCommand' => $baseDir . '/app/Console/Commands/PromodataSyncStepCommand.php',
     'App\\Console\\Commands\\QuotesImportDraftsCommand' => $baseDir . '/app/Console/Commands/QuotesImportDraftsCommand.php',
