@@ -151,6 +151,21 @@ class WebsiteCheckoutTest extends TestCase
         $this->assertSame(['fedex_ip', 'fedex_ie'], array_column($nz->json('freight.options'), 'id'));
     }
 
+    public function test_a_supplier_with_flat_delivery_charges_it_to_au_and_nz_and_the_carrier_elsewhere(): void
+    {
+        // Trends builds freight into its prices (Scott, 7 Nov 2026): AU and NZ flat $25 (cost $15).
+        Supplier::query()->updateOrCreate(['id' => 3], ['name' => 'Trends', 'flat_freight_countries' => 'AU,NZ', 'flat_freight_price' => 25, 'flat_freight_cost' => 15]);
+        Product::query()->whereIn('id', [self::MENS, self::WOMENS])->update(['supplier_id' => 3]);
+
+        $au = $this->price($this->cart())->assertOk();
+        $this->assertSame(['supplier'], array_column($au->json('freight.options'), 'id'));
+        $this->assertSame(25.0, (float) $au->json('totals.freight'));
+        $nz = $this->price($this->cart(['delivery' => ['country' => 'NZ', 'postcode' => '1010'], 'freight_service' => 'supplier', 'need_by' => '2027-01-29']))->assertOk();
+        $this->assertSame(25.0, (float) $nz->json('totals.freight'));
+        $us = $this->price($this->cart(['delivery' => ['country' => 'US', 'postcode' => '10001'], 'freight_service' => 'fedex_ip', 'need_by' => '2027-01-29']))->assertOk();
+        $this->assertSame(['fedex_ip', 'fedex_ie'], array_column($us->json('freight.options'), 'id'));
+    }
+
     public function test_freight_charges_the_greater_of_cubic_and_dead_weight(): void
     {
         $driver = new EstimateFreightDriver;

@@ -49,3 +49,10 @@ overseas (Replicat's account rates). The SaaS does the pricing; the website neve
   fills them in, **only where both suburb and postcode are empty in the SaaS**. Anything staff have
   entered or edited is never overwritten (source shown as "staff" or "Promodata").
 - `st freight` now prints the carriers' own replies when a price fails.
+
+## Flat delivery per supplier (Scott, 7 Nov 2026)
+- Admin › Suppliers › "Flat delivery to" (country codes), price to the client, cost to us and days.
+  Used instead of MachShip / FedEx for those countries, once per order per supplier, shown as
+  "Standard delivery". Other countries still go by the carriers.
+- Trends: AU and NZ, price AUD 25, cost AUD 15 (Trends builds freight into its prices); elsewhere FedEx.
+  Set by migration 000037 only if Trends had no flat delivery yet.

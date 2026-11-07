@@ -5,6 +5,7 @@ namespace App\Checkout;
 use App\Catalogue\OurCodes;
 use App\Catalogue\ProductOptions;
 use App\Freight\Consignment;
+use App\Freight\Countries;
 use App\Freight\FreightDriver;
 use App\Freight\PackData;
 use App\Models\PriceOption;
@@ -181,13 +182,43 @@ class CheckoutPricer
 
         // ---- Freight from the pack data of each style.
         $country = mb_strtoupper((string) ($in['delivery']['country'] ?? 'AU'));
-        // Ships from the supplier's dispatch address when every style comes from the same supplier
-        // (docs/freight.md); a mix of suppliers is priced from config freight.from.
-        $supplierIds = collect($styles)->map(fn ($s) => $allowed[$s['product_id']]->supplier_id)->unique();
-        $origin = $supplierIds->count() === 1 ? $allowed[array_key_first($styles)]->supplier?->dispatchOrigin() : null;
-        $consignment = Consignment::from(array_map(fn ($s) => ['pack' => $this->packs->for($allowed[$s['product_id']]), 'units' => $s['units']], array_values($styles)))
+        // Suppliers with a flat delivery for this country (Trends to AU / NZ) are charged that, once per
+        // supplier; the rest goes by the carriers (docs/freight.md).
+        $flat = [];
+        $carried = [];
+        foreach ($styles as $pid => $st) {
+            $sup = $allowed[$pid]->supplier;
+            $f = $sup?->flatFreight($country);
+            if ($f) {
+                $flat[$sup->id] = $f;
+            } else {
+                $carried[$pid] = $st;
+            }
+        }
+        // Ships from the supplier's dispatch address when every carried style comes from the same
+        // supplier; a mix of suppliers is priced from config freight.from.
+        $supplierIds = collect($carried)->map(fn ($s) => $allowed[$s['product_id']]->supplier_id)->unique();
+        $origin = $supplierIds->count() === 1 ? $allowed[array_key_first($carried)]->supplier?->dispatchOrigin() : null;
+        $consignment = Consignment::from(array_map(fn ($s) => ['pack' => $this->packs->for($allowed[$s['product_id']]), 'units' => $s['units']], array_values($carried ?: $styles)))
             ->withValue($goods)->withOrigin($origin);
-        $freight = $units > 0 ? $this->freight->quote($consignment, $country, $in['delivery']['postcode'] ?? null) : null;
+        $flatPrice = Money::roundToCent(array_sum(array_column($flat, 'price')));
+        $flatCost = Money::roundToCent(array_sum(array_column($flat, 'cost')));
+        if ($units <= 0) {
+            $freight = null;
+        } elseif ($carried === []) {
+            $days = max(array_column($flat, 'days'));
+            $freight = ['ok' => true, 'message' => null, 'country' => $country, 'export' => $country !== 'AU', 'zone' => $country === 'AU' ? null : Countries::name($country), 'source' => 'supplier', 'basis' => 'Supplier',
+                'estimated' => false, 'cartons' => $consignment->cartons, 'kg' => round($consignment->kg, 2), 'm3' => round($consignment->m3, 3), 'chargeable_kg' => null,
+                'options' => [['id' => 'supplier', 'name' => 'Standard delivery', 'carrier' => 'Supplier', 'days' => [$days, $days], 'price' => $flatPrice, 'cost' => $flatCost]]];
+        } else {
+            $freight = $this->freight->quote($consignment, $country, $in['delivery']['postcode'] ?? null);
+            if ($flat && ($freight['ok'] ?? false)) {
+                foreach ($freight['options'] as $k => $o) {
+                    $freight['options'][$k]['price'] = Money::roundToCent((float) $o['price'] + $flatPrice);
+                    $freight['options'][$k]['cost'] = isset($o['cost']) ? Money::roundToCent((float) $o['cost'] + $flatCost) : null;
+                }
+            }
+        }
         $chosen = null;
         if ($freight && $freight['ok']) {
             $chosen = collect($freight['options'])->firstWhere('id', $in['freight_service'] ?? null) ?? $freight['options'][0] ?? null;
