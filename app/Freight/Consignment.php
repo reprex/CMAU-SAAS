@@ -7,6 +7,7 @@ namespace App\Freight;
  * product's pack data and how many of it are ordered. Each product's cartons
  * are also kept as items (count, size, weight each) for the carriers' APIs.
  * Estimated when any product's weight isn't from Promodata (Scott, 7 Nov 2026).
+ * Origin: where it ships from (the supplier's dispatch suburb and postcode), else config freight.from.
  */
 final class Consignment
 {
@@ -19,12 +20,26 @@ final class Consignment
         public readonly array $items = [],
         public readonly bool $estimated = false,
         public readonly float $value = 0.0,
+        /** @var array{suburb: string, postcode: string, state: ?string}|null */
+        public readonly ?array $origin = null,
     ) {}
 
     /** The goods' value ex GST in AUD (FedEx needs a customs value). */
     public function withValue(float $value): self
     {
-        return new self($this->cartons, $this->kg, $this->m3, $this->cm3, $this->items, $this->estimated, $value);
+        return new self($this->cartons, $this->kg, $this->m3, $this->cm3, $this->items, $this->estimated, $value, $this->origin);
+    }
+
+    /** Ships from here (a supplier's dispatch address) instead of config freight.from. */
+    public function withOrigin(?array $origin): self
+    {
+        return new self($this->cartons, $this->kg, $this->m3, $this->cm3, $this->items, $this->estimated, $this->value, $origin);
+    }
+
+    /** @return array{suburb: string, postcode: string, state: ?string} */
+    public function shipsFrom(): array
+    {
+        return $this->origin ?? config('freight.from');
     }
 
     /** @param  list<array{pack: array<string, mixed>, units: int}>  $parts */

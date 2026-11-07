@@ -13,6 +13,7 @@
 #   st sw       switch-store report (read-only);  st swgo  switch-store --apply
 #   st mfd      metafield definitions;  st cols  collections --sync;  st pub50  publish 50 and stop
 #   st menus    store menus (report);  st menusgo  create or replace the menus
+#   st suppaddr supplier dispatch addresses from Promodata (report);  st suppaddrgo  fill the empty ones
 #   st health   publishing status
 cd "$HOME/saas-app" || exit 1
 PHP=/usr/local/bin/ea-php84
@@ -37,6 +38,8 @@ case "$1" in
   swgo) $PHP artisan shopify:switch-store --apply ;;
   mfd) $PHP artisan shopify:metafield-definitions ;;
   cols) $PHP artisan shopify:collections --sync ;;
+  suppaddr) $PHP artisan promodata:supplier-addresses ;;
+  suppaddrgo) $PHP artisan promodata:supplier-addresses --apply ;;
   menus) $PHP artisan shopify:menus ;;
   menusgo) $PHP artisan shopify:menus --apply ;;
   pub50) $PHP artisan shopify:publish --limit=50 ;;

@@ -51,6 +51,24 @@ class PromodataClient
     }
 
     /**
+     * Any GET (e.g. /suppliers), or null when Promodata has no such endpoint or record (404).
+     *
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>|null
+     */
+    public function get(string $path, array $query = []): ?array
+    {
+        try {
+            return $this->send('get', $path, $query);
+        } catch (RequestException $e) {
+            if (in_array($e->response->status(), [404, 405], true)) {
+                return null;
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */

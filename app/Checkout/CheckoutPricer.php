@@ -181,8 +181,12 @@ class CheckoutPricer
 
         // ---- Freight from the pack data of each style.
         $country = mb_strtoupper((string) ($in['delivery']['country'] ?? 'AU'));
+        // Ships from the supplier's dispatch address when every style comes from the same supplier
+        // (docs/freight.md); a mix of suppliers is priced from config freight.from.
+        $supplierIds = collect($styles)->map(fn ($s) => $allowed[$s['product_id']]->supplier_id)->unique();
+        $origin = $supplierIds->count() === 1 ? $allowed[array_key_first($styles)]->supplier?->dispatchOrigin() : null;
         $consignment = Consignment::from(array_map(fn ($s) => ['pack' => $this->packs->for($allowed[$s['product_id']]), 'units' => $s['units']], array_values($styles)))
-            ->withValue($goods);
+            ->withValue($goods)->withOrigin($origin);
         $freight = $units > 0 ? $this->freight->quote($consignment, $country, $in['delivery']['postcode'] ?? null) : null;
         $chosen = null;
         if ($freight && $freight['ok']) {

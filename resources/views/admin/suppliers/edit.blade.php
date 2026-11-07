@@ -34,6 +34,11 @@
       <label class="f">Orders email<input name="orders_email" type="email" value="{{ old('orders_email', $supplier->orders_email) }}" maxlength="190" placeholder="orders@supplier.com.au"></label>
       <label class="f">Our account number with them<input name="our_account_number" value="{{ old('our_account_number', $supplier->our_account_number) }}" maxlength="60"></label>
     </div>
+    <div class="fgrid">
+      <label class="f">Dispatches from: suburb<input name="dispatch_suburb" value="{{ old('dispatch_suburb', $supplier->dispatch_suburb) }}" maxlength="80" placeholder="e.g. DERRIMUT"></label>
+      <label class="f">Dispatches from: postcode<input class="n" name="dispatch_postcode" value="{{ old('dispatch_postcode', $supplier->dispatch_postcode) }}" inputmode="numeric" maxlength="4" placeholder="e.g. 3026"></label>
+      <p class="small muted" style="margin:0;align-self:end">Delivery on quotes and at checkout is priced from here (MachShip, FedEx).@if($supplier->dispatch_source) From {{ $supplier->dispatch_source === 'promodata' ? 'Promodata' : 'staff' }}.@endif Empty: priced from {{ config('freight.from.suburb') }} {{ config('freight.from.postcode') }}.</p>
+    </div>
     <label class="f">Closures (one per line: <code>2026-12-18 to 2027-01-11 Christmas shutdown</code>)<textarea name="closures" rows="3" placeholder="Empty: shut the last 2 working days before Christmas, reopening the first Monday after 5 January">{{ old('closures', $closures) }}</textarea><span class="small muted">From the supplier's distributor site or notices. The delivery estimate skips these days for stock and branding (docs/lead-times.md).</span></label>
     <label class="row" style="gap:10px;align-items:flex-start"><input type="checkbox" name="offers_samples" value="1" @checked(old('offers_samples', $supplier->offers_samples)) style="margin-top:4px"><span><b>Offers samples on the website</b><br><span class="small muted">"Order sample" on its product pages, at the unbranded price at the minimum order. Unprinted or a print overrun: the factory decides.@if($supplier->sample_available) TOD marks this supplier as having samples.@endif</span></span></label>
     <div class="fgrid">

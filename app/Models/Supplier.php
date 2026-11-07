@@ -69,4 +69,19 @@ class Supplier extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    /**
+     * Where this supplier dispatches from, for delivery prices (docs/freight.md), or null to use
+     * config freight.from. Australian suppliers only: NZ (Trends) goes direct and is priced as such.
+     *
+     * @return array{suburb: string, postcode: string, state: ?string}|null
+     */
+    public function dispatchOrigin(): ?array
+    {
+        if (! preg_match('/^\d{4}$/', (string) $this->dispatch_postcode) || ! filled($this->dispatch_suburb) || $this->ships_from === 'NZ') {
+            return null;
+        }
+
+        return ['suburb' => mb_strtoupper(trim((string) $this->dispatch_suburb)), 'postcode' => (string) $this->dispatch_postcode, 'state' => $this->state];
+    }
 }
